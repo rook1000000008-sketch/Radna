@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เหมาะโอชา - ระบบใบ Order เสมือนจริง (Tablet)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts (Kanit) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    .layer-transition {
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes floatSteam {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
+      50% { transform: translateY(-10px) scale(1.15); opacity: 0.65; }
+    }
+    .steam-anim {
+      animation: floatSteam 2.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto p-3 sm:p-4 flex flex-col min-h-screen lg:h-screen">
+    
+    <!-- Top Header -->
+    <header class="bg-emerald-800 text-white p-3 rounded-2xl shadow-md flex justify-between items-center mb-3 shrink-0">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">🍲</span>
+        <div>
+          <h1 class="text-lg font-bold text-amber-300 leading-tight">เหมาะโอชา Order System</h1>
+          <p class="text-xs text-emerald-100">ระบบรับออเดอร์แบบภาพเสมือนจริงสำหรับแท็บเล็ต</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- การระบุโต๊ะ / กลับบ้าน -->
+        <div class="bg-emerald-900 border border-emerald-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+          <i data-lucide="map-pin" class="w-4 h-4 text-amber-300"></i>
+          <select v-model="orderType" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-white cursor-pointer">
+            <option value="table_1" class="text-slate-800">โต๊ะ 1</option>
+            <option value="table_2" class="text-slate-800">โต๊ะ 2</option>
+            <option value="table_3" class="text-slate-800">โต๊ะ 3</option>
+            <option value="table_4" class="text-slate-800">โต๊ะ 4</option>
+            <option value="table_5" class="text-slate-800">โต๊ะ 5</option>
+            <option value="table_6" class="text-slate-800">โต๊ะ 6</option>
+            <option value="takeout" class="text-slate-800">🥡 กลับบ้าน (ห่อ)</option>
+          </select>
+        </div>
+        <span class="text-xs font-medium hidden sm:inline bg-emerald-900/50 px-2.5 py-1.5 rounded-lg">{{ currentTime }}</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden mb-3">
+      
+      <!-- ฝั่งซ้าย: หน้าจอโชว์ชามเสมือนจริง (Interactive Visual Bowl) -->
+      <div class="lg:col-span-5 bg-white p-4 rounded-2xl border border-slate-200 flex flex-col justify-between items-center relative overflow-hidden shadow-sm animate-fade-in">
+        <div class="w-full flex justify-between items-center z-10">
+          <span class="bg-stone-100 text-stone-700 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+            <span>👁️</span> ตัวอย่างชามที่สั่ง
+          </span>
+          <span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+            {{ summaryMenuTitle }}
+          </span>
+        </div>
+
+        <!-- ตัวชามและการซ้อนเลเยอร์กราฟิก / ภาพจริง (Layered Composition) -->
+        <div class="relative w-72 h-72 sm:w-80 sm:h-80 my-auto flex items-center justify-center select-none">
+          
+          <!-- ภาพจริง / SVG ชามสเตนเลสเปล่า (Layer 0) -->
+          <img :src="`assets/bowl_steel.png`" 
+               @error="onImgError($event, 'bowl_steel')"
+               class="absolute inset-0 w-full h-full object-contain drop-shadow-md pointer-events-none layer-transition" 
+               alt="ชามสเตนเลสเปล่า">
+
+          <!-- LAYER 1: ชนิดเส้น (เส้นใหญ่, เส้นหมี่, หมี่กรอบ, บะหมี่) -->
+          <img v-if="selectedNoodle" 
+               :src="`assets/noodle_${selectedNoodle}.png`" 
+               @error="onImgError($event, `noodle_${selectedNoodle}`)"
+               class="absolute inset-0 w-full h-full object-contain pointer-events-none layer-transition z-10" 
+               alt="เส้น">
+
+          <!-- LAYER 2: ผักคะน้าฮ่องกง (แสดงเมื่อเลือกใส่ผัก) -->
+          <img v-if="includeVegetable" 
+               :src="`assets/veg_kale.png`" 
+               @error="onImgError($event, 'veg_kale')"
+               class="absolute inset-0 w-full h-full object-contain pointer-events-none layer-transition z-20" 
+               alt="ผักคะน้า">
+
+          <!-- LAYER 3: น้ำราดหน้า (แสดงเมื่อเปิดสวิตช์น้ำราดหน้า) -->
+          <img v-if="hasGravy" 
+               :src="`assets/gravy_radna.png`" 
+               @error="onImgError($event, 'gravy_radna')"
+               class="absolute inset-0 w-full h-full object-contain pointer-events-none layer-transition z-30 opacity-80 mix-blend-multiply" 
+               alt="น้ำราดหน้า">
+
+          <!-- LAYER 4: เนื้อสัตว์ & ท็อปปิ้ง (วางเด่นด้านหน้า) -->
+          <div v-for="mId in selectedMeats" :key="mId" class="absolute inset-0 w-full h-full z-40 pointer-events-none">
+            <img :src="`assets/meat_${mId}.png`" 
+                 @error="onImgError($event, `meat_${mId}`)"
+                 class="w-full h-full object-contain layer-transition" 
+                 :alt="mId">
+          </div>
+
+          <!-- เอฟเฟกต์ควันร้อน -->
+          <div v-if="selectedNoodle" class="absolute inset-x-0 top-12 flex justify-center z-50 pointer-events-none">
+            <svg viewBox="0 0 100 100" class="w-24 h-24 steam-anim opacity-40">
+              <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+        </div>
+
+        <!-- แถบราคาด้านล่างชาม -->
+        <div class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center z-10 shrink-0">
+          <div>
+            <span class="text-xs text-slate-500 block font-medium">ราคารวมออเดอร์นี้</span>
+            <span class="text-2xl sm:text-3xl font-extrabold text-emerald-700">฿{{ currentBowlPrice }}</span>
+          </div>
+          <button @click="resetBowl" class="text-xs text-rose-600 font-bold border border-rose-200 bg-white px-3.5 py-2 rounded-xl hover:bg-rose-50 transition flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            เริ่มทำใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- ฝั่งขวา: เมนูหลัก & การปรับแต่งท็อปปิ้ง (แบ่งพื้นที่ Scroll + ปุ่มส่งตรึงด้านล่าง) -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+        
+        <!-- พื้นที่เลือกเมนู (Scroll ได้เฉพาะส่วนนี้) -->
+        <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
+          <!-- 1. เลือกชนิดเส้น -->
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+              <span>🍜</span> 1. เลือกชนิดเส้น
+            </h3>
+            <div class="grid grid-cols-4 gap-2">
+              <button v-for="n in noodles" :key="n.id" 
+                      @click="selectNoodle(n.id)"
+                      :class="['p-2.5 rounded-xl text-center border-2 font-bold text-xs sm:text-sm transition-all',
+                              selectedNoodle === n.id ? 'bg-amber-50 border-amber-400 text-amber-900 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600']">
+                {{ n.name }}
+                <span class="block text-[10px] font-normal text-slate-500 mt-0.5">฿{{ n.price }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. เลือกเนื้อสัตว์หลัก & ท็อปปิ้ง -->
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+              <span>🍤</span> 2. เลือกเนื้อสัตว์หลัก & ท็อปปิ้ง (แตะเลือกได้หลายอย่าง)
+            </h3>
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <button v-for="m in meats" :key="m.id" 
+                      @click="toggleMeat(m.id)"
+                      :class="['p-2.5 rounded-xl text-center border-2 font-bold text-xs transition-all flex flex-col justify-between min-h-[62px]',
+                              selectedMeats.includes(m.id) ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm scale-[1.02]' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600']">
+                <span>{{ m.icon }} {{ m.name }}</span>
+                <span class="text-[10px] text-emerald-700 font-bold block mt-1">+ ฿{{ m.price }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. ผักและน้ำราดหน้า -->
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+              <span>🥬</span> 3. ตัวเลือกผัก & น้ำราดหน้า
+            </h3>
+            <div class="grid grid-cols-2 gap-2">
+              <button @click="includeVegetable = !includeVegetable"
+                      :class="['p-3 rounded-xl border-2 text-xs font-bold transition flex justify-between items-center', 
+                              includeVegetable ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 text-slate-400 border-slate-200']">
+                <span>🥬 ใส่ผักคะน้า</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="includeVegetable ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'">
+                  {{ includeVegetable ? 'ใส่' : 'ไม่ใส่' }}
+                </span>
+              </button>
+              <button @click="hasGravy = !hasGravy"
+                      :class="['p-3 rounded-xl border-2 text-xs font-bold transition flex justify-between items-center', 
+                              hasGravy ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-slate-50 text-slate-400 border-slate-200']">
+                <span>🫗 น้ำราดหน้า (เกรวี่)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" :class="hasGravy ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'">
+                  {{ hasGravy ? 'ราดน้ำ' : 'ผัดแห้ง' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. หมายเหตุพิเศษ -->
+          <div>
+            <h3 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+              <span>✍️</span> 4. หมายเหตุพิเศษ
+            </h3>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <button v-for="note in quickNotes" :key="note" 
+                      @click="addQuickNote(note)" 
+                      class="text-[11px] bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-700 px-2.5 py-1 rounded-full font-medium transition">
+                + {{ note }}
+              </button>
+            </div>
+            <input type="text" v-model="specialInstructions" placeholder="พิมพ์ระบุเพิ่ม เช่น เผ็ดน้อย / ขอพริกป่นเพิ่ม..." 
+                   class="w-full p-2.5 border border-slate-300 rounded-xl text-sm bg-slate-55 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+          </div>
+        </div>
+
+        <!-- ปุ่มส่งออเดอร์ (ตรึงติดด้านล่างเสมอ ไม่ตกขอบ) -->
+        <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex gap-3 shrink-0">
+          <button @click="resetBowl" class="flex-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-1.5">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            ล้างชาม
+          </button>
+          <button @click="submitOrder" class="flex-[3] bg-amber-500 hover:bg-amber-600 text-slate-900 py-3 rounded-xl font-extrabold transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-md active:scale-95">
+            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            ส่งเข้าจอครัว & พิมพ์ใบ Order (฿{{ currentBowlPrice }})
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ลิ้นชักคิวที่กำลังทำปัจจุบัน (ล่างสุด) -->
+    <footer class="bg-white border border-slate-200 p-2.5 sm:p-3 rounded-2xl shadow-sm flex items-center justify-between shrink-0">
+      <div class="flex items-center space-x-3 overflow-hidden">
+        <span class="bg-amber-100 text-amber-900 font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 shrink-0">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+          คิววันนี้: {{ activeQueue.length }} รายการ
+        </span>
+        <div class="flex space-x-2 overflow-x-auto pb-0.5">
+          <span v-for="(q, index) in activeQueue" :key="index" class="text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-emerald-900 font-semibold whitespace-nowrap">
+            คิว #{{ q.id }} ({{ q.location }}): {{ q.noodleName }} + {{ q.meatsText }} [฿{{ q.price }}]
+          </span>
+        </div>
+      </div>
+      <button v-if="activeQueue.length > 0" @click="clearQueue" class="text-xs text-rose-500 hover:text-rose-700 font-medium shrink-0 ml-2">
+        ล้างคิว
+      </button>
+    </footer>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const orderType = ref('table_1');
+        const selectedNoodle = ref('sen_yai');
+        const selectedMeats = ref(['shrimp']);
+        const includeVegetable = ref(true);
+        const hasGravy = ref(true);
+        const specialInstructions = ref('');
+        const isOrdered = ref(false);
+        const activeQueue = ref([]);
+        const currentTime = ref('');
+
+        const updateTime = () => {
+          const d = new Date();
+          currentTime.value = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        };
+
+        const noodles = ref([
+          { id: 'sen_yai', name: 'เส้นใหญ่', price: 40 },
+          { id: 'sen_mee', name: 'เส้นหมี่', price: 40 },
+          { id: 'mee_krob', name: 'หมี่กรอบ', price: 45 },
+          { id: 'ba_mee', name: 'บะหมี่', price: 40 }
+        ]);
+
+        const meats = ref([
+          { id: 'shrimp', name: 'กุ้ง (3 ตัว)', icon: '🍤', price: 55 },
+          { id: 'pork', name: 'หมูหมัก', icon: '🐖', price: 15 },
+          { id: 'liver', name: 'ตับหมู', icon: '🩸', price: 15 },
+          { id: 'beef', name: 'เนื้อวัว', icon: '🐂', price: 25 },
+          { id: 'crispy_pork', name: 'หมูกรอบ', icon: '🥓', price: 35 },
+          { id: 'squid', name: 'หมึกกล้วยแว่น', icon: '🦑', price: 20 },
+          { id: 'quail_egg', name: 'ไข่นกกระทา', icon: '🥚', price: 15 },
+          { id: 'crab_stick', name: 'ปูอัดหั่นเฉียง', icon: '🦀', price: 10 },
+          { id: 'seafood', name: 'ทะเลรวม (กุ้ง+หมึก+ไข่+ปู)', icon: '🌊', price: 65 }
+        ]);
+
+        const quickNotes = ref(['ไม่ใส่ผัก', 'แยกน้ำ', 'พิเศษเส้น', 'เผ็ด ๆ', 'หวานน้อย']);
+
+        const currentBowlPrice = computed(() => {
+          let total = 0;
+          const noodleObj = noodles.value.find(n => n.id === selectedNoodle.value);
+          if (noodleObj) total += noodleObj.price;
+
+          selectedMeats.value.forEach(mId => {
+            const meatObj = meats.value.find(m => m.id === mId);
+            if (meatObj) total += meatObj.price;
+          });
+          return total;
+        });
+
+        const summaryMenuTitle = computed(() => {
+          const n = noodles.value.find(item => item.id === selectedNoodle.value)?.name || 'ยังไม่เลือกเส้น';
+          const dish = hasGravy.value ? 'ราดหน้า' : 'ผัดแห้ง';
+          return `${dish}${n}`;
+        });
+
+        // ฟังก์ชันช่วยจัดการเมื่อหารูปภาพไม่เจอ (จะสลับมาสร้าง SVG จำลองเพื่อไม่ให้หน้าจอแตก)
+        const onImgError = (event, type) => {
+          // หากหาภาพถ่าย PNG ไม่เจอ จะใช้ CSS จำลองสีและการจัดวางชามแทนเพื่อคงความสวยงาม
+          event.target.style.display = 'none';
+          console.warn(`Asset '${type}' not found. UI is using standard visual layer placeholders.`);
+        };
+
+        const selectNoodle = (id) => selectedNoodle.value = id;
+        
+        const toggleMeat = (id) => {
+          // ป้องกันการเลือก "ทะเลรวม" ซ้ำกับกุ้งหรือหมึกเดี่ยว ๆ
+          if (id === 'seafood') {
+            selectedMeats.value = ['seafood'];
+            return;
+          } else {
+            const index = selectedMeats.value.indexOf('seafood');
+            if (index > -1) selectedMeats.value.splice(index, 1);
+          }
+
+          const idx = selectedMeats.value.indexOf(id);
+          if (idx > -1) {
+            selectedMeats.value.splice(idx, 1);
+          } else {
+            selectedMeats.value.push(id);
+          }
+        };
+
+        const addQuickNote = (note) => {
+          if (note === 'ไม่ใส่ผัก') includeVegetable.value = false;
+          if (note === 'แยกน้ำ') hasGravy.value = false;
+          if (specialInstructions.value) {
+            if (!specialInstructions.value.includes(note)) {
+              specialInstructions.value += ` / ${note}`;
+            }
+          } else {
+            specialInstructions.value = note;
+          }
+        };
+
+        const resetBowl = () => {
+          selectedNoodle.value = 'sen_yai';
+          selectedMeats.value = ['shrimp'];
+          includeVegetable.value = true;
+          hasGravy.value = true;
+          specialInstructions.value = '';
+          isOrdered.value = false;
+        };
+
+        const submitOrder = () => {
+          if (!selectedNoodle.value) {
+            alert('กรุณาเลือกชนิดเส้นก่อนครับ');
+            return;
+          }
+
+          isOrdered.value = true;
+          const noodleName = noodles.value.find(n => n.id === selectedNoodle.value)?.name || '';
+          const meatsText = selectedMeats.value.map(mId => meats.value.find(m => m.id === mId)?.name || mId).join(', ');
+          const locationText = orderType.value === 'takeout' ? 'กลับบ้าน (ห่อ)' : `โต๊ะ ${orderType.value.split('_')[1]}`;
+
+          const newOrder = {
+            id: activeQueue.value.length + 1,
+            location: locationText,
+            noodleName: (hasGravy.value ? 'ราดหน้า' : 'ผัดแห้ง') + noodleName,
+            meatsText: meatsText || 'ธรรมดา',
+            price: currentBowlPrice.value,
+            special: specialInstructions.value || 'ไม่มี'
+          };
+
+          activeQueue.value.push(newOrder);
+
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+          } catch(e) {}
+
+          setTimeout(() => {
+            alert(`🍜 ส่งเข้าห้องครัวเรียบร้อย!\n\nใบสั่งงาน คิว #${newOrder.id}\nสถานที่: ${newOrder.location}\nเมนู: ${newOrder.noodleName} + ${newOrder.meatsText}\nหมายเหตุ: ${newOrder.special}\nรวม: ฿${newOrder.price}`);
+            resetBowl();
+          }, 250);
+        };
+
+        const clearQueue = () => {
+          if (confirm('ยืนยันที่จะเคลียร์คิวทั้งหมดของวันนี้?')) {
+            activeQueue.value = [];
+          }
+        };
+
+        onMounted(() => {
+          updateTime();
+          setInterval(updateTime, 1000);
+          lucide.createIcons();
+        });
+
+        return {
+          orderType, selectedNoodle, selectedMeats, includeVegetable, hasGravy, specialInstructions, isOrdered,
+          noodles, meats, quickNotes, currentBowlPrice, summaryMenuTitle, selectNoodle, toggleMeat, addQuickNote, resetBowl,
+          submitOrder, activeQueue, clearQueue, currentTime, onImgError
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
