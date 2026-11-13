@@ -28,16 +28,16 @@
   </style>
 </head>
 <body class="bg-stone-100 text-slate-800 min-h-screen">
-  <div id="app" class="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col min-h-screen lg:h-screen">
+  <div id="app" class="max-w-7xl mx-auto p-2 sm:p-3 flex flex-col min-h-screen lg:h-screen">
     
     <!-- Header -->
-    <header class="bg-emerald-900 text-white p-2.5 sm:p-3 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-2 mb-2 sm:mb-3 shrink-0 border-b-4 border-amber-400">
+    <header class="bg-emerald-900 text-white p-2 sm:p-2.5 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-2 mb-2 shrink-0 border-b-4 border-amber-400">
       <div class="flex items-center space-x-2.5">
         <div class="shrink-0 flex items-center">
-          <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-10 sm:h-13 w-auto object-contain drop-shadow-md">
+          <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-10 sm:h-11 w-auto object-contain drop-shadow-md">
         </div>
         <div>
-          <h1 class="text-base sm:text-xl font-bold text-amber-300 leading-tight flex items-center gap-1.5">
+          <h1 class="text-base sm:text-lg font-bold text-amber-300 leading-tight flex items-center gap-1.5">
             เหมาะโอชา <span class="text-[10px] sm:text-xs bg-amber-500/20 px-2 py-0.5 rounded text-amber-200 border border-amber-400/30">The Next⁺</span>
           </h1>
           <p class="text-[11px] text-emerald-100 hidden sm:block">ระบบรับออเดอร์หน้าร้านแบบภาพเสมือนจริง • โทร: 066 014 6505</p>
@@ -45,7 +45,7 @@
       </div>
 
       <!-- ระบุโต๊ะ / ลำดับที่ / ปุ่มเชื่อมจอมอนิเตอร์ครัว -->
-      <div class="flex items-center gap-1.5 sm:gap-2.5">
+      <div class="flex items-center gap-1.5 sm:gap-2">
         <div class="bg-emerald-950/80 border border-emerald-700 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
           <span class="text-[11px] text-emerald-200 hidden sm:inline">โต๊ะ:</span>
           <select v-model="billHeader.location" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
@@ -78,40 +78,40 @@
       </div>
     </header>
 
-    <!-- Main Workspace (บนมือถือ: โซนชามตรึงอยู่ด้านบน sticky top-0 / บนจอใหญ่: แบ่งซ้าย-ขวา) -->
-    <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-4 lg:overflow-hidden mb-2">
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:overflow-hidden mb-1.5 min-h-0">
       
-      <!-- ฝั่งซ้าย (และส่วนบนสุดแบบ Sticky บนมือถือ): พื้นที่ตัวอย่างชาม + แถบชามที่จัดเสร็จแล้ว -->
-      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2.5 sm:p-4 rounded-2xl border border-slate-200 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0">
+      <!-- ฝั่งซ้าย (บนมือถือตรึงด้านบน sticky top-0): พื้นที่ตัวอย่างชาม + แถบชามที่จัดเสร็จแล้ว -->
+      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-slate-200 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0 lg:h-full lg:overflow-hidden">
         
         <!-- แถบชามที่จัดเสร็จแล้ว (หุบเล็กลงเป็นไอคอนพร้อมเลขห้อยจำนวน กดเรียกกลับมาแก้ไขได้) -->
-        <div v-if="billItems.length > 0" class="w-full bg-amber-50/90 border border-amber-200 rounded-xl p-1.5 sm:p-2 mb-2">
-          <div class="flex items-center justify-between px-1 mb-1">
+        <div v-if="billItems.length > 0" class="w-full bg-amber-50/90 border border-amber-200 rounded-xl p-1.5 mb-1.5 shrink-0">
+          <div class="flex items-center justify-between px-1 mb-0.5">
             <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
               <span>🍱</span> ชามที่จัดเสร็จแล้ว ({{ billItems.length }} รายการ) — <span class="font-normal text-amber-700">แตะเพื่อแก้ไข</span>
             </span>
             <span class="text-[11px] font-extrabold text-emerald-800">รวม ฿{{ billGrandTotal }}</span>
           </div>
           
-          <div class="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-1">
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1">
             <button v-for="(item, idx) in billItems" :key="'mini_'+idx"
                     @click="loadBowlForEdit(idx)"
-                    :class="['relative group shrink-0 flex flex-col items-center p-1.5 rounded-xl border-2 transition-all',
+                    :class="['relative group shrink-0 flex flex-col items-center p-1 rounded-xl border-2 transition-all',
                             editingIndex === idx ? 'bg-amber-200/80 border-amber-500 scale-105 shadow-sm' : 'bg-white border-slate-200 hover:border-amber-400']">
               
               <!-- เลขห้อยจำนวนที่สั่ง (Badge มุมขวาบน) -->
-              <span class="absolute -top-1.5 -right-1.5 z-30 bg-rose-600 text-white text-[11px] font-black min-w-[22px] h-[22px] px-1 rounded-full flex items-center justify-center shadow border-2 border-white">
+              <span class="absolute -top-1.5 -right-1.5 z-30 bg-rose-600 text-white text-[10px] font-black min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center shadow border-2 border-white">
                 x{{ item.qty }}
               </span>
 
               <!-- ปุ่มลัดลบทิ้งมุมซ้ายบน -->
               <span @click.stop="removeBillItem(idx)"
-                    class="absolute -top-1.5 -left-1.5 z-30 bg-slate-700 hover:bg-rose-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow opacity-80 hover:opacity-100">
+                    class="absolute -top-1.5 -left-1.5 z-30 bg-slate-700 hover:bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow opacity-85 hover:opacity-100">
                 ✕
               </span>
 
-              <!-- ภาพจำลองชามขนาดย่อ (Mini Visual Bowl) -->
-              <div class="relative w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
+              <!-- ภาพจำลองชามขนาดย่อ -->
+              <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center">
                 <div v-if="item.config.noodle === 'mee_krob'" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
                   <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
                   <img src="Asset/noodle_meekrob.png" class="absolute w-[125%] max-w-none h-auto object-contain rotate-90">
@@ -135,37 +135,38 @@
                   <div v-if="item.config.dishType === 'radna'" class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
                 </div>
               </div>
-              <span class="text-[10px] font-bold text-slate-700 max-w-[68px] truncate mt-0.5">฿{{ item.totalPrice }}</span>
+              <span class="text-[10px] font-bold text-slate-700 max-w-[60px] truncate">฿{{ item.totalPrice }}</span>
             </button>
           </div>
         </div>
 
         <!-- หัวข้อสถานะชามปัจจุบัน -->
-        <div class="w-full flex justify-between items-center z-10 gap-2">
-          <span class="text-[11px] sm:text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1"
+        <div class="w-full flex justify-between items-center z-10 gap-2 shrink-0">
+          <span class="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1"
                 :class="editingIndex !== null ? 'bg-amber-100 text-amber-900 border border-amber-400' : 'bg-stone-100 text-stone-700'">
             <span>{{ editingIndex !== null ? '✏️ กำลังแก้ไขชามที่ ' + (editingIndex + 1) : '👁️ ตัวอย่างชามที่กำลังปรุง' }}</span>
           </span>
-          <span class="text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-full border truncate max-w-[55%]"
+          <span class="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border truncate max-w-[55%]"
                 :class="isBowlEmpty ? 'bg-slate-50 text-slate-500 border-slate-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'">
             {{ currentBowlSummary }}
           </span>
         </div>
 
-        <!-- พื้นที่จัดวางภาชนะหลัก (ปรับขนาดอัตโนมัติให้ตรึงพอดีบนมือถือและใหญ่เต็มตาบนแท็บเล็ต) -->
-        <div class="relative w-full max-w-[360px] h-44 sm:h-60 lg:h-72 my-1 sm:my-auto flex items-center justify-center select-none">
+        <!-- พื้นที่จัดวางภาชนะหลัก (ย่อ-ขยายสมดุลอัตโนมัติ ไม่ดันปุ่มด้านล่างหลุดขอบจอ) -->
+        <div :class="['relative w-full max-w-[340px] my-auto flex items-center justify-center select-none min-h-0',
+                      billItems.length > 0 ? 'h-40 sm:h-48 lg:h-52' : 'h-44 sm:h-56 lg:h-64']">
           
           <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย -->
           <div v-if="currentItem.noodle === 'mee_krob'"
-               class="relative w-[34%] sm:w-[36%] aspect-square mr-1.5 flex items-center justify-center layer-transition shrink-0">
+               class="relative w-[34%] aspect-square mr-1.5 flex items-center justify-center layer-transition shrink-0">
             <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-md" alt="ถ้วยหมี่กรอบ">
             <img src="Asset/noodle_meekrob.png"
                  class="absolute w-[128%] max-w-none h-auto object-contain pointer-events-none drop-shadow-lg rotate-90" alt="หมี่กรอบ 2 ก้อน">
           </div>
 
           <!-- ชามหลัก -->
-          <div :class="['relative aspect-square flex items-center justify-center layer-transition shrink-0',
-                        currentItem.noodle === 'mee_krob' ? 'w-[56%] sm:w-[60%]' : 'w-44 sm:w-64 lg:w-72']">
+          <div :class="['relative aspect-square flex items-center justify-center layer-transition shrink-0 max-h-full',
+                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : (billItems.length > 0 ? 'w-40 sm:w-48 lg:w-52' : 'w-44 sm:w-56 lg:w-64')]">
             
             <!-- Layer 0: ชามสเตนเลสหลัก -->
             <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-lg" alt="ชามสเตนเลส">
@@ -236,8 +237,8 @@
             <div v-if="currentItem.dishType === 'radna'" class="absolute inset-0 w-full h-full z-50 pointer-events-none bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
 
             <!-- ควันร้อนอนิเมชั่น -->
-            <div v-if="!isBowlEmpty" class="absolute inset-x-0 top-4 sm:top-6 flex justify-center z-[60] pointer-events-none">
-              <svg viewBox="0 0 100 100" class="w-10 h-10 sm:w-14 sm:h-14 steam-anim opacity-45">
+            <div v-if="!isBowlEmpty" class="absolute inset-x-0 top-4 sm:top-5 flex justify-center z-[60] pointer-events-none">
+              <svg viewBox="0 0 100 100" class="w-10 h-10 sm:w-12 sm:h-12 steam-anim opacity-45">
                 <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
               </svg>
             </div>
@@ -245,22 +246,20 @@
           </div>
         </div>
 
-        <!-- แถบราคา & จำนวนชาม (พร้อมปุ่มจัดจานเสร็จ / บันทึกแก้ไข ในโซนตรึงบนมือถือ) -->
-        <div class="w-full bg-slate-50 p-2 sm:p-3 rounded-xl border border-slate-200 flex justify-between items-center gap-2 z-10 shrink-0">
+        <!-- แถบราคา & จำนวนชาม (แสดงครบเสมอไม่โดนดันหลุดขอบจอ) -->
+        <div class="w-full bg-slate-50 p-2 sm:p-2.5 rounded-xl border border-slate-200 flex justify-between items-center gap-2 z-10 shrink-0 mt-1">
           <div>
             <span class="text-[11px] text-slate-500 block">฿{{ singleBowlPrice }} x {{ currentItem.qty }} ชาม</span>
-            <span class="text-lg sm:text-2xl font-extrabold text-emerald-700 leading-none">฿{{ currentItemTotalPrice }}</span>
+            <span class="text-lg sm:text-xl font-extrabold text-emerald-700 leading-none">฿{{ currentItemTotalPrice }}</span>
           </div>
 
           <div class="flex items-center gap-1.5 sm:gap-2">
-            <!-- ตัวเพิ่ม-ลดจำนวนชาม -->
             <div class="flex items-center gap-1 bg-white px-1.5 py-1 rounded-xl border border-slate-300 shadow-sm">
               <button @click="currentItem.qty > 1 && currentItem.qty--" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-100 font-bold text-base text-slate-700">-</button>
               <span class="w-6 text-center font-extrabold text-sm">{{ currentItem.qty }}</span>
               <button @click="currentItem.qty++" class="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold text-base text-white">+</button>
             </div>
 
-            <!-- ปุ่มจัดจานเสร็จ / บันทึกการแก้ไข (กดแล้วชามจะหุบขึ้นไปไว้ด้านบนทันที) -->
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
                     :class="['font-bold px-3 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center gap-1 whitespace-nowrap',
                             isBowlEmpty ? 'bg-slate-200 text-slate-400 cursor-not-allowed' :
@@ -272,8 +271,8 @@
         </div>
       </div>
 
-      <!-- ฝั่งขวา (ส่วนเลื่อนเลือกวัตถุดิบด้านล่างบนมือถือ): แผงกดตามใบออเดอร์ -->
-      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:overflow-hidden">
+      <!-- ฝั่งขวา: แผงกดตามใบออเดอร์ + แถบเมนูส่งครัวด้านล่าง -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:h-full lg:overflow-hidden">
         
         <div class="p-3 sm:p-4 space-y-3 lg:overflow-y-auto flex-1">
           
@@ -289,12 +288,12 @@
               <label class="text-xs font-bold text-slate-500 block mb-1.5">1. ประเภทอาหาร <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
               <div class="grid grid-cols-2 gap-1.5">
                 <button @click="toggleDishType('radna')"
-                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                        :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
                                 currentItem.dishType === 'radna' ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
                   🍲 ราดหน้า
                 </button>
                 <button @click="toggleDishType('padseeew')"
-                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                        :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
                                 currentItem.dishType === 'padseeew' ? 'bg-amber-600 border-amber-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
                   🍳 ผัดซีอิ๊ว
                 </button>
@@ -305,7 +304,7 @@
               <label class="text-xs font-bold text-slate-500 block mb-1.5">2. ชนิดเส้น <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
               <div class="grid grid-cols-3 gap-1.5">
                 <button v-for="n in noodleOptions" :key="n.id" @click="toggleNoodle(n.id)"
-                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                        :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
                                 currentItem.noodle === n.id ? 'bg-amber-100 border-amber-500 text-amber-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
                   {{ n.name }}
                 </button>
@@ -318,7 +317,7 @@
             <label class="text-xs font-bold text-slate-500 block mb-1.5">3. เลือกหน้าหลักทั้งหมด <span class="font-normal text-slate-400">(กดซ้ำเพื่อนำเนื้อสัตว์ออก)</span></label>
             <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               <button v-for="m in meatOptions" :key="m.id" @click="toggleMeat(m.id)"
-                      :class="['p-2 rounded-xl border-2 text-center transition flex flex-col justify-center items-center',
+                      :class="['p-1.5 rounded-xl border-2 text-center transition flex flex-col justify-center items-center',
                               currentItem.meat === m.id ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 font-medium hover:bg-slate-100']">
                 <span class="text-xs">{{ m.name }}</span>
                 <span class="text-[10px] text-emerald-700 font-bold mt-0.5">฿{{ m.price }}</span>
@@ -414,11 +413,12 @@
 
         </div>
 
-        <!-- ปุ่มสรุปยอด & ส่งจอมอนิเตอร์ครัว + พิมพ์ใบออเดอร์ -->
-        <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0">
+        <!-- แถบเมนูสรุปยอด & ส่งครัว (แสดงชัดเจนตอนจัดจานเสร็จ และตรึงติดขอบล่างบนมือถือ) -->
+        <div v-if="billItems.length > 0 || !isBowlEmpty"
+             class="sticky bottom-0 z-20 lg:static p-2.5 sm:p-3 bg-slate-50/95 backdrop-blur-md border-t-2 border-amber-400 flex items-center justify-between gap-2 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
           <div>
-            <span class="text-xs text-slate-500 block">รวมเงินทั้งสิ้น</span>
-            <span class="text-2xl font-black text-emerald-700">฿{{ billGrandTotal }}</span>
+            <span class="text-[11px] text-slate-500 block">รวมเงินทั้งสิ้น ({{ billItems.length > 0 ? billItems.length + ' รายการ' : 'ชามปัจจุบัน' }})</span>
+            <span class="text-xl sm:text-2xl font-black text-emerald-700 leading-none">฿{{ billGrandTotal }}</span>
           </div>
           <div class="flex gap-1.5 sm:gap-2">
             <button @click="resetCurrentItem" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition">
@@ -439,7 +439,7 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[11px] text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-1 shrink-0 shadow-sm">
+    <footer class="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-[11px] text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-1 shrink-0 shadow-sm">
       <div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 text-center sm:text-left">
         <span class="text-emerald-700 font-bold">📍 ร้านเหมาะโอชา:</span>
         <span>209/37 (ลานจอดรถโรงแรมสไมล์เพลส) ถนนเชียงใหม่-ฮอด (ทล 108) ตำบลดอยแก้ว อำเภอจอมทอง จังหวัดเชียงใหม่ 50160</span>
@@ -665,7 +665,6 @@
           editingIndex.value = null;
         };
 
-        // จัดจานเสร็จ -> หุบชามเล็กลงไปไว้ด้านบนพร้อมเลขห้อยจำนวน (หรือบันทึกเมื่อแก้ไข)
         const saveBowlToTray = () => {
           if (isBowlEmpty.value) return;
           const toppings = [];
@@ -696,7 +695,6 @@
           resetCurrentItem();
         };
 
-        // คลิ๊กชามจิ๋วด้านบน -> เรียกกลับมาแก้ไขการจัดจานได้ทันที
         const loadBowlForEdit = (idx) => {
           const target = billItems.value[idx];
           if (!target) return;
@@ -722,7 +720,6 @@
           showSyncModal.value = false;
         };
 
-        // ระบบส่งข้อมูลเข้าจอมอนิเตอร์ห้องครัว (รองรับทั้ง Local Real-time และ Firebase Cloud)
         const dispatchOrderToKitchen = async () => {
           const orderPacket = {
             id: 'ORD_' + Date.now(),
@@ -734,7 +731,6 @@
             createdAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
           };
 
-          // 1. บันทึกลง LocalStorage + BroadcastChannel (ซิงก์ทันทีบนเครื่องเดียวกัน)
           const existing = JSON.parse(localStorage.getItem('mah_ocha_kitchen_orders') || '[]');
           existing.unshift(orderPacket);
           localStorage.setItem('mah_ocha_kitchen_orders', JSON.stringify(existing));
@@ -744,7 +740,6 @@
             channel.close();
           } catch (e) {}
 
-          // 2. ส่งขึ้น Firebase Realtime Database หากตั้งค่า URL ไว้ (ซิงก์ข้ามเครื่องไปยังจอในครัว)
           const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
           if (dbUrl) {
             try {
