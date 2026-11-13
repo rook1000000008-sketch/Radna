@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เหมาะโอชา The Next⁺ - ระบบใบ Order มือถือ & แท็บเล็ต</title>
+  <title>เหมาะโอชา The Next⁺ - ระบบใบ Order & Admin Visual Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -12,7 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Kanit', sans-serif; }
-    .layer-transition { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .layer-transition { transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .no-transition { transition: none !important; }
     @keyframes floatSteam {
       0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
       50% { transform: translateY(-10px) scale(1.12); opacity: 0.65; }
@@ -27,51 +28,59 @@
     }
   </style>
 </head>
-<body class="bg-stone-100 text-slate-800 min-h-screen">
+<body class="bg-orange-50/50 text-stone-800 min-h-screen">
   <div id="app" class="max-w-7xl mx-auto p-2 sm:p-3 flex flex-col min-h-screen lg:h-screen">
     
-    <!-- Header -->
-    <header class="bg-emerald-900 text-white p-2 sm:p-2.5 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-2 mb-2 shrink-0 border-b-4 border-amber-400">
+    <!-- Header ธีมน้ำตาลเข้มคั่วกระทะ + ขอบแดง -->
+    <header class="bg-[#2C1810] text-white p-2 sm:p-2.5 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-2 mb-2 shrink-0 border-b-4 border-red-600">
       <div class="flex items-center space-x-2.5">
         <div class="shrink-0 flex items-center">
           <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-10 sm:h-11 w-auto object-contain drop-shadow-md">
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold text-amber-300 leading-tight flex items-center gap-1.5">
-            เหมาะโอชา <span class="text-[10px] sm:text-xs bg-amber-500/20 px-2 py-0.5 rounded text-amber-200 border border-amber-400/30">The Next⁺</span>
+            เหมาะโอชา <span class="text-[10px] sm:text-xs bg-red-600/40 px-2 py-0.5 rounded text-amber-100 border border-red-400/40">The Next⁺</span>
           </h1>
-          <p class="text-[11px] text-emerald-100 hidden sm:block">ระบบรับออเดอร์หน้าร้านแบบภาพเสมือนจริง • โทร: 066 014 6505</p>
+          <p class="text-[11px] text-amber-100/80 hidden sm:block">ระบบรับออเดอร์หน้าร้านแบบภาพเสมือนจริง • โทร: 066 014 6505</p>
         </div>
       </div>
 
-      <!-- ระบุโต๊ะ / ลำดับที่ / ปุ่มเชื่อมจอมอนิเตอร์ครัว -->
+      <!-- ระบุโต๊ะ / ลำดับที่ / ปุ่ม Admin / จอมอนิเตอร์ครัว -->
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <div class="bg-emerald-950/80 border border-emerald-700 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
-          <span class="text-[11px] text-emerald-200 hidden sm:inline">โต๊ะ:</span>
+        <div class="bg-[#1E0F09] border border-amber-800/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
+          <span class="text-[11px] text-amber-200/80 hidden sm:inline">โต๊ะ:</span>
           <select v-model="billHeader.location" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
-            <option value="โต๊ะ 1" class="text-slate-800">โต๊ะ 1</option>
-            <option value="โต๊ะ 2" class="text-slate-800">โต๊ะ 2</option>
-            <option value="โต๊ะ 3" class="text-slate-800">โต๊ะ 3</option>
-            <option value="โต๊ะ 4" class="text-slate-800">โต๊ะ 4</option>
-            <option value="โต๊ะ 5" class="text-slate-800">โต๊ะ 5</option>
-            <option value="โต๊ะ 6" class="text-slate-800">โต๊ะ 6</option>
-            <option value="กลับบ้าน" class="text-slate-800">🥡 กลับบ้าน</option>
+            <option value="โต๊ะ 1" class="text-stone-800">โต๊ะ 1</option>
+            <option value="โต๊ะ 2" class="text-stone-800">โต๊ะ 2</option>
+            <option value="โต๊ะ 3" class="text-stone-800">โต๊ะ 3</option>
+            <option value="โต๊ะ 4" class="text-stone-800">โต๊ะ 4</option>
+            <option value="โต๊ะ 5" class="text-stone-800">โต๊ะ 5</option>
+            <option value="โต๊ะ 6" class="text-stone-800">โต๊ะ 6</option>
+            <option value="กลับบ้าน" class="text-stone-800">🥡 กลับบ้าน</option>
           </select>
         </div>
 
-        <div class="bg-emerald-950/80 border border-emerald-700 px-2.5 py-1 rounded-xl flex items-center gap-1">
-          <span class="text-[11px] text-emerald-200">คิว:</span>
-          <input type="number" v-model.number="billHeader.queueNo" class="w-10 sm:w-12 bg-emerald-950 text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-emerald-600 focus:outline-none">
+        <div class="bg-[#1E0F09] border border-amber-800/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+          <span class="text-[11px] text-amber-200/80">คิว:</span>
+          <input type="number" v-model.number="billHeader.queueNo" class="w-10 sm:w-12 bg-[#1E0F09] text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-amber-700/70 focus:outline-none">
         </div>
+
+        <!-- ปุ่มสลับโหมด Admin จัดการขนาดและตำแหน่งวัตถุ -->
+        <button @click="toggleAdminMode"
+                :class="['px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border transition',
+                        adminMode ? 'bg-red-600 border-red-300 text-white shadow-md animate-pulse' : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-800/60 text-amber-200']">
+          <span>🛠️</span>
+          <span>{{ adminMode ? 'ปิด Admin' : 'Admin' }}</span>
+        </button>
 
         <!-- เปิดจอมอนิเตอร์ห้องครัว / ตั้งค่าการเชื่อมต่อ -->
         <a href="kitchen.html" target="_blank" title="เปิดหน้าจอมอนิเตอร์ห้องครัว"
-           class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
+           class="bg-red-700/80 hover:bg-red-600 border border-red-400/50 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
           <span>📺</span>
           <span class="hidden md:inline">จอครัว</span>
         </a>
         <button @click="showSyncModal = true" title="ตั้งค่าการเชื่อมต่อจอครัว"
-                class="bg-emerald-950/80 hover:bg-emerald-800 border border-emerald-700 text-emerald-200 p-1.5 rounded-xl transition relative">
+                class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 p-1.5 rounded-xl transition relative">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span class="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
         </button>
@@ -81,32 +90,30 @@
     <!-- Main Workspace -->
     <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:overflow-hidden mb-1.5 min-h-0">
       
-      <!-- ฝั่งซ้าย (บนมือถือตรึงด้านบน sticky top-0): พื้นที่ตัวอย่างชาม + แถบชามที่จัดเสร็จแล้ว -->
-      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-slate-200 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0 lg:h-full lg:overflow-hidden">
+      <!-- ฝั่งซ้าย: พื้นที่ตัวอย่างชาม + แถบชามที่จัดเสร็จแล้ว -->
+      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-amber-200/80 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0 lg:h-full lg:overflow-hidden">
         
-        <!-- แถบชามที่จัดเสร็จแล้ว (หุบเล็กลงเป็นไอคอนพร้อมเลขห้อยจำนวน กดเรียกกลับมาแก้ไขได้) -->
-        <div v-if="billItems.length > 0" class="w-full bg-amber-50/90 border border-amber-200 rounded-xl p-1.5 mb-1.5 shrink-0">
+        <!-- แถบชามที่จัดเสร็จแล้ว -->
+        <div v-if="billItems.length > 0 && !adminMode" class="w-full bg-orange-50/90 border border-orange-200 rounded-xl p-1.5 mb-1.5 shrink-0">
           <div class="flex items-center justify-between px-1 mb-0.5">
-            <span class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
-              <span>🍱</span> ชามที่จัดเสร็จแล้ว ({{ billItems.length }} รายการ) — <span class="font-normal text-amber-700">แตะเพื่อแก้ไข</span>
+            <span class="text-[11px] font-bold text-[#4A2511] flex items-center gap-1">
+              <span>🍱</span> ชามที่จัดเสร็จแล้ว ({{ billItems.length }} รายการ) — <span class="font-normal text-red-700">แตะเพื่อแก้ไข</span>
             </span>
-            <span class="text-[11px] font-extrabold text-emerald-800">รวม ฿{{ billGrandTotal }}</span>
+            <span class="text-[11px] font-extrabold text-red-700">รวม ฿{{ billGrandTotal }}</span>
           </div>
           
           <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1">
             <button v-for="(item, idx) in billItems" :key="'mini_'+idx"
                     @click="loadBowlForEdit(idx)"
                     :class="['relative group shrink-0 flex flex-col items-center p-1 rounded-xl border-2 transition-all',
-                            editingIndex === idx ? 'bg-amber-200/80 border-amber-500 scale-105 shadow-sm' : 'bg-white border-slate-200 hover:border-amber-400']">
+                            editingIndex === idx ? 'bg-red-100/90 border-red-600 scale-105 shadow-sm' : 'bg-white border-amber-200 hover:border-red-400']">
               
-              <!-- เลขห้อยจำนวนที่สั่ง (Badge มุมขวาบน) -->
-              <span class="absolute -top-1.5 -right-1.5 z-30 bg-rose-600 text-white text-[10px] font-black min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center shadow border-2 border-white">
+              <span class="absolute -top-1.5 -right-1.5 z-30 bg-red-600 text-white text-[10px] font-black min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center shadow border-2 border-white">
                 x{{ item.qty }}
               </span>
 
-              <!-- ปุ่มลัดลบทิ้งมุมซ้ายบน -->
               <span @click.stop="removeBillItem(idx)"
-                    class="absolute -top-1.5 -left-1.5 z-30 bg-slate-700 hover:bg-rose-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow opacity-85 hover:opacity-100">
+                    class="absolute -top-1.5 -left-1.5 z-30 bg-[#3E2215] hover:bg-red-700 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow opacity-85 hover:opacity-100">
                 ✕
               </span>
 
@@ -114,28 +121,20 @@
               <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center">
                 <div v-if="item.config.noodle === 'mee_krob'" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
                   <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
-                  <img src="Asset/noodle_meekrob.png" class="absolute w-[125%] max-w-none h-auto object-contain rotate-90">
+                  <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
                 </div>
                 <div :class="['relative aspect-square flex items-center justify-center', item.config.noodle === 'mee_krob' ? 'w-[62%]' : 'w-full']">
                   <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
-                  <img v-if="item.config.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" class="absolute w-[62%] h-auto top-[24%] left-[19%]">
-                  <img v-if="item.config.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" class="absolute w-[60%] h-auto top-[24%] left-[20%]">
-                  <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" class="absolute w-[58%] h-auto top-[22%] left-[20%]">
-                  <img v-if="item.config.meat === 'pork'" src="Asset/meat_pork.png" class="absolute w-[42%] h-auto top-[44%] left-[29%]">
-                  <img v-if="item.config.meat === 'liver'" src="Asset/meat_liver.png" class="absolute w-[42%] h-auto top-[44%] left-[29%]">
-                  <img v-if="item.config.meat === 'beef'" src="Asset/meat_beef.png" class="absolute w-[42%] h-auto top-[44%] left-[29%]">
-                  <img v-if="item.config.meat === 'quail'" src="Asset/meat_quail.png" class="absolute w-[48%] h-auto top-[45%] left-[26%]">
-                  <img v-if="item.config.meat === 'crabstick'" src="Asset/meat_shrimp.png" class="absolute w-[42%] h-auto top-[44%] left-[29%]">
-                  <img v-if="item.config.meat === 'squid'" src="Asset/meat_squid.png" class="absolute w-[46%] h-auto top-[44%] left-[27%]">
-                  <img v-if="item.config.meat === 'crispy_pork'" src="Asset/meat_crispy.png" class="absolute w-[44%] h-auto top-[45%] left-[28%]">
-                  <img v-if="item.config.meat === 'seafood'" src="Asset/meat_seafood.png" class="absolute w-[46%] h-auto top-[43%] left-[27%]">
-                  <img v-if="item.config.meat === 'mixed'" src="Asset/meat_mixed.png" class="absolute w-[75%] h-auto top-[35%] left-[12.5%]">
-                  <img v-if="item.config.addShrimp > 0" src="Asset/meat_shrimp_a.png" class="absolute w-[24%] h-auto top-[48%] left-[50%]">
-                  <img v-if="item.config.addFriedEgg" src="Asset/meat_friedegg.png" class="absolute w-[44%] h-auto top-[36%] left-[15%]">
+                  <img v-if="item.config.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
+                  <img v-if="item.config.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" :style="getLayerStyle('noodle_sen_mee')" class="absolute h-auto">
+                  <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
+                  <img v-if="item.config.meat" :src="getMeatImage(item.config.meat)" :style="getLayerStyle('meat_' + item.config.meat)" class="absolute h-auto">
+                  <img v-if="item.config.addShrimp > 0" src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_0')" class="absolute h-auto">
+                  <img v-if="item.config.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')" class="absolute h-auto">
                   <div v-if="item.config.dishType === 'radna'" class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
                 </div>
               </div>
-              <span class="text-[10px] font-bold text-slate-700 max-w-[60px] truncate">฿{{ item.totalPrice }}</span>
+              <span class="text-[10px] font-bold text-[#3E2215] max-w-[60px] truncate">฿{{ item.totalPrice }}</span>
             </button>
           </div>
         </div>
@@ -143,101 +142,112 @@
         <!-- หัวข้อสถานะชามปัจจุบัน -->
         <div class="w-full flex justify-between items-center z-10 gap-2 shrink-0">
           <span class="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1"
-                :class="editingIndex !== null ? 'bg-amber-100 text-amber-900 border border-amber-400' : 'bg-stone-100 text-stone-700'">
-            <span>{{ editingIndex !== null ? '✏️ กำลังแก้ไขชามที่ ' + (editingIndex + 1) : '👁️ ตัวอย่างชามที่กำลังปรุง' }}</span>
+                :class="adminMode ? 'bg-red-100 text-red-800 border border-red-300' : (editingIndex !== null ? 'bg-amber-100 text-[#4A2511] border border-amber-400' : 'bg-amber-100/70 text-[#4A2511]')">
+            <span>{{ adminMode ? '🎯 โหมด Admin: แตะวัตถุบนชามเพื่อปรับพิกัด' : (editingIndex !== null ? '✏️ กำลังแก้ไขชามที่ ' + (editingIndex + 1) : '👁️ ตัวอย่างชามที่กำลังปรุง') }}</span>
           </span>
           <span class="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border truncate max-w-[55%]"
-                :class="isBowlEmpty ? 'bg-slate-50 text-slate-500 border-slate-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'">
+                :class="isBowlEmpty ? 'bg-stone-50 text-stone-500 border-stone-200' : 'text-red-800 bg-red-50 border-red-200'">
             {{ currentBowlSummary }}
           </span>
         </div>
 
-        <!-- พื้นที่จัดวางภาชนะหลัก (ย่อ-ขยายสมดุลอัตโนมัติ ไม่ดันปุ่มด้านล่างหลุดขอบจอ) -->
+        <!-- พื้นที่จัดวางภาชนะหลัก -->
         <div :class="['relative w-full max-w-[340px] my-auto flex items-center justify-center select-none min-h-0',
-                      billItems.length > 0 ? 'h-40 sm:h-48 lg:h-52' : 'h-44 sm:h-56 lg:h-64']">
+                      (billItems.length > 0 && !adminMode) ? 'h-40 sm:h-48 lg:h-52' : 'h-44 sm:h-56 lg:h-64']">
           
           <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย -->
           <div v-if="currentItem.noodle === 'mee_krob'"
                class="relative w-[34%] aspect-square mr-1.5 flex items-center justify-center layer-transition shrink-0">
             <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-md" alt="ถ้วยหมี่กรอบ">
             <img src="Asset/noodle_meekrob.png"
-                 class="absolute w-[128%] max-w-none h-auto object-contain pointer-events-none drop-shadow-lg rotate-90" alt="หมี่กรอบ 2 ก้อน">
+                 @click="adminMode && selectAdminTarget('noodle_mee_krob')"
+                 :style="getLayerStyle('noodle_mee_krob')"
+                 :class="['absolute max-w-none h-auto object-contain drop-shadow-lg',
+                          adminMode ? 'cursor-pointer pointer-events-auto hover:ring-2 hover:ring-red-500' : 'pointer-events-none layer-transition',
+                          adminSelectedKey === 'noodle_mee_krob' && adminMode ? 'ring-2 ring-red-600 bg-red-500/10 rounded-lg' : '']"
+                 alt="หมี่กรอบ 2 ก้อน">
           </div>
 
           <!-- ชามหลัก -->
-          <div :class="['relative aspect-square flex items-center justify-center layer-transition shrink-0 max-h-full',
-                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : (billItems.length > 0 ? 'w-40 sm:w-48 lg:w-52' : 'w-44 sm:w-56 lg:w-64')]">
+          <div :class="['relative aspect-square flex items-center justify-center shrink-0 max-h-full',
+                        adminMode ? 'no-transition' : 'layer-transition',
+                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : ((billItems.length > 0 && !adminMode) ? 'w-40 sm:w-48 lg:w-52' : 'w-44 sm:w-56 lg:w-64')]">
             
+            <!-- เส้นกากบาทเล็งกึ่งกลางชาม -->
+            <div v-if="adminMode" class="absolute inset-0 z-[70] pointer-events-none flex items-center justify-center">
+              <div class="w-full h-[1px] bg-red-500/40"></div>
+              <div class="h-full w-[1px] bg-red-500/40 absolute"></div>
+              <div class="w-[68%] h-[68%] rounded-full border border-dashed border-red-500/50 absolute"></div>
+            </div>
+
             <!-- Layer 0: ชามสเตนเลสหลัก -->
             <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-lg" alt="ชามสเตนเลส">
 
             <!-- Layer 1: เส้นใหญ่ / เส้นหมี่ -->
             <img v-if="currentItem.noodle === 'sen_yai'" src="Asset/noodle_senyai.png"
-                 class="absolute w-[62%] h-auto object-contain pointer-events-none layer-transition z-10 top-[24%] left-[19%]" alt="เส้นใหญ่">
+                 @click="adminMode && selectAdminTarget('noodle_sen_yai')"
+                 :style="getLayerStyle('noodle_sen_yai')"
+                 :class="getAdminInteractiveClass('noodle_sen_yai', 'z-10')" alt="เส้นใหญ่">
             <img v-if="currentItem.noodle === 'sen_mee'" src="Asset/noodle_senmee.png"
-                 class="absolute w-[60%] h-auto object-contain pointer-events-none layer-transition z-10 top-[24%] left-[20%]" alt="เส้นหมี่">
+                 @click="adminMode && selectAdminTarget('noodle_sen_mee')"
+                 :style="getLayerStyle('noodle_sen_mee')"
+                 :class="getAdminInteractiveClass('noodle_sen_mee', 'z-10')" alt="เส้นหมี่">
 
             <!-- Layer 2: ยอดผักคะน้า -->
             <img v-if="currentItem.includeVeg" src="Asset/veg_kale.png"
-                 class="absolute w-[58%] h-auto object-contain pointer-events-none layer-transition z-20 top-[22%] left-[20%]" alt="ผักคะน้า">
+                 @click="adminMode && selectAdminTarget('veg_kale')"
+                 :style="getLayerStyle('veg_kale')"
+                 :class="getAdminInteractiveClass('veg_kale', 'z-20')" alt="ผักคะน้า">
 
             <!-- Layer 3: หน้าหลักทั้ง 9 หน้า -->
-            <img v-if="currentItem.meat === 'pork'" src="Asset/meat_pork.png"
-                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="หมู">
-            <img v-if="currentItem.meat === 'liver'" src="Asset/meat_liver.png"
-                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="ตับ">
-            <img v-if="currentItem.meat === 'beef'" src="Asset/meat_beef.png"
-                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="เนื้อวัว">
-            <img v-if="currentItem.meat === 'quail'" src="Asset/meat_quail.png"
-                 class="absolute w-[48%] h-auto object-contain pointer-events-none layer-transition z-30 top-[45%] left-[26%]" alt="ไข่นกกระทา">
-            <img v-if="currentItem.meat === 'crabstick'" src="Asset/meat_shrimp.png"
-                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="กุ้ง">
-            <img v-if="currentItem.meat === 'squid'" src="Asset/meat_squid.png"
-                 class="absolute w-[46%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[27%]" alt="หมึก">
-            <img v-if="currentItem.meat === 'crispy_pork'" src="Asset/meat_crispy.png"
-                 class="absolute w-[44%] h-auto object-contain pointer-events-none layer-transition z-30 top-[45%] left-[28%]" alt="หมูกรอบ">
-            <img v-if="currentItem.meat === 'seafood'" src="Asset/meat_seafood.png"
-                 class="absolute w-[46%] h-auto object-contain pointer-events-none layer-transition z-30 top-[43%] left-[27%]" alt="ทะเล">
-            <img v-if="currentItem.meat === 'mixed'" src="Asset/meat_mixed.png"
-                 class="absolute w-[75%] h-auto object-contain pointer-events-none layer-transition z-30 top-[35%] left-[12.5%]" alt="รวมมิตร">
+            <img v-if="currentItem.meat" :src="getMeatImage(currentItem.meat)"
+                 @click="adminMode && selectAdminTarget('meat_' + currentItem.meat)"
+                 :style="getLayerStyle('meat_' + currentItem.meat)"
+                 :class="getAdminInteractiveClass('meat_' + currentItem.meat, 'z-30')" :alt="currentItem.meat">
 
             <!-- Layer 4: ท็อปปิ้งแบบแยกชิ้น (_a) และไข่ดาว -->
             <div class="absolute inset-0 z-40 pointer-events-none">
-              <img v-for="(pos, idx) in shrimpPositions.slice(0, currentItem.addShrimp)" :key="'shrimp_'+idx"
+              <img v-for="idx in currentItem.addShrimp" :key="'shrimp_'+(idx-1)"
                    src="Asset/meat_shrimp_a.png"
-                   :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
-                   class="absolute w-[24%] h-auto object-contain drop-shadow-md layer-transition" alt="กุ้ง">
+                   @click="adminMode && selectAdminTarget('shrimp_' + (idx-1))"
+                   :style="getLayerStyle('shrimp_' + (idx-1))"
+                   :class="getAdminInteractiveClass('shrimp_' + (idx-1), 'drop-shadow-md')" alt="กุ้ง">
 
               <template v-if="currentItem.addSquid">
-                <img v-for="(pos, idx) in squidPositions" :key="'squid_'+idx"
+                <img v-for="idx in 3" :key="'squid_'+(idx-1)"
                      src="Asset/meat_squid_a.png"
-                     :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
-                     class="absolute w-[18%] h-auto object-contain drop-shadow-md layer-transition" alt="หมึก">
+                     @click="adminMode && selectAdminTarget('squid_' + (idx-1))"
+                     :style="getLayerStyle('squid_' + (idx-1))"
+                     :class="getAdminInteractiveClass('squid_' + (idx-1), 'drop-shadow-md')" alt="หมึก">
               </template>
 
               <template v-if="currentItem.addQuail">
-                <img v-for="(pos, idx) in quailPositions" :key="'quail_'+idx"
+                <img v-for="idx in 4" :key="'quail_'+(idx-1)"
                      src="Asset/meat_quail_a.png"
-                     :style="{ top: pos.top, left: pos.left }"
-                     class="absolute w-[15%] h-auto object-contain drop-shadow-md layer-transition" alt="ไข่นก">
+                     @click="adminMode && selectAdminTarget('quail_' + (idx-1))"
+                     :style="getLayerStyle('quail_' + (idx-1))"
+                     :class="getAdminInteractiveClass('quail_' + (idx-1), 'drop-shadow-md')" alt="ไข่นก">
               </template>
 
               <template v-if="currentItem.addCrispy">
-                <img v-for="(pos, idx) in crispyPositions" :key="'crispy_'+idx"
+                <img v-for="idx in 3" :key="'crispy_'+(idx-1)"
                      src="Asset/meat_crispy_a.png"
-                     :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
-                     class="absolute w-[22%] h-auto object-contain drop-shadow-md layer-transition" alt="หมูกรอบ">
+                     @click="adminMode && selectAdminTarget('crispy_' + (idx-1))"
+                     :style="getLayerStyle('crispy_' + (idx-1))"
+                     :class="getAdminInteractiveClass('crispy_' + (idx-1), 'drop-shadow-md')" alt="หมูกรอบ">
               </template>
 
               <img v-if="currentItem.addFriedEgg" src="Asset/meat_friedegg.png"
-                   class="absolute w-[44%] h-auto top-[36%] left-[15%] object-contain drop-shadow-lg layer-transition" alt="ไข่ดาว">
+                   @click="adminMode && selectAdminTarget('fried_egg')"
+                   :style="getLayerStyle('fried_egg')"
+                   :class="getAdminInteractiveClass('fried_egg', 'drop-shadow-lg')" alt="ไข่ดาว">
             </div>
 
             <!-- Layer 5: น้ำราดหน้า -->
             <div v-if="currentItem.dishType === 'radna'" class="absolute inset-0 w-full h-full z-50 pointer-events-none bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
 
             <!-- ควันร้อนอนิเมชั่น -->
-            <div v-if="!isBowlEmpty" class="absolute inset-x-0 top-4 sm:top-5 flex justify-center z-[60] pointer-events-none">
+            <div v-if="!isBowlEmpty && !adminMode" class="absolute inset-x-0 top-4 sm:top-5 flex justify-center z-[60] pointer-events-none">
               <svg viewBox="0 0 100 100" class="w-10 h-10 sm:w-12 sm:h-12 steam-anim opacity-45">
                 <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
               </svg>
@@ -246,24 +256,24 @@
           </div>
         </div>
 
-        <!-- แถบราคา & จำนวนชาม (แสดงครบเสมอไม่โดนดันหลุดขอบจอ) -->
-        <div class="w-full bg-slate-50 p-2 sm:p-2.5 rounded-xl border border-slate-200 flex justify-between items-center gap-2 z-10 shrink-0 mt-1">
+        <!-- แถบราคา & จำนวนชาม -->
+        <div class="w-full bg-orange-50/70 p-2 sm:p-2.5 rounded-xl border border-amber-200 flex justify-between items-center gap-2 z-10 shrink-0 mt-1">
           <div>
-            <span class="text-[11px] text-slate-500 block">฿{{ singleBowlPrice }} x {{ currentItem.qty }} ชาม</span>
-            <span class="text-lg sm:text-xl font-extrabold text-emerald-700 leading-none">฿{{ currentItemTotalPrice }}</span>
+            <span class="text-[11px] text-[#5C3420] block">฿{{ singleBowlPrice }} x {{ currentItem.qty }} ชาม</span>
+            <span class="text-lg sm:text-xl font-extrabold text-red-700 leading-none">฿{{ currentItemTotalPrice }}</span>
           </div>
 
           <div class="flex items-center gap-1.5 sm:gap-2">
-            <div class="flex items-center gap-1 bg-white px-1.5 py-1 rounded-xl border border-slate-300 shadow-sm">
-              <button @click="currentItem.qty > 1 && currentItem.qty--" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-100 font-bold text-base text-slate-700">-</button>
-              <span class="w-6 text-center font-extrabold text-sm">{{ currentItem.qty }}</span>
-              <button @click="currentItem.qty++" class="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold text-base text-white">+</button>
+            <div class="flex items-center gap-1 bg-white px-1.5 py-1 rounded-xl border border-amber-300 shadow-sm">
+              <button @click="currentItem.qty > 1 && currentItem.qty--" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-100 font-bold text-base text-stone-700">-</button>
+              <span class="w-6 text-center font-extrabold text-sm text-[#3E2215]">{{ currentItem.qty }}</span>
+              <button @click="currentItem.qty++" class="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 font-bold text-base text-white">+</button>
             </div>
 
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
                     :class="['font-bold px-3 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center gap-1 whitespace-nowrap',
-                            isBowlEmpty ? 'bg-slate-200 text-slate-400 cursor-not-allowed' :
-                            (editingIndex !== null ? 'bg-amber-500 hover:bg-amber-600 text-slate-900 active:scale-95' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95')]">
+                            isBowlEmpty ? 'bg-stone-200 text-stone-400 cursor-not-allowed' :
+                            (editingIndex !== null ? 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95' : 'bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 active:scale-95')]">
               <i :data-lucide="editingIndex !== null ? 'check-circle' : 'arrow-up-circle'" class="w-4 h-4"></i>
               <span>{{ editingIndex !== null ? 'บันทึกแก้ไข' : 'จัดเสร็จ' }}</span>
             </button>
@@ -271,41 +281,166 @@
         </div>
       </div>
 
-      <!-- ฝั่งขวา: แผงกดตามใบออเดอร์ + แถบเมนูส่งครัวด้านล่าง -->
-      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:h-full lg:overflow-hidden">
+      <!-- ฝั่งขวา: แผงกดตามใบออเดอร์ + แผงควบคุม Admin Visual Studio -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-amber-200/80 shadow-sm flex flex-col lg:h-full lg:overflow-hidden">
         
         <div class="p-3 sm:p-4 space-y-3 lg:overflow-y-auto flex-1">
+
+          <!-- ========================================== -->
+          <!-- แผงควบคุมสำหรับ Admin: ปรับขนาด & ตำแหน่งวัตถุ -->
+          <!-- ========================================== -->
+          <div v-if="adminMode" class="bg-red-50/90 border-2 border-red-400 rounded-2xl p-3.5 space-y-3 shadow-sm">
+            <div class="flex flex-wrap justify-between items-center gap-2 border-b border-red-200 pb-2">
+              <div>
+                <h2 class="text-sm font-extrabold text-red-900 flex items-center gap-1.5">
+                  <span>🛠️</span> Admin Visual Studio — ปรับขนาดและตำแหน่งวางวัตถุ
+                </h2>
+                <p class="text-[11px] text-red-700">เลือกวัตถุดิบด้านล่างหรือแตะที่รูปบนชาม แล้วลากสไลเดอร์เพื่อปรับตำแหน่งแบบเรียลไทม์</p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button @click="resetAllLayouts" class="bg-white hover:bg-red-100 text-red-700 border border-red-300 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+                  คืนค่าเริ่มต้นทั้งหมด
+                </button>
+                <button @click="exportLayoutJson" class="bg-[#2C1810] hover:bg-stone-900 text-amber-300 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+                  📋 คัดลอกค่าพิกัด
+                </button>
+              </div>
+            </div>
+
+            <!-- เลือกชิ้นส่วนวัตถุที่ต้องการแก้ไข -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+              <label class="sm:col-span-4 text-xs font-bold text-stone-700">เลือกวัตถุดิบที่กำลังปรับ:</label>
+              <select v-model="adminSelectedKey" @change="ensurePreviewHasSelectedItem"
+                      class="sm:col-span-8 p-2 rounded-xl border-2 border-red-300 bg-white text-xs font-bold text-stone-800 focus:outline-none">
+                <optgroup label="เส้น & ผัก">
+                  <option value="noodle_sen_yai">เส้นใหญ่ (noodle_senyai.png)</option>
+                  <option value="noodle_sen_mee">เส้นหมี่ (noodle_senmee.png)</option>
+                  <option value="noodle_mee_krob">หมี่กรอบในถ้วยแยก (noodle_meekrob.png)</option>
+                  <option value="veg_kale">ยอดผักคะน้า (veg_kale.png)</option>
+                </optgroup>
+                <optgroup label="หน้าหลักทั้ง 9 หน้า">
+                  <option value="meat_pork">หน้าหมู (meat_pork.png)</option>
+                  <option value="meat_liver">หน้าตับ (meat_liver.png)</option>
+                  <option value="meat_beef">หน้าเนื้อวัว (meat_beef.png)</option>
+                  <option value="meat_quail">หน้าไข่นกกระทา (meat_quail.png)</option>
+                  <option value="meat_crabstick">หน้ากุ้งหลัก (meat_shrimp.png)</option>
+                  <option value="meat_squid">หน้าหมึกหลัก (meat_squid.png)</option>
+                  <option value="meat_crispy_pork">หน้าหมูกรอบ (meat_crispy.png)</option>
+                  <option value="meat_seafood">หน้าทะเล (meat_seafood.png)</option>
+                  <option value="meat_mixed">หน้ารวมมิตร (meat_mixed.png)</option>
+                </optgroup>
+                <optgroup label="ท็อปปิ้งเสริม & ไข่ดาว">
+                  <option value="fried_egg">ไข่ดาวกรอบ (meat_friedegg.png)</option>
+                  <option value="shrimp_0">กุ้งเพิ่ม ตัวที่ 1</option>
+                  <option value="shrimp_1">กุ้งเพิ่ม ตัวที่ 2</option>
+                  <option value="shrimp_2">กุ้งเพิ่ม ตัวที่ 3</option>
+                  <option value="shrimp_3">กุ้งเพิ่ม ตัวที่ 4</option>
+                  <option value="shrimp_4">กุ้งเพิ่ม ตัวที่ 5</option>
+                  <option value="shrimp_5">กุ้งเพิ่ม ตัวที่ 6</option>
+                  <option value="squid_0">หมึกเพิ่ม ชิ้นที่ 1</option>
+                  <option value="squid_1">หมึกเพิ่ม ชิ้นที่ 2</option>
+                  <option value="squid_2">หมึกเพิ่ม ชิ้นที่ 3</option>
+                  <option value="crispy_0">หมูกรอบเพิ่ม ชิ้นที่ 1</option>
+                  <option value="crispy_1">หมูกรอบเพิ่ม ชิ้นที่ 2</option>
+                  <option value="crispy_2">หมูกรอบเพิ่ม ชิ้นที่ 3</option>
+                  <option value="quail_0">ไข่นกเพิ่ม ฟองที่ 1</option>
+                  <option value="quail_1">ไข่นกเพิ่ม ฟองที่ 2</option>
+                  <option value="quail_2">ไข่นกเพิ่ม ฟองที่ 3</option>
+                  <option value="quail_3">ไข่นกเพิ่ม ฟองที่ 4</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- สไลเดอร์ควบคุม 4 แกน -->
+            <div v-if="activeAdminObj" class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-red-200">
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-stone-700">📐 ขนาดภาพวัตถุ (Width)</span>
+                  <span class="text-red-600">{{ activeAdminObj.width }}%</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button @click="adjustLayoutProp('width', -0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">-</button>
+                  <input type="range" min="5" max="150" step="0.5" v-model.number="activeAdminObj.width" @input="saveLayoutsToStorage" class="flex-1 accent-red-600">
+                  <button @click="adjustLayoutProp('width', 0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">+</button>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-stone-700">🔄 หมุนองศา (Rotate)</span>
+                  <span class="text-red-600">{{ activeAdminObj.rot || 0 }}°</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button @click="adjustLayoutProp('rot', -5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">-</button>
+                  <input type="range" min="-180" max="180" step="1" v-model.number="activeAdminObj.rot" @input="saveLayoutsToStorage" class="flex-1 accent-red-600">
+                  <button @click="adjustLayoutProp('rot', 5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">+</button>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-stone-700">↔️ ตำแหน่ง ซ้าย-ขวา (Left)</span>
+                  <span class="text-[#4A2511]">{{ activeAdminObj.left }}%</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button @click="adjustLayoutProp('left', -0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">◀</button>
+                  <input type="range" min="-30" max="90" step="0.5" v-model.number="activeAdminObj.left" @input="saveLayoutsToStorage" class="flex-1 accent-amber-800">
+                  <button @click="adjustLayoutProp('left', 0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">▶</button>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-stone-700">↕️ ตำแหน่ง บน-ล่าง (Top)</span>
+                  <span class="text-[#4A2511]">{{ activeAdminObj.top }}%</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button @click="adjustLayoutProp('top', -0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">▲</button>
+                  <input type="range" min="-30" max="90" step="0.5" v-model.number="activeAdminObj.top" @input="saveLayoutsToStorage" class="flex-1 accent-amber-800">
+                  <button @click="adjustLayoutProp('top', 0.5)" class="w-7 h-7 rounded bg-stone-100 hover:bg-stone-200 font-bold text-xs">▼</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-[#4A2511] font-bold">💾 บันทึกอัตโนมัติลงเครื่องทันทีที่เลื่อนปรับ</span>
+              <button @click="resetSingleLayout(adminSelectedKey)" class="text-stone-600 hover:text-red-600 underline font-bold">
+                รีเซ็ตเฉพาะชิ้นนี้
+              </button>
+            </div>
+          </div>
+          <!-- ========================================== -->
           
           <!-- แจ้งเตือนโหมดแก้ไขชาม -->
-          <div v-if="editingIndex !== null" class="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 flex justify-between items-center text-xs">
-            <span class="font-bold text-amber-900">✏️ กำลังแก้ไขรายการที่ {{ editingIndex + 1 }} — ปรับวัตถุดิบแล้วกด "บันทึกแก้ไข"</span>
-            <button @click="cancelEditBowl" class="text-rose-600 font-bold underline">ยกเลิกแก้ไข</button>
+          <div v-if="editingIndex !== null && !adminMode" class="bg-amber-100 border border-amber-400 rounded-xl px-3 py-2 flex justify-between items-center text-xs">
+            <span class="font-bold text-[#3E2215]">✏️ กำลังแก้ไขรายการที่ {{ editingIndex + 1 }} — ปรับวัตถุดิบแล้วกด "บันทึกแก้ไข"</span>
+            <button @click="cancelEditBowl" class="text-red-700 font-bold underline">ยกเลิกแก้ไข</button>
           </div>
 
           <!-- แถวที่ 1: ประเภท + ชนิดเส้น -->
-          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pb-3 border-b border-slate-100">
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pb-3 border-b border-amber-100">
             <div class="sm:col-span-5">
-              <label class="text-xs font-bold text-slate-500 block mb-1.5">1. ประเภทอาหาร <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
+              <label class="text-xs font-bold text-[#5C3420] block mb-1.5">1. ประเภทอาหาร <span class="font-normal text-stone-400">(กดซ้ำยกเลิก)</span></label>
               <div class="grid grid-cols-2 gap-1.5">
                 <button @click="toggleDishType('radna')"
                         :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
-                                currentItem.dishType === 'radna' ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                                currentItem.dishType === 'radna' ? 'bg-red-700 border-red-800 text-white shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-orange-50/70']">
                   🍲 ราดหน้า
                 </button>
                 <button @click="toggleDishType('padseeew')"
                         :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
-                                currentItem.dishType === 'padseeew' ? 'bg-amber-600 border-amber-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                                currentItem.dishType === 'padseeew' ? 'bg-[#4A2511] border-[#2C1810] text-amber-300 shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-orange-50/70']">
                   🍳 ผัดซีอิ๊ว
                 </button>
               </div>
             </div>
 
             <div class="sm:col-span-7">
-              <label class="text-xs font-bold text-slate-500 block mb-1.5">2. ชนิดเส้น <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
+              <label class="text-xs font-bold text-[#5C3420] block mb-1.5">2. ชนิดเส้น <span class="font-normal text-stone-400">(กดซ้ำยกเลิก)</span></label>
               <div class="grid grid-cols-3 gap-1.5">
                 <button v-for="n in noodleOptions" :key="n.id" @click="toggleNoodle(n.id)"
                         :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
-                                currentItem.noodle === n.id ? 'bg-amber-100 border-amber-500 text-amber-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                                currentItem.noodle === n.id ? 'bg-amber-100 border-amber-700 text-[#3E2215] shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-orange-50/70']">
                   {{ n.name }}
                 </button>
               </div>
@@ -313,65 +448,65 @@
           </div>
 
           <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า -->
-          <div class="pb-3 border-b border-slate-100">
-            <label class="text-xs font-bold text-slate-500 block mb-1.5">3. เลือกหน้าหลักทั้งหมด <span class="font-normal text-slate-400">(กดซ้ำเพื่อนำเนื้อสัตว์ออก)</span></label>
+          <div class="pb-3 border-b border-amber-100">
+            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">3. เลือกหน้าหลักทั้งหมด <span class="font-normal text-stone-400">(กดซ้ำเพื่อนำเนื้อสัตว์ออก)</span></label>
             <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               <button v-for="m in meatOptions" :key="m.id" @click="toggleMeat(m.id)"
                       :class="['p-1.5 rounded-xl border-2 text-center transition flex flex-col justify-center items-center',
-                              currentItem.meat === m.id ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 font-medium hover:bg-slate-100']">
+                              currentItem.meat === m.id ? 'bg-red-50 border-red-600 text-red-950 font-bold shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 font-medium hover:bg-orange-50/70']">
                 <span class="text-xs">{{ m.name }}</span>
-                <span class="text-[10px] text-emerald-700 font-bold mt-0.5">฿{{ m.price }}</span>
+                <span class="text-[10px] text-red-700 font-bold mt-0.5">฿{{ m.price }}</span>
               </button>
             </div>
           </div>
 
           <!-- แถวที่ 3: ท็อปปิ้งเพิ่มเติม -->
-          <div class="pb-3 border-b border-slate-100">
-            <label class="text-xs font-bold text-slate-500 block mb-1.5">4. ท็อปปิ้งเพิ่มเติม & ผัก</label>
+          <div class="pb-3 border-b border-amber-100">
+            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">4. ท็อปปิ้งเพิ่มเติม & ผัก</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div class="flex items-center justify-between p-2 rounded-xl border-2 transition"
-                   :class="currentItem.addShrimp > 0 ? 'bg-orange-50 border-orange-400' : 'bg-slate-50 border-slate-200'">
-                <span class="text-xs font-bold text-slate-700">🍤 กุ้งเพิ่ม (ตัวละ 22 บ.)</span>
+                   :class="currentItem.addShrimp > 0 ? 'bg-red-50 border-red-500' : 'bg-stone-50 border-stone-200'">
+                <span class="text-xs font-bold text-stone-700">🍤 กุ้งเพิ่ม (ตัวละ 22 บ.)</span>
                 <div class="flex items-center gap-1.5">
-                  <button @click="currentItem.addShrimp > 0 && currentItem.addShrimp--" class="w-7 h-7 rounded-lg bg-white border border-slate-300 font-bold text-slate-700">-</button>
-                  <span class="w-6 text-center font-extrabold text-sm text-orange-700">{{ currentItem.addShrimp }}</span>
-                  <button @click="currentItem.addShrimp < 6 && currentItem.addShrimp++" class="w-7 h-7 rounded-lg bg-orange-500 text-white font-bold">+</button>
+                  <button @click="currentItem.addShrimp > 0 && currentItem.addShrimp--" class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-stone-700">-</button>
+                  <span class="w-6 text-center font-extrabold text-sm text-red-700">{{ currentItem.addShrimp }}</span>
+                  <button @click="currentItem.addShrimp < 6 && currentItem.addShrimp++" class="w-7 h-7 rounded-lg bg-red-600 text-white font-bold">+</button>
                 </div>
               </div>
 
               <button @click="currentItem.addSquid = !currentItem.addSquid"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
-                              currentItem.addSquid ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                              currentItem.addSquid ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🦑 หมึก เพิ่ม 3 ชิ้น</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addSquid ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+20 บ.</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addSquid ? 'bg-red-700 text-white' : 'bg-stone-200'">+20 บ.</span>
               </button>
 
               <button @click="currentItem.addCrispy = !currentItem.addCrispy"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
-                              currentItem.addCrispy ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                              currentItem.addCrispy ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥓 หมูกรอบ เพิ่ม 3 ชิ้น</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+15 บ.</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-red-700 text-white' : 'bg-stone-200'">+15 บ.</span>
               </button>
 
               <button @click="currentItem.addQuail = !currentItem.addQuail"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
-                              currentItem.addQuail ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                              currentItem.addQuail ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥚 เพิ่มไข่นก 4 ฟอง</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addQuail ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+10 บ.</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addQuail ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
               <button @click="currentItem.addFriedEgg = !currentItem.addFriedEgg"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
-                              currentItem.addFriedEgg ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                              currentItem.addFriedEgg ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🍳 เพิ่มไข่ดาวกรอบ</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addFriedEgg ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+10 บ.</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addFriedEgg ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
               <button @click="toggleVeg"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
-                              currentItem.includeVeg ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                              currentItem.includeVeg ? 'bg-amber-100/80 border-amber-700 text-[#3E2215]' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥬 ผักคะน้า</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-emerald-600 text-white' : 'bg-slate-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่มีผัก' }}</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-[#4A2511] text-amber-200' : 'bg-stone-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่มีผัก' }}</span>
               </button>
             </div>
           </div>
@@ -379,56 +514,56 @@
           <!-- แถวที่ 4: คำสั่งพิเศษ + ปุ่มจัดจานเสร็จ/เพิ่มลงบิล -->
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" v-model="currentItem.note" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
-                   class="flex-1 p-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                   class="flex-1 p-2.5 border border-amber-300 rounded-xl text-xs sm:text-sm bg-orange-50/40 focus:bg-white focus:ring-2 focus:ring-red-600 outline-none">
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
                     :class="['font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap',
-                            isBowlEmpty ? 'bg-slate-300 text-slate-500 cursor-not-allowed' :
-                            (editingIndex !== null ? 'bg-amber-500 hover:bg-amber-600 text-slate-900 active:scale-95' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95')]">
+                            isBowlEmpty ? 'bg-stone-200 text-stone-400 cursor-not-allowed' :
+                            (editingIndex !== null ? 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95' : 'bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 active:scale-95')]">
               <i :data-lucide="editingIndex !== null ? 'check-circle' : 'plus-circle'" class="w-4 h-4"></i>
               {{ editingIndex !== null ? `บันทึกแก้ไขชามที่ ${editingIndex + 1} (฿${currentItemTotalPrice})` : `จัดจานเสร็จ / เพิ่มลงบิล (฿${currentItemTotalPrice})` }}
             </button>
           </div>
 
           <!-- รายการสรุปบิลแบบละเอียด -->
-          <div v-if="billItems.length > 0" class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
-            <div class="flex justify-between items-center text-xs font-bold text-amber-900">
+          <div v-if="billItems.length > 0" class="bg-orange-50/80 border border-amber-300 rounded-xl p-3 space-y-2">
+            <div class="flex justify-between items-center text-xs font-bold text-[#3E2215]">
               <span>📋 รายละเอียดออเดอร์ทั้งหมด ({{ billHeader.location }} - คิวที่ {{ billHeader.queueNo }})</span>
               <span>{{ billItems.length }} รายการ</span>
             </div>
             <div v-for="(item, idx) in billItems" :key="idx"
                  @click="loadBowlForEdit(idx)"
                  :class="['bg-white p-2.5 rounded-lg border flex justify-between items-center text-xs shadow-sm cursor-pointer transition',
-                         editingIndex === idx ? 'border-amber-500 ring-2 ring-amber-300' : 'border-amber-200 hover:border-amber-400']">
+                         editingIndex === idx ? 'border-red-600 ring-2 ring-red-200' : 'border-amber-200 hover:border-red-400']">
               <div>
-                <div class="font-bold text-slate-800">{{ idx + 1 }}. {{ item.title }} <span class="text-emerald-700">({{ item.qty }} ชาม • ชามละ ฿{{ item.unitPrice }})</span></div>
-                <div v-if="item.toppingsText" class="text-[11px] text-orange-700">+ {{ item.toppingsText }}</div>
-                <div v-if="item.note" class="text-[11px] text-rose-600">หมายเหตุ: {{ item.note }}</div>
+                <div class="font-bold text-stone-800">{{ idx + 1 }}. {{ item.title }} <span class="text-red-700">({{ item.qty }} ชาม • ชามละ ฿{{ item.unitPrice }})</span></div>
+                <div v-if="item.toppingsText" class="text-[11px] text-amber-800">+ {{ item.toppingsText }}</div>
+                <div v-if="item.note" class="text-[11px] text-red-600">หมายเหตุ: {{ item.note }}</div>
               </div>
               <div class="flex items-center gap-2.5 shrink-0">
-                <span class="font-extrabold text-sm text-slate-800">฿{{ item.totalPrice }}</span>
-                <button @click.stop="removeBillItem(idx)" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 rounded bg-rose-50">ลบ</button>
+                <span class="font-extrabold text-sm text-[#3E2215]">฿{{ item.totalPrice }}</span>
+                <button @click.stop="removeBillItem(idx)" class="text-red-600 hover:text-red-800 font-bold px-2 py-1 rounded bg-red-50">ลบ</button>
               </div>
             </div>
           </div>
 
         </div>
 
-        <!-- แถบเมนูสรุปยอด & ส่งครัว (แสดงชัดเจนตอนจัดจานเสร็จ และตรึงติดขอบล่างบนมือถือ) -->
+        <!-- แถบเมนูสรุปยอด & ส่งครัว (ธีมน้ำตาลเข้ม + แดงสด) -->
         <div v-if="billItems.length > 0 || !isBowlEmpty"
-             class="sticky bottom-0 z-20 lg:static p-2.5 sm:p-3 bg-slate-50/95 backdrop-blur-md border-t-2 border-amber-400 flex items-center justify-between gap-2 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+             class="sticky bottom-0 z-20 lg:static p-2.5 sm:p-3 bg-orange-50/95 backdrop-blur-md border-t-2 border-red-600 flex items-center justify-between gap-2 shrink-0 shadow-[0_-4px_12px_rgba(44,24,16,0.08)]">
           <div>
-            <span class="text-[11px] text-slate-500 block">รวมเงินทั้งสิ้น ({{ billItems.length > 0 ? billItems.length + ' รายการ' : 'ชามปัจจุบัน' }})</span>
-            <span class="text-xl sm:text-2xl font-black text-emerald-700 leading-none">฿{{ billGrandTotal }}</span>
+            <span class="text-[11px] text-[#5C3420] block">รวมเงินทั้งสิ้น ({{ billItems.length > 0 ? billItems.length + ' รายการ' : 'ชามปัจจุบัน' }})</span>
+            <span class="text-xl sm:text-2xl font-black text-red-700 leading-none">฿{{ billGrandTotal }}</span>
           </div>
           <div class="flex gap-1.5 sm:gap-2">
-            <button @click="resetCurrentItem" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition">
+            <button @click="resetCurrentItem" class="bg-white border border-amber-300 hover:bg-amber-50 text-[#3E2215] px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition">
               ล้างชาม
             </button>
-            <button @click="sendToKitchenOnly" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 active:scale-95">
+            <button @click="sendToKitchenOnly" class="bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 active:scale-95">
               <span>📺</span>
               <span>ส่งจอครัว</span>
             </button>
-            <button @click="printAndSubmitBill" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5 active:scale-95">
+            <button @click="printAndSubmitBill" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5 active:scale-95">
               <i data-lucide="printer" class="w-4 h-4"></i>
               <span>ส่งครัว & พิมพ์</span>
             </button>
@@ -439,44 +574,44 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-[11px] text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-1 shrink-0 shadow-sm">
+    <footer class="bg-white border border-amber-200/80 rounded-xl px-3 py-1.5 text-[11px] text-stone-600 flex flex-col sm:flex-row justify-between items-center gap-1 shrink-0 shadow-sm">
       <div class="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 text-center sm:text-left">
-        <span class="text-emerald-700 font-bold">📍 ร้านเหมาะโอชา:</span>
+        <span class="text-red-700 font-bold">📍 ร้านเหมาะโอชา:</span>
         <span>209/37 (ลานจอดรถโรงแรมสไมล์เพลส) ถนนเชียงใหม่-ฮอด (ทล 108) ตำบลดอยแก้ว อำเภอจอมทอง จังหวัดเชียงใหม่ 50160</span>
-        <span class="font-bold text-emerald-800 whitespace-nowrap">| 📞 โทร: 066 014 6505</span>
+        <span class="font-bold text-[#3E2215] whitespace-nowrap">| 📞 โทร: 066 014 6505</span>
       </div>
-      <div class="text-slate-500 whitespace-nowrap font-medium">
-        พัฒนาและออกแบบระบบโดย: <span class="text-emerald-800 font-bold">มิ่งภพ ศรีชะบา</span> • เหมาะโอชา The Next⁺
+      <div class="text-stone-500 whitespace-nowrap font-medium">
+        พัฒนาและออกแบบระบบโดย: <span class="text-[#3E2215] font-bold">มิ่งภพ ศรีชะบา</span> • เหมาะโอชา The Next⁺
       </div>
     </footer>
 
     <!-- Modal ตั้งค่าการเชื่อมต่อจอมอนิเตอร์ห้องครัว -->
     <div v-if="showSyncModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h3 class="font-bold text-base text-emerald-900 flex items-center gap-2">
+      <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 border-t-4 border-red-600">
+        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+          <h3 class="font-bold text-base text-[#2C1810] flex items-center gap-2">
             <span>📡</span> ตั้งค่าการเชื่อมต่อจอมอนิเตอร์ห้องครัว
           </h3>
-          <button @click="showSyncModal = false" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+          <button @click="showSyncModal = false" class="text-stone-400 hover:text-stone-700 font-bold">✕</button>
         </div>
         
-        <div class="text-xs text-slate-600 space-y-2">
-          <p class="bg-emerald-50 text-emerald-900 p-2.5 rounded-xl border border-emerald-200">
+        <div class="text-xs text-stone-600 space-y-2">
+          <p class="bg-orange-50 text-[#3E2215] p-2.5 rounded-xl border border-amber-200">
             <strong>1. โหมดอัตโนมัติในเครื่องเดียวกัน:</strong> หากเปิดหน้าจอหลักและ <code>kitchen.html</code> บนเบราว์เซอร์เดียวกัน ระบบจะส่งออเดอร์หากันทันทีโดยไม่ต้องตั้งค่าเพิ่ม
           </p>
-          <p class="bg-amber-50 text-amber-900 p-2.5 rounded-xl border border-amber-200">
+          <p class="bg-red-50 text-red-900 p-2.5 rounded-xl border border-red-200">
             <strong>2. โหมดข้ามเครื่อง (มือถือพนักงาน ➔ จอมอนิเตอร์ในครัว):</strong> ใส่ลิงก์ Firebase Realtime Database URL ด้านล่าง (ใส่เหมือนกันทั้ง 2 เครื่อง)
           </p>
           <div>
-            <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL:</label>
+            <label class="font-bold text-stone-700 block mb-1">Firebase Realtime Database URL:</label>
             <input type="url" v-model="firebaseUrl" placeholder="https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app"
-                   class="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
+                   class="w-full p-2.5 border border-stone-300 rounded-xl text-xs focus:ring-2 focus:ring-red-600 outline-none">
           </div>
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-          <a href="kitchen.html" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold">เปิดหน้าจอครัว ↗</a>
-          <button @click="saveSyncSettings" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกการตั้งค่า</button>
+          <a href="kitchen.html" target="_blank" class="bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-2 rounded-xl text-xs font-bold">เปิดหน้าจอครัว ↗</a>
+          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกการตั้งค่า</button>
         </div>
       </div>
     </div>
@@ -513,6 +648,45 @@
   <script>
     const { createApp, ref, computed, onMounted } = Vue;
 
+    const DEFAULT_LAYOUT_CONFIG = {
+      noodle_sen_yai: { width: 62, top: 24, left: 19, rot: 0 },
+      noodle_sen_mee: { width: 60, top: 24, left: 20, rot: 0 },
+      noodle_mee_krob: { width: 128, top: -14, left: -14, rot: 90 },
+      veg_kale: { width: 58, top: 22, left: 20, rot: 0 },
+
+      meat_pork: { width: 42, top: 44, left: 29, rot: 0 },
+      meat_liver: { width: 42, top: 44, left: 29, rot: 0 },
+      meat_beef: { width: 42, top: 44, left: 29, rot: 0 },
+      meat_quail: { width: 48, top: 45, left: 26, rot: 0 },
+      meat_crabstick: { width: 42, top: 44, left: 29, rot: 0 },
+      meat_squid: { width: 46, top: 44, left: 27, rot: 0 },
+      meat_crispy_pork: { width: 44, top: 45, left: 28, rot: 0 },
+      meat_seafood: { width: 46, top: 43, left: 27, rot: 0 },
+      meat_mixed: { width: 75, top: 35, left: 12.5, rot: 0 },
+
+      fried_egg: { width: 44, top: 36, left: 15, rot: 0 },
+
+      shrimp_0: { width: 24, top: 48, left: 50, rot: -15 },
+      shrimp_1: { width: 24, top: 52, left: 28, rot: 15 },
+      shrimp_2: { width: 24, top: 40, left: 54, rot: -35 },
+      shrimp_3: { width: 24, top: 58, left: 42, rot: 5 },
+      shrimp_4: { width: 24, top: 40, left: 24, rot: 25 },
+      shrimp_5: { width: 24, top: 49, left: 19, rot: 40 },
+
+      squid_0: { width: 18, top: 52, left: 28, rot: -10 },
+      squid_1: { width: 18, top: 56, left: 38, rot: 15 },
+      squid_2: { width: 18, top: 46, left: 25, rot: 30 },
+
+      crispy_0: { width: 22, top: 46, left: 44, rot: 10 },
+      crispy_1: { width: 22, top: 49, left: 51, rot: 18 },
+      crispy_2: { width: 22, top: 53, left: 57, rot: 25 },
+
+      quail_0: { width: 15, top: 44, left: 36, rot: 0 },
+      quail_1: { width: 15, top: 44, left: 48, rot: 0 },
+      quail_2: { width: 15, top: 53, left: 34, rot: 0 },
+      quail_3: { width: 15, top: 53, left: 46, rot: 0 }
+    };
+
     createApp({
       setup() {
         const billHeader = ref({
@@ -524,6 +698,105 @@
         const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
         const editingIndex = ref(null);
 
+        const adminMode = ref(false);
+        const adminSelectedKey = ref('noodle_sen_yai');
+        const loadSavedLayouts = () => {
+          try {
+            const saved = JSON.parse(localStorage.getItem('mah_ocha_admin_layouts') || 'null');
+            return saved ? { ...JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG)), ...saved } : JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG));
+          } catch (e) {
+            return JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG));
+          }
+        };
+        const layoutConfig = ref(loadSavedLayouts());
+
+        const activeAdminObj = computed(() => layoutConfig.value[adminSelectedKey.value]);
+
+        const saveLayoutsToStorage = () => {
+          localStorage.setItem('mah_ocha_admin_layouts', JSON.stringify(layoutConfig.value));
+        };
+
+        const adjustLayoutProp = (prop, delta) => {
+          const obj = layoutConfig.value[adminSelectedKey.value];
+          if (!obj) return;
+          obj[prop] = Number(((obj[prop] || 0) + delta).toFixed(1));
+          saveLayoutsToStorage();
+        };
+
+        const resetSingleLayout = (key) => {
+          if (DEFAULT_LAYOUT_CONFIG[key]) {
+            layoutConfig.value[key] = { ...DEFAULT_LAYOUT_CONFIG[key] };
+            saveLayoutsToStorage();
+          }
+        };
+
+        const resetAllLayouts = () => {
+          if (confirm('ต้องการคืนค่าขนาดและตำแหน่งวัตถุทั้งหมดกลับเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
+            layoutConfig.value = JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG));
+            saveLayoutsToStorage();
+          }
+        };
+
+        const exportLayoutJson = async () => {
+          const jsonStr = JSON.stringify(layoutConfig.value, null, 2);
+          try {
+            await navigator.clipboard.writeText(jsonStr);
+            alert('✅ คัดลอกค่าพิกัดและขนาดวัตถุทั้งหมดลงคลิปบอร์ดเรียบร้อย!');
+          } catch (e) {
+            prompt('คัดลอกค่าพิกัดด้านล่าง:', jsonStr);
+          }
+        };
+
+        const ensurePreviewHasSelectedItem = () => {
+          const key = adminSelectedKey.value;
+          if (key === 'noodle_sen_yai') currentItem.value.noodle = 'sen_yai';
+          else if (key === 'noodle_sen_mee') currentItem.value.noodle = 'sen_mee';
+          else if (key === 'noodle_mee_krob') currentItem.value.noodle = 'mee_krob';
+          else if (key === 'veg_kale') currentItem.value.includeVeg = true;
+          else if (key.startsWith('meat_')) currentItem.value.meat = key.replace('meat_', '');
+          else if (key === 'fried_egg') currentItem.value.addFriedEgg = true;
+          else if (key.startsWith('shrimp_')) {
+            const idx = parseInt(key.split('_')[1], 10);
+            if (currentItem.value.addShrimp <= idx) currentItem.value.addShrimp = idx + 1;
+          } else if (key.startsWith('squid_')) currentItem.value.addSquid = true;
+          else if (key.startsWith('crispy_')) currentItem.value.addCrispy = true;
+          else if (key.startsWith('quail_')) currentItem.value.addQuail = true;
+        };
+
+        const selectAdminTarget = (key) => {
+          adminSelectedKey.value = key;
+        };
+
+        const toggleAdminMode = () => {
+          adminMode.value = !adminMode.value;
+          if (adminMode.value) {
+            if (currentItem.value.meat) adminSelectedKey.value = 'meat_' + currentItem.value.meat;
+            else if (currentItem.value.noodle) adminSelectedKey.value = 'noodle_' + currentItem.value.noodle;
+            else if (currentItem.value.includeVeg) adminSelectedKey.value = 'veg_kale';
+            else ensurePreviewHasSelectedItem();
+          }
+        };
+
+        const getLayerStyle = (key) => {
+          const cfg = layoutConfig.value[key] || DEFAULT_LAYOUT_CONFIG[key] || { width: 50, top: 25, left: 25, rot: 0 };
+          return {
+            width: `${cfg.width}%`,
+            top: `${cfg.top}%`,
+            left: `${cfg.left}%`,
+            transform: `rotate(${cfg.rot || 0}deg)`
+          };
+        };
+
+        const getAdminInteractiveClass = (key, extraClass = '') => {
+          if (!adminMode.value) {
+            return `absolute object-contain pointer-events-none layer-transition ${extraClass}`;
+          }
+          const isSelected = adminSelectedKey.value === key;
+          return `absolute object-contain cursor-pointer pointer-events-auto ${extraClass} ${
+            isSelected ? 'ring-2 ring-red-600 bg-red-500/15 rounded-lg z-[65]' : 'hover:ring-2 hover:ring-amber-400'
+          }`;
+        };
+
         const noodleOptions = [
           { id: 'sen_yai', name: 'เส้นใหญ่' },
           { id: 'sen_mee', name: 'เส้นหมี่' },
@@ -531,44 +804,20 @@
         ];
 
         const meatOptions = [
-          { id: 'pork', name: 'หมู', price: 55 },
-          { id: 'liver', name: 'ตับ', price: 55 },
-          { id: 'beef', name: 'เนื้อวัว', price: 65 },
-          { id: 'quail', name: 'ไข่นก', price: 55 },
-          { id: 'crabstick', name: 'กุ้ง', price: 95 },
-          { id: 'squid', name: 'หมึก', price: 85 },
-          { id: 'crispy_pork', name: 'หมูกรอบ', price: 75 },
-          { id: 'seafood', name: 'ทะเล', price: 75 },
-          { id: 'mixed', name: 'รวมมิตร', price: 85 }
+          { id: 'pork', name: 'หมู', price: 55, img: 'Asset/meat_pork.png' },
+          { id: 'liver', name: 'ตับ', price: 55, img: 'Asset/meat_liver.png' },
+          { id: 'beef', name: 'เนื้อวัว', price: 65, img: 'Asset/meat_beef.png' },
+          { id: 'quail', name: 'ไข่นก', price: 55, img: 'Asset/meat_quail.png' },
+          { id: 'crabstick', name: 'กุ้ง', price: 95, img: 'Asset/meat_shrimp.png' },
+          { id: 'squid', name: 'หมึก', price: 85, img: 'Asset/meat_squid.png' },
+          { id: 'crispy_pork', name: 'หมูกรอบ', price: 75, img: 'Asset/meat_crispy.png' },
+          { id: 'seafood', name: 'ทะเล', price: 75, img: 'Asset/meat_seafood.png' },
+          { id: 'mixed', name: 'รวมมิตร', price: 85, img: 'Asset/meat_mixed.png' }
         ];
 
-        const shrimpPositions = [
-          { top: '48%', left: '50%', rot: -15 },
-          { top: '52%', left: '28%', rot: 15 },
-          { top: '40%', left: '54%', rot: -35 },
-          { top: '58%', left: '42%', rot: 5 },
-          { top: '40%', left: '24%', rot: 25 },
-          { top: '49%', left: '19%', rot: 40 }
-        ];
-
-        const squidPositions = [
-          { top: '52%', left: '28%', rot: -10 },
-          { top: '56%', left: '38%', rot: 15 },
-          { top: '46%', left: '25%', rot: 30 }
-        ];
-
-        const quailPositions = [
-          { top: '44%', left: '36%' },
-          { top: '44%', left: '48%' },
-          { top: '53%', left: '34%' },
-          { top: '53%', left: '46%' }
-        ];
-
-        const crispyPositions = [
-          { top: '46%', left: '44%', rot: 10 },
-          { top: '49%', left: '51%', rot: 18 },
-          { top: '53%', left: '57%', rot: 25 }
-        ];
+        const getMeatImage = (meatId) => {
+          return meatOptions.find(m => m.id === meatId)?.img || '';
+        };
 
         const defaultBowlState = () => ({
           dishType: null,
@@ -615,6 +864,7 @@
             currentItem.value.noodle = null;
           } else {
             currentItem.value.noodle = id;
+            if (adminMode.value) adminSelectedKey.value = 'noodle_' + id;
             autoEnableVegIfNeeded();
           }
         };
@@ -624,6 +874,7 @@
             currentItem.value.meat = null;
           } else {
             currentItem.value.meat = id;
+            if (adminMode.value) adminSelectedKey.value = 'meat_' + id;
             autoEnableVegIfNeeded();
           }
         };
@@ -631,6 +882,7 @@
         const toggleVeg = () => {
           currentItem.value.includeVeg = !currentItem.value.includeVeg;
           currentItem.value.vegManualToggled = true;
+          if (adminMode.value && currentItem.value.includeVeg) adminSelectedKey.value = 'veg_kale';
         };
 
         const singleBowlPrice = computed(() => {
@@ -796,8 +1048,10 @@
 
         return {
           billHeader, showSyncModal, firebaseUrl, editingIndex,
-          noodleOptions, meatOptions, currentItem, billItems, isBowlEmpty,
-          shrimpPositions, squidPositions, quailPositions, crispyPositions,
+          adminMode, adminSelectedKey, activeAdminObj, toggleAdminMode,
+          selectAdminTarget, ensurePreviewHasSelectedItem, getLayerStyle, getAdminInteractiveClass,
+          adjustLayoutProp, saveLayoutsToStorage, resetSingleLayout, resetAllLayouts, exportLayoutJson,
+          noodleOptions, meatOptions, getMeatImage, currentItem, billItems, isBowlEmpty,
           toggleDishType, toggleNoodle, toggleMeat, toggleVeg,
           singleBowlPrice, currentItemTotalPrice, currentBowlSummary, billGrandTotal,
           resetCurrentItem, saveBowlToTray, loadBowlForEdit, cancelEditBowl, removeBillItem,
