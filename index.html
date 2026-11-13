@@ -45,11 +45,11 @@
         </div>
       </div>
 
-      <!-- ระบุโต๊ะ / ลำดับที่ / ปุ่ม Admin / จอมอนิเตอร์ครัว -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <div class="bg-[#1E0F09] border border-amber-800/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5">
+      <!-- ระบุโต๊ะ / ลำดับที่ / ลิงก์เชื่อมจอ / ปุ่ม Admin -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div class="bg-[#1E0F09] border border-amber-800/60 px-2 py-1 rounded-xl flex items-center gap-1">
           <span class="text-[11px] text-amber-200/80 hidden sm:inline">โต๊ะ:</span>
-          <select v-model="billHeader.location" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
+          <select v-model="billHeader.location" @change="broadcastCustomerLive" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
             <option value="โต๊ะ 1" class="text-stone-800">โต๊ะ 1</option>
             <option value="โต๊ะ 2" class="text-stone-800">โต๊ะ 2</option>
             <option value="โต๊ะ 3" class="text-stone-800">โต๊ะ 3</option>
@@ -60,12 +60,19 @@
           </select>
         </div>
 
-        <div class="bg-[#1E0F09] border border-amber-800/60 px-2.5 py-1 rounded-xl flex items-center gap-1">
+        <div class="bg-[#1E0F09] border border-amber-800/60 px-2 py-1 rounded-xl flex items-center gap-1">
           <span class="text-[11px] text-amber-200/80">คิว:</span>
-          <input type="number" v-model.number="billHeader.queueNo" class="w-10 sm:w-12 bg-[#1E0F09] text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-amber-700/70 focus:outline-none">
+          <input type="number" v-model.number="billHeader.queueNo" @input="broadcastCustomerLive" class="w-10 sm:w-11 bg-[#1E0F09] text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-amber-700/70 focus:outline-none">
         </div>
 
-        <!-- ปุ่มสลับโหมด Admin จัดการขนาดและตำแหน่งวัตถุ -->
+        <!-- ปุ่มย่อภาพบนมือถือ (Mobile Compact Mode) -->
+        <button @click="compactPreview = !compactPreview" title="ย่อ/ขยายภาพตัวอย่างบนมือถือ"
+                :class="['lg:hidden px-2 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border transition',
+                        compactPreview ? 'bg-amber-500 text-[#2C1810] border-amber-300' : 'bg-[#1E0F09] border-amber-800/60 text-amber-200']">
+          <span>{{ compactPreview ? '🖼️ ขยายภาพ' : '📱 ย่อภาพ' }}</span>
+        </button>
+
+        <!-- ปุ่มสลับโหมด Admin -->
         <button @click="toggleAdminMode"
                 :class="['px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 border transition',
                         adminMode ? 'bg-red-600 border-red-300 text-white shadow-md animate-pulse' : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-800/60 text-amber-200']">
@@ -73,13 +80,24 @@
           <span>{{ adminMode ? 'ปิด Admin' : 'Admin' }}</span>
         </button>
 
-        <!-- เปิดจอมอนิเตอร์ห้องครัว / ตั้งค่าการเชื่อมต่อ -->
+        <!-- ลิงก์เปิดจอลูกค้า / จอครัว / ระบบบัญชี MPOS -->
+        <a href="customer.html" target="_blank" title="เปิดหน้าจอฝั่งลูกค้าหน้าเคาน์เตอร์"
+           class="bg-amber-700/80 hover:bg-amber-600 border border-amber-400/50 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
+          <span>🖥️</span>
+          <span class="hidden md:inline">จอลูกค้า</span>
+        </a>
         <a href="kitchen.html" target="_blank" title="เปิดหน้าจอมอนิเตอร์ห้องครัว"
            class="bg-red-700/80 hover:bg-red-600 border border-red-400/50 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
           <span>📺</span>
           <span class="hidden md:inline">จอครัว</span>
         </a>
-        <button @click="showSyncModal = true" title="ตั้งค่าการเชื่อมต่อจอครัว"
+        <a href="MPOS.html" target="_blank" title="เปิดระบบสรุปยอดขายและต้นทุน (MPOS)"
+           class="bg-emerald-700/80 hover:bg-emerald-600 border border-emerald-400/50 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition">
+          <span>📊</span>
+          <span class="hidden md:inline">สรุปยอด</span>
+        </a>
+
+        <button @click="showSyncModal = true" title="ตั้งค่าการเชื่อมต่อข้ามเครื่อง"
                 class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 p-1.5 rounded-xl transition relative">
           <i data-lucide="settings" class="w-4 h-4"></i>
           <span class="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
@@ -90,21 +108,21 @@
     <!-- Main Workspace -->
     <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:overflow-hidden mb-1.5 min-h-0">
       
-      <!-- ฝั่งซ้าย: พื้นที่ตัวอย่างชาม + แถบชามที่จัดเสร็จแล้ว -->
-      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-amber-200/80 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0 lg:h-full lg:overflow-hidden">
+      <!-- ฝั่งซ้าย: พื้นที่ตัวอย่างภาชนะ + แถบรายการที่จัดเสร็จแล้ว -->
+      <div class="sticky top-0 z-30 lg:static lg:col-span-5 bg-white/95 backdrop-blur-md p-2 sm:p-3 rounded-2xl border border-amber-200/80 flex flex-col justify-between items-center shadow-md lg:shadow-sm shrink-0 lg:h-full lg:overflow-hidden">
         
-        <!-- แถบชามที่จัดเสร็จแล้ว -->
+        <!-- แถบรายการที่จัดเสร็จแล้ว (อาหาร + เครื่องดื่ม) -->
         <div v-if="billItems.length > 0 && !adminMode" class="w-full bg-orange-50/90 border border-orange-200 rounded-xl p-1.5 mb-1.5 shrink-0">
           <div class="flex items-center justify-between px-1 mb-0.5">
             <span class="text-[11px] font-bold text-[#4A2511] flex items-center gap-1">
-              <span>🍱</span> ชามที่จัดเสร็จแล้ว ({{ billItems.length }} รายการ) — <span class="font-normal text-red-700">แตะเพื่อแก้ไข</span>
+              <span>🍱</span> รายการในบิล ({{ billItems.length }}) — <span class="font-normal text-red-700">แตะเพื่อแก้ไข</span>
             </span>
             <span class="text-[11px] font-extrabold text-red-700">รวม ฿{{ billGrandTotal }}</span>
           </div>
           
           <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1">
             <button v-for="(item, idx) in billItems" :key="'mini_'+idx"
-                    @click="loadBowlForEdit(idx)"
+                    @click="!item.isDrink && loadBowlForEdit(idx)"
                     :class="['relative group shrink-0 flex flex-col items-center p-1 rounded-xl border-2 transition-all',
                             editingIndex === idx ? 'bg-red-100/90 border-red-600 scale-105 shadow-sm' : 'bg-white border-amber-200 hover:border-red-400']">
               
@@ -117,33 +135,51 @@
                 ✕
               </span>
 
-              <!-- ภาพจำลองชามขนาดย่อ -->
-              <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center">
-                <div v-if="item.config.noodle === 'mee_krob'" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
-                  <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
-                  <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
+              <!-- กรณีรายการเครื่องดื่ม -->
+              <template v-if="item.isDrink">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 flex flex-col items-center justify-center bg-amber-50 rounded-lg">
+                  <span class="text-xl leading-none">{{ item.drinkIcon || '🥤' }}</span>
+                  <span class="text-[9px] font-bold text-[#4A2511] max-w-[44px] truncate mt-0.5">{{ item.shortName }}</span>
                 </div>
-                <div :class="['relative aspect-square flex items-center justify-center', item.config.noodle === 'mee_krob' ? 'w-[62%]' : 'w-full']">
-                  <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
-                  <img v-if="item.config.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
-                  <img v-if="item.config.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" :style="getLayerStyle('noodle_sen_mee')" class="absolute h-auto">
-                  <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
-                  <img v-if="item.config.meat" :src="getMeatImage(item.config.meat)" :style="getLayerStyle('meat_' + item.config.meat)" class="absolute h-auto">
-                  <img v-if="item.config.addShrimp > 0" src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_0')" class="absolute h-auto">
-                  <img v-if="item.config.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')" class="absolute h-auto">
-                  <div v-if="item.config.dishType === 'radna'" class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
+              </template>
+
+              <!-- กรณีรายการอาหาร (ราดหน้า / ผัดซีอิ๊ว) -->
+              <template v-else>
+                <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center">
+                  <div v-if="item.config.noodle === 'mee_krob'" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
+                    <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
+                    <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
+                  </div>
+                  <div :class="['relative aspect-square flex items-center justify-center', item.config.noodle === 'mee_krob' ? 'w-[62%]' : 'w-full']">
+                    <template v-if="isPadseeewPlateMode(item.config)">
+                      <img :src="getPadseeewPlateImg()" class="w-full h-full object-cover rounded-full">
+                      <img v-if="item.config.noodle === 'sen_yai' && padseeewSprites.sen_yai" :src="padseeewSprites.sen_yai" :style="getLayerStyle('padseeew_sen_yai')" class="absolute h-auto">
+                      <img v-if="item.config.noodle === 'sen_mee' && padseeewSprites.sen_mee" :src="padseeewSprites.sen_mee" :style="getLayerStyle('padseeew_sen_mee')" class="absolute h-auto">
+                      <img v-if="item.config.includeVeg && padseeewSprites.veg" :src="padseeewSprites.veg" :style="getLayerStyle('veg_kale_padseeew')" class="absolute h-auto">
+                    </template>
+                    <template v-else>
+                      <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
+                      <img v-if="item.config.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
+                      <img v-if="item.config.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" :style="getLayerStyle('noodle_sen_mee')" class="absolute h-auto">
+                      <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
+                    </template>
+                    <img v-if="item.config.meat" :src="getMeatImage(item.config.meat)" :style="getLayerStyle('meat_' + item.config.meat)" class="absolute h-auto">
+                    <img v-if="item.config.addShrimp > 0" src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_0')" class="absolute h-auto">
+                    <img v-if="item.config.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')" class="absolute h-auto">
+                    <div v-if="item.config.dishType === 'radna'" class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
+                  </div>
                 </div>
-              </div>
+              </template>
               <span class="text-[10px] font-bold text-[#3E2215] max-w-[60px] truncate">฿{{ item.totalPrice }}</span>
             </button>
           </div>
         </div>
 
-        <!-- หัวข้อสถานะชามปัจจุบัน -->
+        <!-- หัวข้อสถานะรายการปัจจุบัน -->
         <div class="w-full flex justify-between items-center z-10 gap-2 shrink-0">
           <span class="text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1"
                 :class="adminMode ? 'bg-red-100 text-red-800 border border-red-300' : (editingIndex !== null ? 'bg-amber-100 text-[#4A2511] border border-amber-400' : 'bg-amber-100/70 text-[#4A2511]')">
-            <span>{{ adminMode ? '🎯 โหมด Admin: แตะวัตถุบนชามเพื่อปรับพิกัด' : (editingIndex !== null ? '✏️ กำลังแก้ไขชามที่ ' + (editingIndex + 1) : '👁️ ตัวอย่างชามที่กำลังปรุง') }}</span>
+            <span>{{ adminMode ? '🎯 โหมด Admin: แตะวัตถุบนจาน/ชามเพื่อปรับพิกัด' : (editingIndex !== null ? '✏️ แก้ไขรายการที่ ' + (editingIndex + 1) : (currentItem.dishType === 'padseeew' ? '🍽️ ตัวอย่างจานผัดซีอิ๊ว' : '👁️ ตัวอย่างชามที่กำลังปรุง')) }}</span>
           </span>
           <span class="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border truncate max-w-[55%]"
                 :class="isBowlEmpty ? 'bg-stone-50 text-stone-500 border-stone-200' : 'text-red-800 bg-red-50 border-red-200'">
@@ -151,9 +187,10 @@
           </span>
         </div>
 
-        <!-- พื้นที่จัดวางภาชนะหลัก -->
-        <div :class="['relative w-full max-w-[340px] my-auto flex items-center justify-center select-none min-h-0',
-                      (billItems.length > 0 && !adminMode) ? 'h-40 sm:h-48 lg:h-52' : 'h-44 sm:h-56 lg:h-64']">
+        <!-- พื้นที่จัดวางภาชนะหลัก (ซ่อนได้บนมือถือเมื่อเปิดโหมดกดไว) -->
+        <div v-show="!compactPreview || adminMode"
+             :class="['relative w-full max-w-[340px] my-auto flex items-center justify-center select-none min-h-0',
+                      (billItems.length > 0 && !adminMode) ? 'h-36 sm:h-48 lg:h-52' : 'h-40 sm:h-56 lg:h-64']">
           
           <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย -->
           <div v-if="currentItem.noodle === 'mee_krob'"
@@ -168,36 +205,64 @@
                  alt="หมี่กรอบ 2 ก้อน">
           </div>
 
-          <!-- ชามหลัก -->
+          <!-- ภาชนะหลัก (ชามสเตนเลส หรือ จานผัดซีอิ๊ว jan.jpg) -->
           <div :class="['relative aspect-square flex items-center justify-center shrink-0 max-h-full',
                         adminMode ? 'no-transition' : 'layer-transition',
-                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : ((billItems.length > 0 && !adminMode) ? 'w-40 sm:w-48 lg:w-52' : 'w-44 sm:w-56 lg:w-64')]">
+                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : ((billItems.length > 0 && !adminMode) ? 'w-36 sm:w-48 lg:w-52' : 'w-40 sm:w-56 lg:w-64')]">
             
-            <!-- เส้นกากบาทเล็งกึ่งกลางชาม -->
+            <!-- เส้นกากบาทเล็งกึ่งกลางภาชนะ -->
             <div v-if="adminMode" class="absolute inset-0 z-[70] pointer-events-none flex items-center justify-center">
               <div class="w-full h-[1px] bg-red-500/40"></div>
               <div class="h-full w-[1px] bg-red-500/40 absolute"></div>
               <div class="w-[68%] h-[68%] rounded-full border border-dashed border-red-500/50 absolute"></div>
             </div>
 
-            <!-- Layer 0: ชามสเตนเลสหลัก -->
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-lg" alt="ชามสเตนเลส">
+            <!-- กรณีที่ 1: เมนูผัดซีอิ๊ว (ใช้จาน jan.jpg เป็นฐาน พร้อม Fallback แสดงผล 100%) -->
+            <template v-if="isPadseeewPlateMode(currentItem)">
+              <img :src="getPadseeewPlateImg()"
+                   class="w-full h-full object-cover rounded-full pointer-events-none drop-shadow-lg layer-transition"
+                   alt="จานผัดซีอิ๊ว">
 
-            <!-- Layer 1: เส้นใหญ่ / เส้นหมี่ -->
-            <img v-if="currentItem.noodle === 'sen_yai'" src="Asset/noodle_senyai.png"
-                 @click="adminMode && selectAdminTarget('noodle_sen_yai')"
-                 :style="getLayerStyle('noodle_sen_yai')"
-                 :class="getAdminInteractiveClass('noodle_sen_yai', 'z-10')" alt="เส้นใหญ่">
-            <img v-if="currentItem.noodle === 'sen_mee'" src="Asset/noodle_senmee.png"
-                 @click="adminMode && selectAdminTarget('noodle_sen_mee')"
-                 :style="getLayerStyle('noodle_sen_mee')"
-                 :class="getAdminInteractiveClass('noodle_sen_mee', 'z-10')" alt="เส้นหมี่">
+              <img v-if="currentItem.noodle === 'sen_yai' && padseeewSprites.sen_yai"
+                   :src="padseeewSprites.sen_yai"
+                   @click="adminMode && selectAdminTarget('padseeew_sen_yai')"
+                   :style="getLayerStyle('padseeew_sen_yai')"
+                   :class="getAdminInteractiveClass('padseeew_sen_yai', 'z-10')"
+                   alt="เส้นใหญ่ผัดซีอิ๊ว">
+              <img v-if="currentItem.noodle === 'sen_mee' && padseeewSprites.sen_mee"
+                   :src="padseeewSprites.sen_mee"
+                   @click="adminMode && selectAdminTarget('padseeew_sen_mee')"
+                   :style="getLayerStyle('padseeew_sen_mee')"
+                   :class="getAdminInteractiveClass('padseeew_sen_mee', 'z-10')"
+                   alt="เส้นหมี่ผัดซีอิ๊ว">
 
-            <!-- Layer 2: ยอดผักคะน้า -->
-            <img v-if="currentItem.includeVeg" src="Asset/veg_kale.png"
-                 @click="adminMode && selectAdminTarget('veg_kale')"
-                 :style="getLayerStyle('veg_kale')"
-                 :class="getAdminInteractiveClass('veg_kale', 'z-20')" alt="ผักคะน้า">
+              <img v-if="currentItem.includeVeg && padseeewSprites.veg"
+                   :src="padseeewSprites.veg"
+                   @click="adminMode && selectAdminTarget('veg_kale_padseeew')"
+                   :style="getLayerStyle('veg_kale_padseeew')"
+                   :class="getAdminInteractiveClass('veg_kale_padseeew', 'z-20')"
+                   alt="ผักคะน้าผัดซีอิ๊ว">
+            </template>
+
+            <!-- กรณีที่ 2: เมนูราดหน้า หรือยังไม่ระบุประเภท (ชามสเตนเลส) -->
+            <template v-else>
+              <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-lg" alt="ชามสเตนเลส">
+
+              <img v-if="currentItem.noodle === 'sen_yai'" src="Asset/noodle_senyai.png"
+                   @click="adminMode && selectAdminTarget('noodle_sen_yai')"
+                   :style="getLayerStyle('noodle_sen_yai')"
+                   :class="getAdminInteractiveClass('noodle_sen_yai', 'z-10')" alt="เส้นใหญ่">
+              <img v-if="currentItem.noodle === 'sen_mee'" src="Asset/noodle_senmee.png"
+                   @click="adminMode && selectAdminTarget('noodle_sen_mee')"
+                   :style="getLayerStyle('noodle_sen_mee')"
+                   :class="getAdminInteractiveClass('noodle_sen_mee', 'z-10')" alt="เส้นหมี่">
+
+              <img v-if="currentItem.includeVeg"
+                   :src="(currentItem.dishType === 'padseeew' && padseeewSprites.veg) ? padseeewSprites.veg : 'Asset/veg_kale.png'"
+                   @click="adminMode && selectAdminTarget(currentItem.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale')"
+                   :style="getLayerStyle(currentItem.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale')"
+                   :class="getAdminInteractiveClass(currentItem.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale', 'z-20')" alt="ผักคะน้า">
+            </template>
 
             <!-- Layer 3: หน้าหลักทั้ง 9 หน้า -->
             <img v-if="currentItem.meat" :src="getMeatImage(currentItem.meat)"
@@ -256,18 +321,18 @@
           </div>
         </div>
 
-        <!-- แถบราคา & จำนวนชาม -->
+        <!-- แถบราคา & จำนวน -->
         <div class="w-full bg-orange-50/70 p-2 sm:p-2.5 rounded-xl border border-amber-200 flex justify-between items-center gap-2 z-10 shrink-0 mt-1">
           <div>
-            <span class="text-[11px] text-[#5C3420] block">฿{{ singleBowlPrice }} x {{ currentItem.qty }} ชาม</span>
+            <span class="text-[11px] text-[#5C3420] block">฿{{ singleBowlPrice }} x {{ currentItem.qty }} {{ currentItem.dishType === 'padseeew' ? 'จาน' : 'ชาม' }}</span>
             <span class="text-lg sm:text-xl font-extrabold text-red-700 leading-none">฿{{ currentItemTotalPrice }}</span>
           </div>
 
           <div class="flex items-center gap-1.5 sm:gap-2">
             <div class="flex items-center gap-1 bg-white px-1.5 py-1 rounded-xl border border-amber-300 shadow-sm">
-              <button @click="currentItem.qty > 1 && currentItem.qty--" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-100 font-bold text-base text-stone-700">-</button>
+              <button @click="changeCurrentQty(-1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-red-100 font-bold text-base text-stone-700">-</button>
               <span class="w-6 text-center font-extrabold text-sm text-[#3E2215]">{{ currentItem.qty }}</span>
-              <button @click="currentItem.qty++" class="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 font-bold text-base text-white">+</button>
+              <button @click="changeCurrentQty(1)" class="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 font-bold text-base text-white">+</button>
             </div>
 
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
@@ -295,7 +360,7 @@
                 <h2 class="text-sm font-extrabold text-red-900 flex items-center gap-1.5">
                   <span>🛠️</span> Admin Visual Studio — ปรับขนาดและตำแหน่งวางวัตถุ
                 </h2>
-                <p class="text-[11px] text-red-700">เลือกวัตถุดิบด้านล่างหรือแตะที่รูปบนชาม แล้วลากสไลเดอร์เพื่อปรับตำแหน่งแบบเรียลไทม์</p>
+                <p class="text-[11px] text-red-700">เลือกวัตถุดิบด้านล่างหรือแตะที่รูปบนจาน/ชาม แล้วลากสไลเดอร์เพื่อปรับตำแหน่งแบบเรียลไทม์</p>
               </div>
               <div class="flex items-center gap-1.5">
                 <button @click="resetAllLayouts" class="bg-white hover:bg-red-100 text-red-700 border border-red-300 px-2.5 py-1 rounded-lg text-[11px] font-bold">
@@ -312,11 +377,16 @@
               <label class="sm:col-span-4 text-xs font-bold text-stone-700">เลือกวัตถุดิบที่กำลังปรับ:</label>
               <select v-model="adminSelectedKey" @change="ensurePreviewHasSelectedItem"
                       class="sm:col-span-8 p-2 rounded-xl border-2 border-red-300 bg-white text-xs font-bold text-stone-800 focus:outline-none">
-                <optgroup label="เส้น & ผัก">
-                  <option value="noodle_sen_yai">เส้นใหญ่ (noodle_senyai.png)</option>
-                  <option value="noodle_sen_mee">เส้นหมี่ (noodle_senmee.png)</option>
+                <optgroup label="เส้น & ผัก (ราดหน้า)">
+                  <option value="noodle_sen_yai">เส้นใหญ่ราดหน้า (noodle_senyai.png)</option>
+                  <option value="noodle_sen_mee">เส้นหมี่ราดหน้า (noodle_senmee.png)</option>
                   <option value="noodle_mee_krob">หมี่กรอบในถ้วยแยก (noodle_meekrob.png)</option>
-                  <option value="veg_kale">ยอดผักคะน้า (veg_kale.png)</option>
+                  <option value="veg_kale">ยอดผักคะน้าราดหน้า (veg_kale.png)</option>
+                </optgroup>
+                <optgroup label="เส้น & ผัก (ผัดซีอิ๊วบนจาน jan.jpg)">
+                  <option value="padseeew_sen_yai">เส้นใหญ่ผัดซีอิ๊ว (จาก paseeew.jpg)</option>
+                  <option value="padseeew_sen_mee">เส้นหมี่ผัดซีอิ๊ว (จาก paseeew.jpg)</option>
+                  <option value="veg_kale_padseeew">ผักคะน้าผัดซีอิ๊ว (จาก paseeew.jpg)</option>
                 </optgroup>
                 <optgroup label="หน้าหลักทั้ง 9 หน้า">
                   <option value="meat_pork">หน้าหมู (meat_pork.png)</option>
@@ -403,7 +473,7 @@
             </div>
 
             <div class="flex justify-between items-center text-[11px]">
-              <span class="text-[#4A2511] font-bold">💾 บันทึกอัตโนมัติลงเครื่องทันทีที่เลื่อนปรับ</span>
+              <span class="text-[#4A2511] font-bold">💾 บันทึกอัตโนมัติลงเครื่องและส่งขึ้นจอลูกค้าทันที</span>
               <button @click="resetSingleLayout(adminSelectedKey)" class="text-stone-600 hover:text-red-600 underline font-bold">
                 รีเซ็ตเฉพาะชิ้นนี้
               </button>
@@ -411,7 +481,7 @@
           </div>
           <!-- ========================================== -->
           
-          <!-- แจ้งเตือนโหมดแก้ไขชาม -->
+          <!-- แจ้งเตือนโหมดแก้ไขรายการ -->
           <div v-if="editingIndex !== null && !adminMode" class="bg-amber-100 border border-amber-400 rounded-xl px-3 py-2 flex justify-between items-center text-xs">
             <span class="font-bold text-[#3E2215]">✏️ กำลังแก้ไขรายการที่ {{ editingIndex + 1 }} — ปรับวัตถุดิบแล้วกด "บันทึกแก้ไข"</span>
             <button @click="cancelEditBowl" class="text-red-700 font-bold underline">ยกเลิกแก้ไข</button>
@@ -460,7 +530,7 @@
             </div>
           </div>
 
-          <!-- แถวที่ 3: ท็อปปิ้งเพิ่มเติม -->
+          <!-- แถวที่ 3: ท็อปปิ้งเพิ่มเติม & ผัก -->
           <div class="pb-3 border-b border-amber-100">
             <label class="text-xs font-bold text-[#5C3420] block mb-1.5">4. ท็อปปิ้งเพิ่มเติม & ผัก</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -468,60 +538,98 @@
                    :class="currentItem.addShrimp > 0 ? 'bg-red-50 border-red-500' : 'bg-stone-50 border-stone-200'">
                 <span class="text-xs font-bold text-stone-700">🍤 กุ้งเพิ่ม (ตัวละ 22 บ.)</span>
                 <div class="flex items-center gap-1.5">
-                  <button @click="currentItem.addShrimp > 0 && currentItem.addShrimp--" class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-stone-700">-</button>
+                  <button @click="changeShrimpQty(-1)" class="w-7 h-7 rounded-lg bg-white border border-stone-300 font-bold text-stone-700">-</button>
                   <span class="w-6 text-center font-extrabold text-sm text-red-700">{{ currentItem.addShrimp }}</span>
-                  <button @click="currentItem.addShrimp < 6 && currentItem.addShrimp++" class="w-7 h-7 rounded-lg bg-red-600 text-white font-bold">+</button>
+                  <button @click="changeShrimpQty(1)" class="w-7 h-7 rounded-lg bg-red-600 text-white font-bold">+</button>
                 </div>
               </div>
 
-              <button @click="currentItem.addSquid = !currentItem.addSquid"
+              <button @click="toggleToppingBool('addSquid')"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.addSquid ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🦑 หมึก เพิ่ม 3 ชิ้น</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addSquid ? 'bg-red-700 text-white' : 'bg-stone-200'">+20 บ.</span>
               </button>
 
-              <button @click="currentItem.addCrispy = !currentItem.addCrispy"
+              <button @click="toggleToppingBool('addCrispy')"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.addCrispy ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥓 หมูกรอบ เพิ่ม 3 ชิ้น</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-red-700 text-white' : 'bg-stone-200'">+15 บ.</span>
               </button>
 
-              <button @click="currentItem.addQuail = !currentItem.addQuail"
+              <button @click="toggleToppingBool('addQuail')"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.addQuail ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥚 เพิ่มไข่นก 4 ฟอง</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addQuail ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
-              <button @click="currentItem.addFriedEgg = !currentItem.addFriedEgg"
+              <button @click="toggleToppingBool('addFriedEgg')"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.addFriedEgg ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🍳 เพิ่มไข่ดาวกรอบ</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addFriedEgg ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
+              <button @click="toggleToppingBool('extraNoodle')"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.extraNoodle ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
+                <span>🍜 เพิ่มเส้น (พิเศษเส้น)</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.extraNoodle ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
+              </button>
+
+              <button @click="toggleExtraVeg"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.extraVeg ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
+                <span>🥦 เพิ่มผัก (พิเศษผัก)</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.extraVeg ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
+              </button>
+
               <button @click="toggleVeg"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.includeVeg ? 'bg-amber-100/80 border-amber-700 text-[#3E2215]' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥬 ผักคะน้า</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-[#4A2511] text-amber-200' : 'bg-stone-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่มีผัก' }}</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-[#4A2511] text-amber-200' : 'bg-stone-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่ใส่ผัก' }}</span>
               </button>
             </div>
           </div>
 
           <!-- แถวที่ 4: คำสั่งพิเศษ + ปุ่มจัดจานเสร็จ/เพิ่มลงบิล -->
-          <div class="flex flex-col sm:flex-row gap-2">
-            <input type="text" v-model="currentItem.note" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
+          <div class="flex flex-col sm:flex-row gap-2 pb-3 border-b border-amber-100">
+            <input type="text" v-model="currentItem.note" @input="broadcastCustomerLive" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
                    class="flex-1 p-2.5 border border-amber-300 rounded-xl text-xs sm:text-sm bg-orange-50/40 focus:bg-white focus:ring-2 focus:ring-red-600 outline-none">
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
                     :class="['font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap',
                             isBowlEmpty ? 'bg-stone-200 text-stone-400 cursor-not-allowed' :
                             (editingIndex !== null ? 'bg-amber-600 hover:bg-amber-700 text-white active:scale-95' : 'bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 active:scale-95')]">
               <i :data-lucide="editingIndex !== null ? 'check-circle' : 'plus-circle'" class="w-4 h-4"></i>
-              {{ editingIndex !== null ? `บันทึกแก้ไขชามที่ ${editingIndex + 1} (฿${currentItemTotalPrice})` : `จัดจานเสร็จ / เพิ่มลงบิล (฿${currentItemTotalPrice})` }}
+              {{ editingIndex !== null ? `บันทึกแก้ไขรายการที่ ${editingIndex + 1} (฿${currentItemTotalPrice})` : `จัดจานเสร็จ / เพิ่มลงบิล (฿${currentItemTotalPrice})` }}
             </button>
+          </div>
+
+          <!-- แถวที่ 5: เมนูเครื่องดื่ม -->
+          <div class="pb-1">
+            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">5. เครื่องดื่ม <span class="font-normal text-stone-400">(กด + / - เพื่อเพิ่มลงบิลทันที)</span></label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div v-for="drink in drinkOptions" :key="drink.id"
+                   :class="['p-2 rounded-xl border-2 flex items-center justify-between gap-1.5 transition',
+                           getDrinkQtyInBill(drink.id) > 0 ? 'bg-amber-100/80 border-amber-700 shadow-xs' : 'bg-stone-50 border-stone-200']">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-[#2C1810] truncate">{{ drink.icon }} {{ drink.name }}</div>
+                  <div class="text-[11px] font-extrabold text-red-700">฿{{ drink.price }}</div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button v-if="getDrinkQtyInBill(drink.id) > 0"
+                          @click="changeDrinkQty(drink, -1)"
+                          class="w-6 h-6 rounded-lg bg-white border border-stone-300 font-bold text-stone-700 text-xs hover:bg-red-50">-</button>
+                  <span v-if="getDrinkQtyInBill(drink.id) > 0"
+                        class="w-5 text-center font-extrabold text-xs text-[#2C1810]">{{ getDrinkQtyInBill(drink.id) }}</span>
+                  <button @click="changeDrinkQty(drink, 1)"
+                          class="w-6 h-6 rounded-lg bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 font-bold text-xs">+</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- รายการสรุปบิลแบบละเอียด -->
@@ -531,11 +639,15 @@
               <span>{{ billItems.length }} รายการ</span>
             </div>
             <div v-for="(item, idx) in billItems" :key="idx"
-                 @click="loadBowlForEdit(idx)"
-                 :class="['bg-white p-2.5 rounded-lg border flex justify-between items-center text-xs shadow-sm cursor-pointer transition',
+                 @click="!item.isDrink && loadBowlForEdit(idx)"
+                 :class="['bg-white p-2.5 rounded-lg border flex justify-between items-center text-xs shadow-sm transition',
+                         item.isDrink ? '' : 'cursor-pointer',
                          editingIndex === idx ? 'border-red-600 ring-2 ring-red-200' : 'border-amber-200 hover:border-red-400']">
               <div>
-                <div class="font-bold text-stone-800">{{ idx + 1 }}. {{ item.title }} <span class="text-red-700">({{ item.qty }} ชาม • ชามละ ฿{{ item.unitPrice }})</span></div>
+                <div class="font-bold text-stone-800">
+                  {{ idx + 1 }}. {{ item.title }}
+                  <span class="text-red-700">({{ item.qty }} {{ item.isDrink ? 'ขวด/กล่อง' : (item.config.dishType === 'padseeew' ? 'จาน' : 'ชาม') }} • ฿{{ item.unitPrice }})</span>
+                </div>
                 <div v-if="item.toppingsText" class="text-[11px] text-amber-800">+ {{ item.toppingsText }}</div>
                 <div v-if="item.note" class="text-[11px] text-red-600">หมายเหตุ: {{ item.note }}</div>
               </div>
@@ -548,16 +660,16 @@
 
         </div>
 
-        <!-- แถบเมนูสรุปยอด & ส่งครัว (ธีมน้ำตาลเข้ม + แดงสด) -->
+        <!-- แถบเมนูสรุปยอด & ส่งครัว + บันทึกยอดขายเข้า MPOS -->
         <div v-if="billItems.length > 0 || !isBowlEmpty"
              class="sticky bottom-0 z-20 lg:static p-2.5 sm:p-3 bg-orange-50/95 backdrop-blur-md border-t-2 border-red-600 flex items-center justify-between gap-2 shrink-0 shadow-[0_-4px_12px_rgba(44,24,16,0.08)]">
           <div>
-            <span class="text-[11px] text-[#5C3420] block">รวมเงินทั้งสิ้น ({{ billItems.length > 0 ? billItems.length + ' รายการ' : 'ชามปัจจุบัน' }})</span>
+            <span class="text-[11px] text-[#5C3420] block">รวมเงินทั้งสิ้น ({{ totalSummaryHint }})</span>
             <span class="text-xl sm:text-2xl font-black text-red-700 leading-none">฿{{ billGrandTotal }}</span>
           </div>
           <div class="flex gap-1.5 sm:gap-2">
-            <button @click="resetCurrentItem" class="bg-white border border-amber-300 hover:bg-amber-50 text-[#3E2215] px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition">
-              ล้างชาม
+            <button @click="resetCurrentItem" class="bg-white border border-amber-300 hover:bg-amber-50 text-[#3E2215] px-2.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition">
+              ล้างจาน
             </button>
             <button @click="sendToKitchenOnly" class="bg-[#3E2215] hover:bg-[#2C1810] text-amber-300 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition flex items-center gap-1.5 active:scale-95">
               <span>📺</span>
@@ -585,22 +697,22 @@
       </div>
     </footer>
 
-    <!-- Modal ตั้งค่าการเชื่อมต่อจอมอนิเตอร์ห้องครัว -->
+    <!-- Modal ตั้งค่าการเชื่อมต่อจอมอนิเตอร์ห้องครัว & จอลูกค้า -->
     <div v-if="showSyncModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 border-t-4 border-red-600">
         <div class="flex justify-between items-center border-b border-amber-100 pb-2">
           <h3 class="font-bold text-base text-[#2C1810] flex items-center gap-2">
-            <span>📡</span> ตั้งค่าการเชื่อมต่อจอมอนิเตอร์ห้องครัว
+            <span>📡</span> ตั้งค่าการเชื่อมต่อ 3 หน้าจอ (หน้าร้าน / จอครัว / จอลูกค้า)
           </h3>
           <button @click="showSyncModal = false" class="text-stone-400 hover:text-stone-700 font-bold">✕</button>
         </div>
         
         <div class="text-xs text-stone-600 space-y-2">
           <p class="bg-orange-50 text-[#3E2215] p-2.5 rounded-xl border border-amber-200">
-            <strong>1. โหมดอัตโนมัติในเครื่องเดียวกัน:</strong> หากเปิดหน้าจอหลักและ <code>kitchen.html</code> บนเบราว์เซอร์เดียวกัน ระบบจะส่งออเดอร์หากันทันทีโดยไม่ต้องตั้งค่าเพิ่ม
+            <strong>1. โหมดในเครื่องเดียวกัน:</strong> เปิด <code>customer.html</code>, <code>kitchen.html</code> และ <code>MPOS.html</code> บนเบราว์เซอร์เดียวกัน ระบบส่งภาพสดและตัดสต็อกทันที
           </p>
           <p class="bg-red-50 text-red-900 p-2.5 rounded-xl border border-red-200">
-            <strong>2. โหมดข้ามเครื่อง (มือถือพนักงาน ➔ จอมอนิเตอร์ในครัว):</strong> ใส่ลิงก์ Firebase Realtime Database URL ด้านล่าง (ใส่เหมือนกันทั้ง 2 เครื่อง)
+            <strong>2. โหมดข้ามเครื่อง (มือถือภรรยา ➔ จอลูกค้า & จอครัว):</strong> ใส่ลิงก์ Firebase Realtime Database URL ด้านล่างให้เหมือนกันทุกเครื่อง
           </p>
           <div>
             <label class="font-bold text-stone-700 block mb-1">Firebase Realtime Database URL:</label>
@@ -609,8 +721,9 @@
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2">
-          <a href="kitchen.html" target="_blank" class="bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-2 rounded-xl text-xs font-bold">เปิดหน้าจอครัว ↗</a>
+        <div class="flex flex-wrap justify-end gap-2 pt-2">
+          <a href="customer.html" target="_blank" class="bg-amber-100 hover:bg-amber-200 text-[#3E2215] px-3 py-2 rounded-xl text-xs font-bold">เปิดจอลูกค้า ↗</a>
+          <a href="kitchen.html" target="_blank" class="bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-2 rounded-xl text-xs font-bold">เปิดจอครัว ↗</a>
           <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกการตั้งค่า</button>
         </div>
       </div>
@@ -633,7 +746,7 @@
       <div v-for="(item, idx) in billItems" :key="'p_'+idx" class="border-b border-black py-2 text-sm">
         <div class="flex justify-between font-bold">
           <span>{{ item.title }}</span>
-          <span>จำนวน {{ item.qty }} ชาม (฿{{ item.unitPrice }}/ชาม)</span>
+          <span>จำนวน {{ item.qty }} {{ item.isDrink ? 'ชิ้น' : (item.config.dishType === 'padseeew' ? 'จาน' : 'ชาม') }} (฿{{ item.unitPrice }})</span>
         </div>
         <div v-if="item.toppingsText" class="text-xs mt-0.5">เพิ่มเติม: {{ item.toppingsText }}</div>
         <div v-if="item.note" class="text-xs mt-0.5 font-bold">คำสั่งพิเศษ: {{ item.note }}</div>
@@ -652,7 +765,10 @@
       noodle_sen_yai: { width: 62, top: 24, left: 19, rot: 0 },
       noodle_sen_mee: { width: 60, top: 24, left: 20, rot: 0 },
       noodle_mee_krob: { width: 128, top: -14, left: -14, rot: 90 },
+      padseeew_sen_yai: { width: 64, top: 18, left: 18, rot: 0 },
+      padseeew_sen_mee: { width: 64, top: 18, left: 18, rot: 0 },
       veg_kale: { width: 58, top: 22, left: 20, rot: 0 },
+      veg_kale_padseeew: { width: 66, top: 17, left: 17, rot: 0 },
 
       meat_pork: { width: 42, top: 44, left: 29, rot: 0 },
       meat_liver: { width: 42, top: 44, left: 29, rot: 0 },
@@ -697,6 +813,224 @@
         const showSyncModal = ref(false);
         const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
         const editingIndex = ref(null);
+        const compactPreview = ref(false);
+
+        const padseeewSprites = ref({
+          empty_plate: 'Asset/jan.jpg',
+          sen_yai: '',
+          sen_mee: '',
+          veg: ''
+        });
+
+        // โหลดภาพจานผัดซีอิ๊ว พร้อมระบบ Fallback ป้องกัน CORS / file:// ทำให้ภาพจานขึ้นแน่นอน 100%
+        const loadJanPlate = () => {
+          const candidates = ['Asset/jan.jpg', 'Asset/jan.png', 'asset/jan.jpg', 'jan.jpg', 'jan.png'];
+          let idx = 0;
+
+          const tryNext = () => {
+            if (idx >= candidates.length) return;
+            const currentSrc = candidates[idx++];
+            const img = new Image();
+            img.onload = () => {
+              // ตั้งค่าภาพต้นฉบับทันทีเป็นฐานสำรองก่อนประมวลผลตัดขอบ
+              padseeewSprites.value.empty_plate = currentSrc;
+              try {
+                const size = Math.min(img.naturalWidth, img.naturalHeight);
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(
+                  img,
+                  (img.naturalWidth - size) / 2,
+                  (img.naturalHeight - size) / 2,
+                  size, size, 0, 0, size, size
+                );
+
+                const imgData = ctx.getImageData(0, 0, size, size);
+                const d = imgData.data;
+
+                let minX = size, maxX = 0, minY = size, maxY = 0, found = false;
+                for (let y = 2; y < size - 2; y++) {
+                  for (let x = 2; x < size - 2; x++) {
+                    const p = (y * size + x) * 4;
+                    const r = d[p], g = d[p + 1], b = d[p + 2];
+                    if (b - r > 35 && b - g > 20 && b > 50) {
+                      if (x < minX) minX = x;
+                      if (x > maxX) maxX = x;
+                      if (y < minY) minY = y;
+                      if (y > maxY) maxY = y;
+                      found = true;
+                    }
+                  }
+                }
+
+                const cx = found ? (minX + maxX) / 2 : size / 2;
+                const cy = found ? (minY + maxY) / 2 : size / 2;
+                const radius = found ? Math.max(maxX - minX, maxY - minY) / 2 + 2 : size * 0.468;
+
+                for (let y = 0; y < size; y++) {
+                  for (let x = 0; x < size; x++) {
+                    const dist = Math.hypot(x - cx, y - cy);
+                    const p = (y * size + x) * 4;
+                    if (dist > radius) {
+                      d[p + 3] = 0;
+                    } else if (dist > radius - 2) {
+                      d[p + 3] = Math.max(0, Math.round(255 * ((radius - dist) / 2)));
+                    }
+                  }
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+                padseeewSprites.value.empty_plate = canvas.toDataURL('image/png');
+              } catch (err) {
+                // หากเปิดผ่าน file:// แล้วเบราว์เซอร์บล็อก getImageData ให้ใช้รูป jan.jpg ตรงๆ (คลาส rounded-full จะตัดขอบกลมให้สวยอัตโนมัติ)
+                padseeewSprites.value.empty_plate = currentSrc;
+              }
+            };
+            img.onerror = tryNext;
+            img.src = currentSrc;
+          };
+
+          tryNext();
+        };
+
+        // โหลดและตัดแยกเส้นใหญ่ / เส้นหมี่ / ผักผัดซีอิ๊ว พร้อม Fallback ไปใช้รูปเส้น/ผักมาตรฐานหากติด CORS
+        const loadAndSlicePadseeewSprites = () => {
+          const candidates = [
+            'Asset/paseeew.jpg',
+            'Asset/paseeew.png',
+            'Asset/padseeew.jpg',
+            'Asset/padseeew.png',
+            'asset/paseeew.jpg',
+            'paseeew.jpg'
+          ];
+          let attempt = 0;
+
+          const applyFallbackSprites = () => {
+            if (!padseeewSprites.value.sen_yai) padseeewSprites.value.sen_yai = 'Asset/noodle_senyai.png';
+            if (!padseeewSprites.value.sen_mee) padseeewSprites.value.sen_mee = 'Asset/noodle_senmee.png';
+            if (!padseeewSprites.value.veg) padseeewSprites.value.veg = 'Asset/veg_kale.png';
+          };
+
+          const tryNextImage = () => {
+            if (attempt >= candidates.length) {
+              applyFallbackSprites();
+              return;
+            }
+            const srcPath = candidates[attempt++];
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const w = img.naturalWidth;
+                const h = img.naturalHeight;
+
+                const extractNoodleMound = (rx, ry, rw, rh) => {
+                  const tCanvas = document.createElement('canvas');
+                  tCanvas.width = rw;
+                  tCanvas.height = rh;
+                  const tCtx = tCanvas.getContext('2d');
+                  tCtx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+                  const tData = tCtx.getImageData(0, 0, rw, rh).data;
+
+                  let minX = rw, maxX = 0, minY = rh, maxY = 0, found = false;
+                  for (let y = 4; y < rh - 4; y++) {
+                    for (let x = 4; x < rw - 4; x++) {
+                      const idx = (y * rw + x) * 4;
+                      const r = tData[idx], g = tData[idx + 1], b = tData[idx + 2];
+                      if (b - r > 18 && b - g > 8 && b > 45 && b < 170) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                        found = true;
+                      }
+                    }
+                  }
+
+                  const cx = found ? (minX + maxX) / 2 : rw * 0.5;
+                  const cy = found ? (minY + maxY) / 2 : rh * 0.5;
+                  const plateRadius = found ? Math.max(maxX - minX, maxY - minY) / 2 : Math.min(rw, rh) * 0.45;
+                  const foodRadius = plateRadius * 0.72;
+
+                  const outSize = Math.ceil(foodRadius * 2);
+                  const oCanvas = document.createElement('canvas');
+                  oCanvas.width = outSize;
+                  oCanvas.height = outSize;
+                  const oCtx = oCanvas.getContext('2d');
+                  const half = outSize / 2;
+
+                  oCtx.drawImage(tCanvas, cx - half, cy - half, outSize, outSize, 0, 0, outSize, outSize);
+                  const outImg = oCtx.getImageData(0, 0, outSize, outSize);
+                  const d = outImg.data;
+
+                  for (let y = 0; y < outSize; y++) {
+                    for (let x = 0; x < outSize; x++) {
+                      const dist = Math.hypot(x - half, y - half);
+                      const p = (y * outSize + x) * 4;
+                      const r = d[p], g = d[p + 1], b = d[p + 2];
+                      const sat = Math.max(r, g, b) - Math.min(r, g, b);
+                      const lum = (r + g + b) / 3;
+
+                      if (dist > foodRadius || (lum > 188 && sat < 24)) {
+                        d[p + 3] = 0;
+                      } else if (lum > 170 && sat < 28) {
+                        d[p + 3] = Math.round(((188 - lum) / 18) * 255);
+                      }
+                    }
+                  }
+
+                  oCtx.putImageData(outImg, 0, 0);
+                  return oCanvas.toDataURL('image/png');
+                };
+
+                const extractVeg = (rx, ry, rw, rh) => {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = rw;
+                  canvas.height = rh;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+                  const imgData = ctx.getImageData(0, 0, rw, rh);
+                  const d = imgData.data;
+
+                  for (let i = 0; i < d.length; i += 4) {
+                    const r = d[i], g = d[i + 1], b = d[i + 2];
+                    const sat = Math.max(r, g, b) - Math.min(r, g, b);
+                    if (sat < 22) {
+                      d[i + 3] = 0;
+                    } else if (sat < 34) {
+                      d[i + 3] = Math.round(((sat - 22) / 12) * 255);
+                    }
+                  }
+                  ctx.putImageData(imgData, 0, 0);
+                  return canvas.toDataURL('image/png');
+                };
+
+                padseeewSprites.value.sen_yai = extractNoodleMound(0, 0, Math.round(w * 0.36), h);
+                padseeewSprites.value.sen_mee = extractNoodleMound(Math.round(w * 0.37), 0, Math.round(w * 0.39), h);
+                padseeewSprites.value.veg = extractVeg(
+                  Math.round(w * 0.785), Math.round(h * 0.015),
+                  Math.round(w * 0.210), Math.round(h * 0.545)
+                );
+              } catch (err) {
+                applyFallbackSprites();
+              }
+            };
+            img.onerror = tryNextImage;
+            img.src = srcPath;
+          };
+
+          tryNextImage();
+        };
+
+        // แสดงจานผัดซีอิ๊วเสมอเมื่อเลือกประเภท "ผัดซีอิ๊ว" (ยกเว้นหมี่กรอบที่แยกถ้วย)
+        const isPadseeewPlateMode = (cfg) => {
+          return cfg && cfg.dishType === 'padseeew' && cfg.noodle !== 'mee_krob';
+        };
+
+        const getPadseeewPlateImg = () => {
+          return padseeewSprites.value.empty_plate || 'Asset/jan.jpg';
+        };
 
         const adminMode = ref(false);
         const adminSelectedKey = ref('noodle_sen_yai');
@@ -714,6 +1048,7 @@
 
         const saveLayoutsToStorage = () => {
           localStorage.setItem('mah_ocha_admin_layouts', JSON.stringify(layoutConfig.value));
+          broadcastCustomerLive();
         };
 
         const adjustLayoutProp = (prop, delta) => {
@@ -749,11 +1084,28 @@
 
         const ensurePreviewHasSelectedItem = () => {
           const key = adminSelectedKey.value;
-          if (key === 'noodle_sen_yai') currentItem.value.noodle = 'sen_yai';
-          else if (key === 'noodle_sen_mee') currentItem.value.noodle = 'sen_mee';
-          else if (key === 'noodle_mee_krob') currentItem.value.noodle = 'mee_krob';
-          else if (key === 'veg_kale') currentItem.value.includeVeg = true;
-          else if (key.startsWith('meat_')) currentItem.value.meat = key.replace('meat_', '');
+          if (key === 'noodle_sen_yai') {
+            if (currentItem.value.dishType === 'padseeew') currentItem.value.dishType = 'radna';
+            currentItem.value.noodle = 'sen_yai';
+          } else if (key === 'noodle_sen_mee') {
+            if (currentItem.value.dishType === 'padseeew') currentItem.value.dishType = 'radna';
+            currentItem.value.noodle = 'sen_mee';
+          } else if (key === 'noodle_mee_krob') {
+            currentItem.value.noodle = 'mee_krob';
+          } else if (key === 'padseeew_sen_yai') {
+            currentItem.value.dishType = 'padseeew';
+            currentItem.value.noodle = 'sen_yai';
+          } else if (key === 'padseeew_sen_mee') {
+            currentItem.value.dishType = 'padseeew';
+            currentItem.value.noodle = 'sen_mee';
+          } else if (key === 'veg_kale') {
+            if (currentItem.value.dishType === 'padseeew') currentItem.value.dishType = 'radna';
+            currentItem.value.includeVeg = true;
+          } else if (key === 'veg_kale_padseeew') {
+            currentItem.value.dishType = 'padseeew';
+            if (!currentItem.value.noodle) currentItem.value.noodle = 'sen_yai';
+            currentItem.value.includeVeg = true;
+          } else if (key.startsWith('meat_')) currentItem.value.meat = key.replace('meat_', '');
           else if (key === 'fried_egg') currentItem.value.addFriedEgg = true;
           else if (key.startsWith('shrimp_')) {
             const idx = parseInt(key.split('_')[1], 10);
@@ -761,6 +1113,7 @@
           } else if (key.startsWith('squid_')) currentItem.value.addSquid = true;
           else if (key.startsWith('crispy_')) currentItem.value.addCrispy = true;
           else if (key.startsWith('quail_')) currentItem.value.addQuail = true;
+          broadcastCustomerLive();
         };
 
         const selectAdminTarget = (key) => {
@@ -771,7 +1124,10 @@
           adminMode.value = !adminMode.value;
           if (adminMode.value) {
             if (currentItem.value.meat) adminSelectedKey.value = 'meat_' + currentItem.value.meat;
-            else if (currentItem.value.noodle) adminSelectedKey.value = 'noodle_' + currentItem.value.noodle;
+            else if (currentItem.value.includeVeg && currentItem.value.dishType === 'padseeew') adminSelectedKey.value = 'veg_kale_padseeew';
+            else if (currentItem.value.dishType === 'padseeew' && (currentItem.value.noodle === 'sen_yai' || currentItem.value.noodle === 'sen_mee')) {
+              adminSelectedKey.value = 'padseeew_' + currentItem.value.noodle;
+            } else if (currentItem.value.noodle) adminSelectedKey.value = 'noodle_' + currentItem.value.noodle;
             else if (currentItem.value.includeVeg) adminSelectedKey.value = 'veg_kale';
             else ensurePreviewHasSelectedItem();
           }
@@ -815,6 +1171,15 @@
           { id: 'mixed', name: 'รวมมิตร', price: 85, img: 'Asset/meat_mixed.png' }
         ];
 
+        const drinkOptions = [
+          { id: 'drink_soda', name: 'น้ำอัดลม', shortName: 'น้ำอัดลม', price: 16, icon: '🥤' },
+          { id: 'drink_orange', name: 'น้ำส้ม', shortName: 'น้ำส้ม', price: 13, icon: '🍊' },
+          { id: 'drink_vitamilk', name: 'ไวตามิล', shortName: 'ไวตามิล', price: 15, icon: '🥛' },
+          { id: 'drink_yogurt', name: 'โยเกิร์ต', shortName: 'โยเกิร์ต', price: 15, icon: '🍶' },
+          { id: 'drink_milk', name: 'นมพาสเจอร์ไรส์', shortName: 'นมสด', price: 14, icon: '🍼' },
+          { id: 'drink_singha', name: 'น้ำดื่มสิงห์', shortName: 'น้ำสิงห์', price: 10, icon: '💧' }
+        ];
+
         const getMeatImage = (meatId) => {
           return meatOptions.find(m => m.id === meatId)?.img || '';
         };
@@ -829,6 +1194,8 @@
           addCrispy: false,
           addQuail: false,
           addFriedEgg: false,
+          extraNoodle: false,
+          extraVeg: false,
           includeVeg: false,
           vegManualToggled: false,
           note: ''
@@ -837,11 +1204,49 @@
         const currentItem = ref(defaultBowlState());
         const billItems = ref([]);
 
+        // =========================================================================
+        // ระบบส่งข้อมูลสด (LIVE SYNC) ไปยังจอลูกค้าหน้าเคาน์เตอร์ (customer.html)
+        // =========================================================================
+        let cloudSyncDebounce = null;
+        const broadcastCustomerLive = () => {
+          const payload = {
+            billHeader: JSON.parse(JSON.stringify(billHeader.value)),
+            currentItem: JSON.parse(JSON.stringify(currentItem.value)),
+            billItems: JSON.parse(JSON.stringify(billItems.value)),
+            layoutConfig: JSON.parse(JSON.stringify(layoutConfig.value)),
+            updatedAt: Date.now()
+          };
+
+          // 1. บันทึกลง localStorage และ BroadcastChannel (ซิงค์ทันทีในเครื่องเดียวกัน)
+          try {
+            localStorage.setItem('mah_ocha_live_customer', JSON.stringify(payload));
+            const ch = new BroadcastChannel('mah_ocha_customer_sync');
+            ch.postMessage({ type: 'LIVE_UPDATE', payload });
+            ch.close();
+          } catch (e) {}
+
+          // 2. ส่งขึ้น Firebase Realtime Database (ซิงค์ข้ามเครื่องจากมือถือภรรยา -> จอลูกค้า)
+          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+          if (dbUrl) {
+            clearTimeout(cloudSyncDebounce);
+            cloudSyncDebounce = setTimeout(async () => {
+              try {
+                await fetch(`${dbUrl}/live_customer_display.json`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+              } catch (err) {}
+            }, 180);
+          }
+        };
+
         const isBowlEmpty = computed(() => {
           const item = currentItem.value;
           return !item.dishType && !item.noodle && !item.meat &&
                  item.addShrimp === 0 && !item.addSquid && !item.addCrispy &&
-                 !item.addQuail && !item.addFriedEgg && !item.includeVeg;
+                 !item.addQuail && !item.addFriedEgg && !item.extraNoodle &&
+                 !item.extraVeg && !item.includeVeg;
         });
 
         const autoEnableVegIfNeeded = () => {
@@ -857,6 +1262,7 @@
             currentItem.value.dishType = type;
             autoEnableVegIfNeeded();
           }
+          broadcastCustomerLive();
         };
 
         const toggleNoodle = (id) => {
@@ -864,9 +1270,16 @@
             currentItem.value.noodle = null;
           } else {
             currentItem.value.noodle = id;
-            if (adminMode.value) adminSelectedKey.value = 'noodle_' + id;
+            if (adminMode.value) {
+              if (currentItem.value.dishType === 'padseeew' && (id === 'sen_yai' || id === 'sen_mee')) {
+                adminSelectedKey.value = 'padseeew_' + id;
+              } else {
+                adminSelectedKey.value = 'noodle_' + id;
+              }
+            }
             autoEnableVegIfNeeded();
           }
+          broadcastCustomerLive();
         };
 
         const toggleMeat = (id) => {
@@ -877,12 +1290,48 @@
             if (adminMode.value) adminSelectedKey.value = 'meat_' + id;
             autoEnableVegIfNeeded();
           }
+          broadcastCustomerLive();
+        };
+
+        const changeShrimpQty = (delta) => {
+          const next = (currentItem.value.addShrimp || 0) + delta;
+          if (next >= 0 && next <= 6) {
+            currentItem.value.addShrimp = next;
+            broadcastCustomerLive();
+          }
+        };
+
+        const toggleToppingBool = (field) => {
+          currentItem.value[field] = !currentItem.value[field];
+          broadcastCustomerLive();
+        };
+
+        const toggleExtraVeg = () => {
+          currentItem.value.extraVeg = !currentItem.value.extraVeg;
+          if (currentItem.value.extraVeg && !currentItem.value.includeVeg) {
+            currentItem.value.includeVeg = true;
+          }
+          broadcastCustomerLive();
         };
 
         const toggleVeg = () => {
           currentItem.value.includeVeg = !currentItem.value.includeVeg;
           currentItem.value.vegManualToggled = true;
-          if (adminMode.value && currentItem.value.includeVeg) adminSelectedKey.value = 'veg_kale';
+          if (!currentItem.value.includeVeg) {
+            currentItem.value.extraVeg = false;
+          }
+          if (adminMode.value && currentItem.value.includeVeg) {
+            adminSelectedKey.value = currentItem.value.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale';
+          }
+          broadcastCustomerLive();
+        };
+
+        const changeCurrentQty = (delta) => {
+          const next = (currentItem.value.qty || 1) + delta;
+          if (next >= 1) {
+            currentItem.value.qty = next;
+            broadcastCustomerLive();
+          }
         };
 
         const singleBowlPrice = computed(() => {
@@ -891,16 +1340,18 @@
           let price = baseMeat ? baseMeat.price : ((currentItem.value.dishType || currentItem.value.noodle) ? 50 : 0);
           price += (currentItem.value.addShrimp || 0) * 22;
           if (currentItem.value.addSquid) price += 20;
-          if (currentItem.value.addCrispy) price += 15;
+          if (currentItem.value.addCrispy) price += 20;
           if (currentItem.value.addQuail) price += 10;
           if (currentItem.value.addFriedEgg) price += 10;
+          if (currentItem.value.extraNoodle) price += 10;
+          if (currentItem.value.extraVeg) price += 10;
           return price;
         });
 
         const currentItemTotalPrice = computed(() => singleBowlPrice.value * currentItem.value.qty);
 
         const currentBowlSummary = computed(() => {
-          if (isBowlEmpty.value) return 'ชามเปล่า (กรุณาเลือกรายการ)';
+          if (isBowlEmpty.value) return 'ภาชนะเปล่า (กรุณาเลือกรายการ)';
           const dish = currentItem.value.dishType === 'radna' ? 'ราดหน้า' : (currentItem.value.dishType === 'padseeew' ? 'ผัดซีอิ๊ว' : 'เกาเหลา/ไม่ระบุน้ำ');
           const noodle = noodleOptions.find(n => n.id === currentItem.value.noodle)?.name || 'ไม่ใส่เส้น';
           const meat = meatOptions.find(m => m.id === currentItem.value.meat)?.name || 'ไม่ใส่เนื้อ';
@@ -908,18 +1359,62 @@
         });
 
         const billGrandTotal = computed(() => {
+          const savedTotal = billItems.value.reduce((sum, item) => sum + item.totalPrice, 0);
           if (billItems.value.length === 0) return currentItemTotalPrice.value;
-          return billItems.value.reduce((sum, item) => sum + item.totalPrice, 0);
+          return savedTotal + (!isBowlEmpty.value && editingIndex.value === null ? currentItemTotalPrice.value : 0);
         });
+
+        const totalSummaryHint = computed(() => {
+          if (billItems.value.length === 0) return 'รายการปัจจุบัน';
+          const hasPendingBowl = !isBowlEmpty.value && editingIndex.value === null;
+          return hasPendingBowl ? `${billItems.value.length} รายการในบิล + 1 รายการปัจจุบัน` : `${billItems.value.length} รายการ`;
+        });
+
+        const getDrinkQtyInBill = (drinkId) => {
+          const found = billItems.value.find(item => item.isDrink && item.drinkId === drinkId);
+          return found ? found.qty : 0;
+        };
+
+        const changeDrinkQty = (drink, delta) => {
+          const idx = billItems.value.findIndex(item => item.isDrink && item.drinkId === drink.id);
+          if (idx === -1 && delta > 0) {
+            billItems.value.push({
+              isDrink: true,
+              drinkId: drink.id,
+              drinkIcon: drink.icon,
+              shortName: drink.shortName,
+              title: `${drink.icon} ${drink.name}`,
+              qty: 1,
+              unitPrice: drink.price,
+              toppingsText: '',
+              note: '',
+              totalPrice: drink.price,
+              config: { dishType: 'drink' }
+            });
+          } else if (idx !== -1) {
+            const nextQty = billItems.value[idx].qty + delta;
+            if (nextQty <= 0) {
+              removeBillItem(idx);
+              return;
+            } else {
+              billItems.value[idx].qty = nextQty;
+              billItems.value[idx].totalPrice = nextQty * drink.price;
+            }
+          }
+          broadcastCustomerLive();
+        };
 
         const resetCurrentItem = () => {
           currentItem.value = defaultBowlState();
           editingIndex.value = null;
+          broadcastCustomerLive();
         };
 
         const saveBowlToTray = () => {
           if (isBowlEmpty.value) return;
           const toppings = [];
+          if (currentItem.value.extraNoodle) toppings.push('เพิ่มเส้น');
+          if (currentItem.value.extraVeg) toppings.push('เพิ่มผัก');
           if (currentItem.value.addShrimp > 0) toppings.push(`เพิ่มกุ้ง ${currentItem.value.addShrimp} ตัว`);
           if (currentItem.value.addSquid) toppings.push('เพิ่มหมึก 3 ชิ้น');
           if (currentItem.value.addCrispy) toppings.push('เพิ่มหมูกรอบ 3 ชิ้น');
@@ -928,6 +1423,7 @@
           if (!currentItem.value.includeVeg) toppings.push('ไม่ใส่ผัก');
 
           const bowlPayload = {
+            isDrink: false,
             title: currentBowlSummary.value,
             qty: currentItem.value.qty,
             unitPrice: singleBowlPrice.value,
@@ -944,14 +1440,16 @@
             billItems.value.push(bowlPayload);
           }
 
-          resetCurrentItem();
+          currentItem.value = defaultBowlState();
+          broadcastCustomerLive();
         };
 
         const loadBowlForEdit = (idx) => {
           const target = billItems.value[idx];
-          if (!target) return;
+          if (!target || target.isDrink) return;
           editingIndex.value = idx;
           currentItem.value = JSON.parse(JSON.stringify(target.config));
+          broadcastCustomerLive();
         };
 
         const cancelEditBowl = () => {
@@ -960,28 +1458,136 @@
 
         const removeBillItem = (idx) => {
           if (editingIndex.value === idx) {
-            resetCurrentItem();
+            currentItem.value = defaultBowlState();
+            editingIndex.value = null;
           } else if (editingIndex.value !== null && editingIndex.value > idx) {
             editingIndex.value--;
           }
           billItems.value.splice(idx, 1);
+          broadcastCustomerLive();
         };
 
         const saveSyncSettings = () => {
           localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
           showSyncModal.value = false;
+          broadcastCustomerLive();
+        };
+
+        // =========================================================================
+        // ระบบแปลงและบันทึกยอดขายเข้า MPOS.html อัตโนมัติ (radna_pos_history)
+        // =========================================================================
+        const syncBillToMPOSHistory = (itemsList) => {
+          try {
+            const d = new Date();
+            const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const thaiDate = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const nowTime = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            // ต้นทุนโดยประมาณต่อเมนูเพื่อให้ MPOS แสดงผลทันทีแม้ยังไม่เปิดหน้า MPOS
+            const cogsMap = {
+              rn_pork: 23.5, rn_liver: 17.5, rn_quail: 21.2, rn_beef: 23.5, rn_crispy: 31.5, rn_seafood: 36.5, rn_mixed: 34.0, rn_shrimp: 55.5,
+              se_pork: 25.0, se_liver: 19.0, se_quail: 22.7, se_beef: 25.0, se_crispy: 33.0, se_seafood: 38.0, se_mixed: 35.5, se_shrimp: 57.0,
+              top_veg: 5.0, top_noodle: 4.5, top_pork: 10.0, top_beef: 10.0, top_quail_egg: 4.85, top_crispy_noodle: 3.5, top_liver: 3.0, top_squid: 17.5, top_crispy_pork: 10.0, top_shrimp: 14.65
+            };
+
+            const meatIdMap = {
+              pork: 'pork', liver: 'liver', quail: 'quail', beef: 'beef',
+              crispy_pork: 'crispy', seafood: 'seafood', mixed: 'mixed', crabstick: 'shrimp', squid: 'seafood'
+            };
+
+            const salesDelta = {};
+            const drinksDelta = [];
+            let addBowls = 0, addRev = 0, addCogs = 0;
+
+            itemsList.forEach(item => {
+              const qty = Number(item.qty) || 1;
+              if (item.isDrink) {
+                const drinkName = item.title.replace(/^[^\s]+\s/, '').trim() || item.shortName;
+                drinksDelta.push({ name: drinkName, price: item.unitPrice, qty });
+                addBowls += qty;
+                addRev += item.totalPrice;
+                addCogs += item.totalPrice * 0.40;
+              } else if (item.config) {
+                const cfg = item.config;
+                const prefix = cfg.dishType === 'padseeew' ? 'se_' : 'rn_';
+                const mKey = meatIdMap[cfg.meat] || 'pork';
+                const menuId = prefix + mKey;
+
+                salesDelta[menuId] = (salesDelta[menuId] || 0) + qty;
+                addBowls += qty;
+                addRev += item.totalPrice;
+                addCogs += (cogsMap[menuId] || 25) * qty;
+
+                if (cfg.extraNoodle) { salesDelta['top_noodle'] = (salesDelta['top_noodle'] || 0) + qty; addCogs += cogsMap.top_noodle * qty; }
+                if (cfg.extraVeg) { salesDelta['top_veg'] = (salesDelta['top_veg'] || 0) + qty; addCogs += cogsMap.top_veg * qty; }
+                if (cfg.addShrimp > 0) {
+                  const sQty = cfg.addShrimp * qty;
+                  salesDelta['top_shrimp'] = (salesDelta['top_shrimp'] || 0) + sQty;
+                  addCogs += cogsMap.top_shrimp * sQty;
+                }
+                if (cfg.addSquid) { salesDelta['top_squid'] = (salesDelta['top_squid'] || 0) + qty; addCogs += cogsMap.top_squid * qty; }
+                if (cfg.addCrispy) { salesDelta['top_crispy_pork'] = (salesDelta['top_crispy_pork'] || 0) + qty; addCogs += cogsMap.top_crispy_pork * qty; }
+                if (cfg.addQuail) { salesDelta['top_quail_egg'] = (salesDelta['top_quail_egg'] || 0) + qty; addCogs += cogsMap.top_quail_egg * qty; }
+                if (cfg.addFriedEgg) { addCogs += 4.5 * qty; }
+              }
+            });
+
+            const history = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
+            let todayLog = history.find(h => h.isoDate === isoDate || h.date === thaiDate);
+
+            if (!todayLog) {
+              todayLog = {
+                date: thaiDate,
+                isoDate,
+                time: nowTime,
+                totalBowls: 0,
+                totalRevenue: 0,
+                totalCOGS: 0,
+                totalProfit: 0,
+                sales: {},
+                customDrinks: [],
+                importedFrom: 'POS หน้าร้านอัตโนมัติ'
+              };
+              history.unshift(todayLog);
+            }
+
+            todayLog.time = nowTime;
+            todayLog.totalBowls = (Number(todayLog.totalBowls) || 0) + addBowls;
+            todayLog.totalRevenue = Number(((Number(todayLog.totalRevenue) || 0) + addRev).toFixed(2));
+            todayLog.totalCOGS = Number(((Number(todayLog.totalCOGS) || 0) + addCogs).toFixed(2));
+            todayLog.totalProfit = Number((todayLog.totalRevenue - todayLog.totalCOGS).toFixed(2));
+            todayLog.sales = todayLog.sales || {};
+            Object.entries(salesDelta).forEach(([k, v]) => {
+              todayLog.sales[k] = (todayLog.sales[k] || 0) + v;
+            });
+
+            todayLog.customDrinks = todayLog.customDrinks || [];
+            drinksDelta.forEach(dItem => {
+              const ex = todayLog.customDrinks.find(x => x.name === dItem.name && x.price === dItem.price);
+              if (ex) ex.qty += dItem.qty;
+              else todayLog.customDrinks.push(dItem);
+            });
+
+            localStorage.setItem('radna_pos_history', JSON.stringify(history));
+          } catch (err) {
+            console.error('MPOS sync error:', err);
+          }
         };
 
         const dispatchOrderToKitchen = async () => {
+          const itemsSnapshot = JSON.parse(JSON.stringify(billItems.value));
           const orderPacket = {
             id: 'ORD_' + Date.now(),
             location: billHeader.value.location,
             queueNo: billHeader.value.queueNo,
-            items: JSON.parse(JSON.stringify(billItems.value)),
+            items: itemsSnapshot,
             grandTotal: billGrandTotal.value,
             status: 'cooking',
             createdAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
           };
+
+          // บันทึกเข้าประวัติยอดขาย MPOS อัตโนมัติ
+          syncBillToMPOSHistory(itemsSnapshot);
 
           const existing = JSON.parse(localStorage.getItem('mah_ocha_kitchen_orders') || '[]');
           existing.unshift(orderPacket);
@@ -1007,27 +1613,27 @@
         };
 
         const sendToKitchenOnly = async () => {
-          if (billItems.value.length === 0) {
-            if (isBowlEmpty.value) {
-              alert('กรุณาจัดรายการอาหารก่อนส่งเข้าครัวครับ');
-              return;
-            }
+          if (!isBowlEmpty.value) {
             saveBowlToTray();
           }
+          if (billItems.value.length === 0) {
+            alert('กรุณาเลือกรายการอาหารหรือเครื่องดื่มก่อนส่งเข้าครัวครับ');
+            return;
+          }
           await dispatchOrderToKitchen();
-          alert(`✅ ส่งออเดอร์ "${billHeader.value.location} (คิวที่ ${billHeader.value.queueNo})" ขึ้นจอมอนิเตอร์ห้องครัวเรียบร้อย!`);
+          alert(`✅ ส่งออเดอร์ "${billHeader.value.location} (คิวที่ ${billHeader.value.queueNo})" ขึ้นจอครัวและบันทึกยอดขายเรียบร้อย!`);
           billItems.value = [];
           billHeader.value.queueNo++;
           resetCurrentItem();
         };
 
         const printAndSubmitBill = async () => {
-          if (billItems.value.length === 0) {
-            if (isBowlEmpty.value) {
-              alert('กรุณาเลือกรายการอาหารก่อนพิมพ์ใบออเดอร์ครับ');
-              return;
-            }
+          if (!isBowlEmpty.value) {
             saveBowlToTray();
+          }
+          if (billItems.value.length === 0) {
+            alert('กรุณาเลือกรายการอาหารหรือเครื่องดื่มก่อนพิมพ์ใบออเดอร์ครับ');
+            return;
           }
 
           await dispatchOrderToKitchen();
@@ -1044,16 +1650,21 @@
 
         onMounted(() => {
           lucide.createIcons();
+          loadJanPlate();
+          loadAndSlicePadseeewSprites();
+          broadcastCustomerLive();
         });
 
         return {
-          billHeader, showSyncModal, firebaseUrl, editingIndex,
+          billHeader, showSyncModal, firebaseUrl, editingIndex, compactPreview,
+          padseeewSprites, isPadseeewPlateMode, getPadseeewPlateImg,
           adminMode, adminSelectedKey, activeAdminObj, toggleAdminMode,
           selectAdminTarget, ensurePreviewHasSelectedItem, getLayerStyle, getAdminInteractiveClass,
           adjustLayoutProp, saveLayoutsToStorage, resetSingleLayout, resetAllLayouts, exportLayoutJson,
-          noodleOptions, meatOptions, getMeatImage, currentItem, billItems, isBowlEmpty,
-          toggleDishType, toggleNoodle, toggleMeat, toggleVeg,
-          singleBowlPrice, currentItemTotalPrice, currentBowlSummary, billGrandTotal,
+          noodleOptions, meatOptions, drinkOptions, getMeatImage, currentItem, billItems, isBowlEmpty,
+          toggleDishType, toggleNoodle, toggleMeat, changeShrimpQty, toggleToppingBool, toggleExtraVeg, toggleVeg, changeCurrentQty,
+          getDrinkQtyInBill, changeDrinkQty, broadcastCustomerLive,
+          singleBowlPrice, currentItemTotalPrice, currentBowlSummary, billGrandTotal, totalSummaryHint,
           resetCurrentItem, saveBowlToTray, loadBowlForEdit, cancelEditBowl, removeBillItem,
           saveSyncSettings, sendToKitchenOnly, printAndSubmitBill
         };
