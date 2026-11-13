@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เหมาะโอชา The Next⁺ - ระบบใบ Order แท็บเล็ต</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    .layer-transition { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes floatSteam {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
+      50% { transform: translateY(-10px) scale(1.12); opacity: 0.65; }
+    }
+    .steam-anim { animation: floatSteam 2.5s infinite ease-in-out; }
+    @media print {
+      body * { visibility: hidden; }
+      #print-ticket, #print-ticket * { visibility: visible; }
+      #print-ticket { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto p-3 sm:p-4 flex flex-col min-h-screen lg:h-screen">
+    
+    <!-- Header ตามหัวใบออเดอร์ -->
+    <header class="bg-emerald-800 text-white p-3 rounded-2xl shadow-md flex flex-wrap justify-between items-center gap-2 mb-3 shrink-0">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">🍲</span>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-amber-300 leading-tight">
+            เหมาะโอชา <span class="text-xs bg-amber-500/20 px-2 py-0.5 rounded text-amber-200 border border-amber-400/30">The Next⁺</span>
+          </h1>
+          <p class="text-xs text-emerald-100">ระบบรับออเดอร์หน้าร้านแบบภาพเสมือนจริง</p>
+        </div>
+      </div>
+
+      <!-- ระบุโต๊ะ / กลับบ้าน / ลำดับที่ -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="bg-emerald-900 border border-emerald-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+          <span class="text-xs text-emerald-200">โต๊ะ/ประเภท:</span>
+          <select v-model="billHeader.location" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
+            <option value="โต๊ะ 1" class="text-slate-800">โต๊ะ 1</option>
+            <option value="โต๊ะ 2" class="text-slate-800">โต๊ะ 2</option>
+            <option value="โต๊ะ 3" class="text-slate-800">โต๊ะ 3</option>
+            <option value="โต๊ะ 4" class="text-slate-800">โต๊ะ 4</option>
+            <option value="โต๊ะ 5" class="text-slate-800">โต๊ะ 5</option>
+            <option value="โต๊ะ 6" class="text-slate-800">โต๊ะ 6</option>
+            <option value="กลับบ้าน" class="text-slate-800">🥡 กลับบ้าน</option>
+          </select>
+        </div>
+
+        <div class="bg-emerald-900 border border-emerald-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+          <span class="text-xs text-emerald-200">ลำดับที่:</span>
+          <input type="number" v-model.number="billHeader.queueNo" class="w-12 bg-emerald-950 text-center font-bold text-amber-300 rounded px-1 py-0.5 text-sm border border-emerald-600 focus:outline-none">
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden mb-2">
+      
+      <!-- ฝั่งซ้าย: ภาพชามเสมือนจริง -->
+      <div class="lg:col-span-5 bg-white p-4 rounded-2xl border border-slate-200 flex flex-col justify-between items-center relative overflow-hidden shadow-sm">
+        <div class="w-full flex justify-between items-center z-10">
+          <span class="bg-stone-100 text-stone-700 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+            <span>👁️</span> ตัวอย่างชามที่กำลังปรุง
+          </span>
+          <span class="text-xs font-bold px-3 py-1 rounded-full border"
+                :class="isBowlEmpty ? 'bg-slate-50 text-slate-500 border-slate-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'">
+            {{ currentBowlSummary }}
+          </span>
+        </div>
+
+        <!-- พื้นที่จัดวางภาชนะ (รองรับทั้งแบบ 1 ชาม และแบบแยกถ้วยหมี่กรอบด้านข้าง) -->
+        <div class="relative w-full max-w-[390px] h-72 sm:h-80 my-auto flex items-center justify-center select-none">
+          
+          <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย (แสดงเฉพาะเมื่อเลือกเมนู หมี่กรอบ) -->
+          <div v-if="currentItem.noodle === 'mee_krob'"
+               class="relative w-[36%] aspect-square mr-1.5 flex items-center justify-center layer-transition shrink-0">
+            <!-- ถ้วยสเตนเลสเล็ก -->
+            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-md" alt="ถ้วยหมี่กรอบ">
+            <!-- ก้อนหมี่กรอบ 2 ก้อน หมุนแนวตั้งวางซ้อนบนถ้วยเล็ก -->
+            <img src="Asset/noodle_meekrob.png"
+                 class="absolute w-[128%] max-w-none h-auto object-contain pointer-events-none drop-shadow-lg rotate-90" alt="หมี่กรอบ 2 ก้อน">
+          </div>
+
+          <!-- ชามหลัก (ขยับย่อเล็กน้อยเมื่อมีถ้วยหมี่กรอบด้านข้างเพื่อให้สมดุล) -->
+          <div :class="['relative aspect-square flex items-center justify-center layer-transition shrink-0',
+                        currentItem.noodle === 'mee_krob' ? 'w-[60%]' : 'w-72 sm:w-80']">
+            
+            <!-- Layer 0: ชามสเตนเลสหลัก -->
+            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-lg" alt="ชามสเตนเลส">
+
+            <!-- Layer 1: เส้นใหญ่ / เส้นหมี่ (วางกลางชามใต้ผักและน้ำราดหน้า) -->
+            <img v-if="currentItem.noodle === 'sen_yai'" src="Asset/noodle_senyai.png"
+                 class="absolute w-[62%] h-auto object-contain pointer-events-none layer-transition z-10 top-[24%] left-[19%]" alt="เส้นใหญ่">
+            <img v-if="currentItem.noodle === 'sen_mee'" src="Asset/noodle_senmee.png"
+                 class="absolute w-[60%] h-auto object-contain pointer-events-none layer-transition z-10 top-[24%] left-[20%]" alt="เส้นหมี่">
+
+            <!-- Layer 2: ยอดผักคะน้า 4-5 ต้น (วางตรงขอบบนของก้นชาม โคนชี้ไปทางขวา) -->
+            <img v-if="currentItem.includeVeg" src="Asset/veg_kale.png"
+                 class="absolute w-[58%] h-auto object-contain pointer-events-none layer-transition z-20 top-[22%] left-[20%]" alt="ผักคะน้า">
+
+            <!-- Layer 3: หน้าหลักทั้ง 9 หน้า (วางเต็มพื้นที่ว่างด้านใต้ของผัก) -->
+            <img v-if="currentItem.meat === 'pork'" src="Asset/meat_pork.png"
+                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="หมู">
+            <img v-if="currentItem.meat === 'liver'" src="Asset/meat_liver.png"
+                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="ตับ">
+            <img v-if="currentItem.meat === 'beef'" src="Asset/meat_beef.png"
+                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="เนื้อวัว">
+            <img v-if="currentItem.meat === 'quail'" src="Asset/meat_quail.png"
+                 class="absolute w-[48%] h-auto object-contain pointer-events-none layer-transition z-30 top-[45%] left-[26%]" alt="ไข่นกกระทา">
+            <img v-if="currentItem.meat === 'crabstick'" src="Asset/meat_crabstick.png"
+                 class="absolute w-[42%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[29%]" alt="ปูอัด">
+            <img v-if="currentItem.meat === 'squid'" src="Asset/meat_squid.png"
+                 class="absolute w-[46%] h-auto object-contain pointer-events-none layer-transition z-30 top-[44%] left-[27%]" alt="หมึก">
+            <img v-if="currentItem.meat === 'crispy_pork'" src="Asset/meat_crispy.png"
+                 class="absolute w-[44%] h-auto object-contain pointer-events-none layer-transition z-30 top-[45%] left-[28%]" alt="หมูกรอบ">
+            <img v-if="currentItem.meat === 'seafood'" src="Asset/meat_seafood.png"
+                 class="absolute w-[46%] h-auto object-contain pointer-events-none layer-transition z-30 top-[43%] left-[27%]" alt="ทะเล">
+            <img v-if="currentItem.meat === 'mixed'" src="Asset/meat_mixed.png"
+               class="absolute w-[75%] h-auto object-contain pointer-events-none layer-transition z-30 top-[35%] left-[12.5%]" alt="รวมมิตร">
+
+            <!-- Layer 4: ท็อปปิ้งแบบแยกชิ้น (_a) และไข่ดาว -->
+            <div class="absolute inset-0 z-40 pointer-events-none">
+              
+              <!-- 4.1 กุ้งเพิ่มทีละตัว (meat_shrimp_a.png) -->
+              <img v-for="(pos, idx) in shrimpPositions.slice(0, currentItem.addShrimp)" :key="'shrimp_'+idx"
+                   src="Asset/meat_shrimp_a.png"
+                   :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
+                   class="absolute w-[24%] h-auto object-contain drop-shadow-md layer-transition" alt="กุ้ง">
+
+              <!-- 4.2 หมึกเพิ่ม 3 ชิ้น (meat_squid_a.png) -->
+              <template v-if="currentItem.addSquid">
+                <img v-for="(pos, idx) in squidPositions" :key="'squid_'+idx"
+                     src="Asset/meat_squid_a.png"
+                     :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
+                     class="absolute w-[18%] h-auto object-contain drop-shadow-md layer-transition" alt="หมึก">
+              </template>
+
+              <!-- 4.3 ไข่นกเพิ่ม 4 ฟอง (meat_quail_a.png) -->
+              <template v-if="currentItem.addQuail">
+                <img v-for="(pos, idx) in quailPositions" :key="'quail_'+idx"
+                     src="Asset/meat_quail_a.png"
+                     :style="{ top: pos.top, left: pos.left }"
+                     class="absolute w-[15%] h-auto object-contain drop-shadow-md layer-transition" alt="ไข่นก">
+              </template>
+
+              <!-- 4.4 หมูกรอบเพิ่ม 3 ชิ้น (meat_crispy_a.png) -->
+              <template v-if="currentItem.addCrispy">
+                <img v-for="(pos, idx) in crispyPositions" :key="'crispy_'+idx"
+                     src="Asset/meat_crispy_a.png"
+                     :style="{ top: pos.top, left: pos.left, transform: `rotate(${pos.rot}deg)` }"
+                     class="absolute w-[22%] h-auto object-contain drop-shadow-md layer-transition" alt="หมูกรอบ">
+              </template>
+
+              <!-- 4.5 ไข่ดาวกรอบ -->
+              <img v-if="currentItem.addFriedEgg" src="Asset/meat_friedegg.png"
+                   class="absolute w-[44%] h-auto top-[36%] left-[15%] object-contain drop-shadow-lg layer-transition" alt="ไข่ดาว">
+            </div>
+
+            <!-- Layer 5: น้ำราดหน้า (แสดงเฉพาะเมื่อกดเลือกเมนูราดหน้า) -->
+            <div v-if="currentItem.dishType === 'radna'" class="absolute inset-0 w-full h-full z-50 pointer-events-none bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
+
+            <!-- ควันร้อนอนิเมชั่น (แสดงเมื่อมีอาหารในชาม) -->
+            <div v-if="!isBowlEmpty" class="absolute inset-x-0 top-6 flex justify-center z-[60] pointer-events-none">
+              <svg viewBox="0 0 100 100" class="w-14 h-14 steam-anim opacity-45">
+                <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- แถบราคา & จำนวนชาม -->
+        <div class="w-full bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center z-10 shrink-0">
+          <div>
+            <span class="text-xs text-slate-500 block">ราคาชามละ ฿{{ singleBowlPrice }} x {{ currentItem.qty }} ชาม</span>
+            <span class="text-2xl font-extrabold text-emerald-700">฿{{ currentItemTotalPrice }}</span>
+          </div>
+
+          <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border border-slate-300 shadow-sm">
+            <button @click="currentItem.qty > 1 && currentItem.qty--" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-rose-100 font-bold text-lg text-slate-700">-</button>
+            <span class="w-8 text-center font-extrabold text-base">{{ currentItem.qty }}</span>
+            <button @click="currentItem.qty++" class="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold text-lg text-white">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ฝั่งขวา: แผงกดตามใบออเดอร์ (กดซ้ำเพื่อยกเลิกได้ทุกปุ่ม) -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+        
+        <div class="p-4 space-y-3.5 overflow-y-auto flex-1">
+          
+          <!-- แถวที่ 1: ประเภท + ชนิดเส้น (Toggle กดซ้ำยกเลิกได้) -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pb-3 border-b border-slate-100">
+            <div class="sm:col-span-5">
+              <label class="text-xs font-bold text-slate-500 block mb-1.5">1. ประเภทอาหาร <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button @click="toggleDishType('radna')"
+                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                                currentItem.dishType === 'radna' ? 'bg-emerald-600 border-emerald-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                  🍲 ราดหน้า
+                </button>
+                <button @click="toggleDishType('padseeew')"
+                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                                currentItem.dishType === 'padseeew' ? 'bg-amber-600 border-amber-700 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                  🍳 ผัดซีอิ๊ว
+                </button>
+              </div>
+            </div>
+
+            <div class="sm:col-span-7">
+              <label class="text-xs font-bold text-slate-500 block mb-1.5">2. ชนิดเส้น <span class="font-normal text-slate-400">(กดซ้ำยกเลิก)</span></label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button v-for="n in noodleOptions" :key="n.id" @click="toggleNoodle(n.id)"
+                        :class="['py-2.5 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
+                                currentItem.noodle === n.id ? 'bg-amber-100 border-amber-500 text-amber-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100']">
+                  {{ n.name }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า (Toggle กดซ้ำยกเลิกได้) -->
+          <div class="pb-3 border-b border-slate-100">
+            <label class="text-xs font-bold text-slate-500 block mb-1.5">3. เลือกหน้าหลักทั้งหมด <span class="font-normal text-slate-400">(กดซ้ำเพื่อนำเนื้อสัตว์ออก)</span></label>
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+              <button v-for="m in meatOptions" :key="m.id" @click="toggleMeat(m.id)"
+                      :class="['p-2 rounded-xl border-2 text-center transition flex flex-col justify-center items-center',
+                              currentItem.meat === m.id ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 font-medium hover:bg-slate-100']">
+                <span class="text-xs">{{ m.name }}</span>
+                <span class="text-[10px] text-emerald-700 font-bold mt-0.5">฿{{ m.price }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- แถวที่ 3: ท็อปปิ้งเพิ่มเติม -->
+          <div class="pb-3 border-b border-slate-100">
+            <label class="text-xs font-bold text-slate-500 block mb-1.5">4. ท็อปปิ้งเพิ่มเติม & ผัก</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div class="flex items-center justify-between p-2 rounded-xl border-2 transition"
+                   :class="currentItem.addShrimp > 0 ? 'bg-orange-50 border-orange-400' : 'bg-slate-50 border-slate-200'">
+                <span class="text-xs font-bold text-slate-700">🍤 กุ้งเพิ่ม (ตัวละ 22 บ.)</span>
+                <div class="flex items-center gap-1.5">
+                  <button @click="currentItem.addShrimp > 0 && currentItem.addShrimp--" class="w-7 h-7 rounded-lg bg-white border border-slate-300 font-bold text-slate-700">-</button>
+                  <span class="w-6 text-center font-extrabold text-sm text-orange-700">{{ currentItem.addShrimp }}</span>
+                  <button @click="currentItem.addShrimp < 6 && currentItem.addShrimp++" class="w-7 h-7 rounded-lg bg-orange-500 text-white font-bold">+</button>
+                </div>
+              </div>
+
+              <button @click="currentItem.addSquid = !currentItem.addSquid"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.addSquid ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                <span>🦑 หมึก เพิ่ม 3 ชิ้น</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addSquid ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+20 บ.</span>
+              </button>
+
+              <button @click="currentItem.addCrispy = !currentItem.addCrispy"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.addCrispy ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                <span>🥓 หมูกรอบ เพิ่ม 3 ชิ้น</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+25 บ.</span>
+              </button>
+
+              <button @click="currentItem.addQuail = !currentItem.addQuail"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.addQuail ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                <span>🥚 เพิ่มไข่นก 4 ฟอง</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addQuail ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+10 บ.</span>
+              </button>
+
+              <button @click="currentItem.addFriedEgg = !currentItem.addFriedEgg"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.addFriedEgg ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                <span>🍳 เพิ่มไข่ดาวกรอบ</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addFriedEgg ? 'bg-emerald-600 text-white' : 'bg-slate-200'">+15 บ.</span>
+              </button>
+
+              <button @click="toggleVeg"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.includeVeg ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-600']">
+                <span>🥬 ผักคะน้า</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-emerald-600 text-white' : 'bg-slate-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่มีผัก' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- แถวที่ 4: คำสั่งพิเศษ + ปุ่มเพิ่มลงบิล -->
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" v-model="currentItem.note" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
+                   class="flex-1 p-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+            <button @click="addItemToBill" :disabled="isBowlEmpty"
+                    :class="['font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap',
+                            isBowlEmpty ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95']">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              เพิ่มรายการนี้ลงบิล (฿{{ currentItemTotalPrice }})
+            </button>
+          </div>
+
+          <!-- รายการในบิล -->
+          <div v-if="billItems.length > 0" class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
+            <div class="flex justify-between items-center text-xs font-bold text-amber-900">
+              <span>📋 รายการในใบออเดอร์ ({{ billHeader.location }} - ลำดับที่ {{ billHeader.queueNo }})</span>
+              <span>รวม {{ billItems.length }} รายการ</span>
+            </div>
+            <div v-for="(item, idx) in billItems" :key="idx" class="bg-white p-2.5 rounded-lg border border-amber-200 flex justify-between items-center text-xs shadow-sm">
+              <div>
+                <div class="font-bold text-slate-800">{{ idx + 1 }}. {{ item.title }} <span class="text-emerald-700">({{ item.qty }} ชาม)</span></div>
+                <div v-if="item.toppingsText" class="text-[11px] text-orange-700">+ {{ item.toppingsText }}</div>
+                <div v-if="item.note" class="text-[11px] text-rose-600">หมายเหตุ: {{ item.note }}</div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-extrabold text-sm text-slate-800">฿{{ item.totalPrice }}</span>
+                <button @click="removeBillItem(idx)" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded bg-rose-50">ลบ</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ปุ่มสรุปยอด & พิมพ์ใบออเดอร์ -->
+        <div class="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+          <div>
+            <span class="text-xs text-slate-500 block">รวมเงินทั้งสิ้น</span>
+            <span class="text-2xl font-black text-emerald-700">฿{{ billGrandTotal }}</span>
+          </div>
+          <div class="flex gap-2">
+            <button @click="resetCurrentItem" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-3 py-3 rounded-xl font-bold text-xs sm:text-sm transition">
+              ล้างชาม
+            </button>
+            <button @click="printAndSubmitBill" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-5 py-3 rounded-xl font-extrabold text-xs sm:text-base shadow-md transition flex items-center gap-2 active:scale-95">
+              <i data-lucide="printer" class="w-5 h-5"></i>
+              ส่งครัว & พิมพ์ใบออเดอร์
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ใบออเดอร์สำหรับพิมพ์ -->
+    <div id="print-ticket" class="hidden print:block p-4 bg-white text-black max-w-md mx-auto border-2 border-black">
+      <div class="flex justify-between items-center border-b-2 border-black pb-2 mb-2">
+        <div class="text-xl font-bold">เหมาะโอชา The Next⁺</div>
+        <div class="text-sm font-bold border border-black px-2 py-1">{{ billHeader.location }} | คิวที่ {{ billHeader.queueNo }}</div>
+      </div>
+      <div v-for="(item, idx) in billItems" :key="'p_'+idx" class="border-b border-black py-2 text-sm">
+        <div class="flex justify-between font-bold">
+          <span>{{ item.title }}</span>
+          <span>จำนวน {{ item.qty }} ชาม</span>
+        </div>
+        <div v-if="item.toppingsText" class="text-xs mt-0.5">เพิ่มเติม: {{ item.toppingsText }}</div>
+        <div v-if="item.note" class="text-xs mt-0.5 font-bold">คำสั่งพิเศษ: {{ item.note }}</div>
+        <div class="text-right font-bold mt-1">ราคา {{ item.totalPrice }} บาท</div>
+      </div>
+      <div class="text-right text-lg font-bold mt-3">รวมเงินทั้งสิ้น {{ billGrandTotal }} บาท</div>
+      <div class="text-center text-xs mt-2">ขอบคุณที่อุดหนุนค่ะ / THANK YOU</div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const billHeader = ref({
+          location: 'โต๊ะ 1',
+          queueNo: 1
+        });
+
+        const noodleOptions = [
+          { id: 'sen_yai', name: 'เส้นใหญ่' },
+          { id: 'sen_mee', name: 'เส้นหมี่' },
+          { id: 'mee_krob', name: 'หมี่กรอบ' }
+        ];
+
+        const meatOptions = [
+          { id: 'pork', name: 'หมู', price: 55 },
+          { id: 'liver', name: 'ตับ', price: 55 },
+          { id: 'beef', name: 'เนื้อวัว', price: 65 },
+          { id: 'quail', name: 'ไข่นก', price: 55 },
+          { id: 'crabstick', name: 'ปูอัด', price: 55 },
+          { id: 'squid', name: 'หมึก', price: 65 },
+          { id: 'crispy_pork', name: 'หมูกรอบ', price: 75 },
+          { id: 'seafood', name: 'ทะเล', price: 75 },
+          { id: 'mixed', name: 'รวมมิตร', price: 85 }
+        ];
+
+        const shrimpPositions = [
+          { top: '48%', left: '50%', rot: -15 },
+          { top: '52%', left: '28%', rot: 15 },
+          { top: '40%', left: '54%', rot: -35 },
+          { top: '58%', left: '42%', rot: 5 },
+          { top: '40%', left: '24%', rot: 25 },
+          { top: '49%', left: '19%', rot: 40 }
+        ];
+
+        const squidPositions = [
+          { top: '52%', left: '28%', rot: -10 },
+          { top: '56%', left: '38%', rot: 15 },
+          { top: '46%', left: '25%', rot: 30 }
+        ];
+
+        const quailPositions = [
+          { top: '44%', left: '36%' },
+          { top: '44%', left: '48%' },
+          { top: '53%', left: '34%' },
+          { top: '53%', left: '46%' }
+        ];
+
+        const crispyPositions = [
+          { top: '46%', left: '44%', rot: 10 },
+          { top: '49%', left: '51%', rot: 18 },
+          { top: '53%', left: '57%', rot: 25 }
+        ];
+
+        const currentItem = ref({
+          dishType: null,
+          noodle: null,
+          meat: null,
+          qty: 1,
+          addShrimp: 0,
+          addSquid: false,
+          addCrispy: false,
+          addQuail: false,
+          addFriedEgg: false,
+          includeVeg: false,
+          vegManualToggled: false,
+          note: ''
+        });
+
+        const billItems = ref([]);
+
+        const isBowlEmpty = computed(() => {
+          const item = currentItem.value;
+          return !item.dishType && !item.noodle && !item.meat &&
+                 item.addShrimp === 0 && !item.addSquid && !item.addCrispy &&
+                 !item.addQuail && !item.addFriedEgg && !item.includeVeg;
+        });
+
+        const autoEnableVegIfNeeded = () => {
+          if (!currentItem.value.vegManualToggled && !currentItem.value.includeVeg) {
+            currentItem.value.includeVeg = true;
+          }
+        };
+
+        const toggleDishType = (type) => {
+          if (currentItem.value.dishType === type) {
+            currentItem.value.dishType = null;
+          } else {
+            currentItem.value.dishType = type;
+            autoEnableVegIfNeeded();
+          }
+        };
+
+        const toggleNoodle = (id) => {
+          if (currentItem.value.noodle === id) {
+            currentItem.value.noodle = null;
+          } else {
+            currentItem.value.noodle = id;
+            autoEnableVegIfNeeded();
+          }
+        };
+
+        const toggleMeat = (id) => {
+          if (currentItem.value.meat === id) {
+            currentItem.value.meat = null;
+          } else {
+            currentItem.value.meat = id;
+            autoEnableVegIfNeeded();
+          }
+        };
+
+        const toggleVeg = () => {
+          currentItem.value.includeVeg = !currentItem.value.includeVeg;
+          currentItem.value.vegManualToggled = true;
+        };
+
+        const singleBowlPrice = computed(() => {
+          if (isBowlEmpty.value) return 0;
+          const baseMeat = meatOptions.find(m => m.id === currentItem.value.meat);
+          let price = baseMeat ? baseMeat.price : ((currentItem.value.dishType || currentItem.value.noodle) ? 50 : 0);
+          price += (currentItem.value.addShrimp || 0) * 22;
+          if (currentItem.value.addSquid) price += 20;
+          if (currentItem.value.addCrispy) price += 25;
+          if (currentItem.value.addQuail) price += 10;
+          if (currentItem.value.addFriedEgg) price += 15;
+          return price;
+        });
+
+        const currentItemTotalPrice = computed(() => singleBowlPrice.value * currentItem.value.qty);
+
+        const currentBowlSummary = computed(() => {
+          if (isBowlEmpty.value) return 'ชามเปล่า (กรุณาเลือกรายการ)';
+          const dish = currentItem.value.dishType === 'radna' ? 'ราดหน้า' : (currentItem.value.dishType === 'padseeew' ? 'ผัดซีอิ๊ว' : 'เกาเหลา/ไม่ระบุน้ำ');
+          const noodle = noodleOptions.find(n => n.id === currentItem.value.noodle)?.name || 'ไม่ใส่เส้น';
+          const meat = meatOptions.find(m => m.id === currentItem.value.meat)?.name || 'ไม่ใส่เนื้อ';
+          return `${dish}${noodle} (${meat})`;
+        });
+
+        const billGrandTotal = computed(() => {
+          if (billItems.value.length === 0) return currentItemTotalPrice.value;
+          return billItems.value.reduce((sum, item) => sum + item.totalPrice, 0);
+        });
+
+        const resetCurrentItem = () => {
+          currentItem.value = {
+            dishType: null,
+            noodle: null,
+            meat: null,
+            qty: 1,
+            addShrimp: 0,
+            addSquid: false,
+            addCrispy: false,
+            addQuail: false,
+            addFriedEgg: false,
+            includeVeg: false,
+            vegManualToggled: false,
+            note: ''
+          };
+        };
+
+        const addItemToBill = () => {
+          if (isBowlEmpty.value) return;
+          const toppings = [];
+          if (currentItem.value.addShrimp > 0) toppings.push(`เพิ่มกุ้ง ${currentItem.value.addShrimp} ตัว`);
+          if (currentItem.value.addSquid) toppings.push('เพิ่มหมึก 3 ชิ้น');
+          if (currentItem.value.addCrispy) toppings.push('เพิ่มหมูกรอบ 3 ชิ้น');
+          if (currentItem.value.addQuail) toppings.push('เพิ่มไข่นก 4 ฟอง');
+          if (currentItem.value.addFriedEgg) toppings.push('เพิ่มไข่ดาวกรอบ');
+          if (!currentItem.value.includeVeg) toppings.push('ไม่ใส่ผัก');
+
+          billItems.value.push({
+            title: currentBowlSummary.value,
+            qty: currentItem.value.qty,
+            toppingsText: toppings.join(', '),
+            note: currentItem.value.note,
+            totalPrice: currentItemTotalPrice.value
+          });
+
+          resetCurrentItem();
+        };
+
+        const removeBillItem = (idx) => {
+          billItems.value.splice(idx, 1);
+        };
+
+        const printAndSubmitBill = () => {
+          if (billItems.value.length === 0) {
+            if (isBowlEmpty.value) {
+              alert('กรุณาเลือกรายการอาหารก่อนพิมพ์ใบออเดอร์ครับ');
+              return;
+            }
+            addItemToBill();
+          }
+
+          setTimeout(() => {
+            window.print();
+            if (confirm(`ส่งออเดอร์ "${billHeader.value.location} (ลำดับที่ ${billHeader.value.queueNo})" เรียบร้อย!\nต้องการเริ่มบิลใหม่และเลื่อนลำดับคิวถัดไปเลยไหมครับ?`)) {
+              billItems.value = [];
+              billHeader.value.queueNo++;
+              resetCurrentItem();
+            }
+          }, 150);
+        };
+
+        onMounted(() => {
+          lucide.createIcons();
+        });
+
+        return {
+          billHeader, noodleOptions, meatOptions, currentItem, billItems, isBowlEmpty,
+          shrimpPositions, squidPositions, quailPositions, crispyPositions,
+          toggleDishType, toggleNoodle, toggleMeat, toggleVeg,
+          singleBowlPrice, currentItemTotalPrice, currentBowlSummary, billGrandTotal,
+          resetCurrentItem, addItemToBill, removeBillItem, printAndSubmitBill
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
