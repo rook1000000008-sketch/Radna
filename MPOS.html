@@ -188,14 +188,22 @@
         </div>
       </div>
 
-      <!-- ปุ่มบันทึกยอดประจำวัน & รีเซ็ต -->
+      <!-- ปุ่มบันทึกยอดประจำวัน, ปริ้น .txt & รีเซ็ต -->
       <div class="flex flex-wrap justify-between items-center gap-3 pt-2">
         <button @click="resetTodaySales" class="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm transition">
           ล้างตัวเลขหน้าจอ
         </button>
-        <button @click="saveDailyRecord" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition flex items-center gap-2">
-          <span>💾 บันทึกยอดประจำวันลงประวัติ</span>
-        </button>
+        <div class="flex flex-wrap gap-2">
+          <button @click="exportCurrentDayTxt(false)" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm shadow transition flex items-center gap-1.5">
+            <span>📄 โหลดสรุปวันนี้ (.txt)</span>
+          </button>
+          <button @click="exportCurrentDayTxt(true)" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition flex items-center gap-1.5">
+            <span>🖨️ ปริ้นสรุปวันนี้</span>
+          </button>
+          <button @click="saveDailyRecord" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition flex items-center gap-2">
+            <span>💾 บันทึกยอดประจำวันลงประวัติ</span>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -208,15 +216,20 @@
             <h2 class="text-lg font-bold text-slate-800">📦 ปริมาณวัตถุดิบที่ใช้ไปจริง & ประมาณการจัดซื้อพรุ่งนี้</h2>
             <p class="text-xs text-slate-500">คำนวณจากยอดขายจริงวันนี้ พร้อมตัวคูณเผื่อสต็อกสำหรับวางแผนสั่งซื้อวัตถุดิบวันถัดไป</p>
           </div>
-          <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
-            <span class="text-xs font-bold text-amber-900">เผื่อสต็อกจัดซื้อ:</span>
-            <select v-model.number="purchaseBufferPercent" class="bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-extrabold text-red-700 outline-none">
-              <option :value="0">0% (ตามยอดขายจริง)</option>
-              <option :value="10">+10% (เผื่อเล็กน้อย)</option>
-              <option :value="15">+15% (แนะนำ)</option>
-              <option :value="20">+20% (วันหยุด/ขายดี)</option>
-              <option :value="30">+30% (เทศกาล)</option>
-            </select>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+              <span class="text-xs font-bold text-amber-900">เผื่อสต็อกจัดซื้อ:</span>
+              <select v-model.number="purchaseBufferPercent" class="bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-extrabold text-red-700 outline-none">
+                <option :value="0">0% (ตามยอดขายจริง)</option>
+                <option :value="10">+10% (เผื่อเล็กน้อย)</option>
+                <option :value="15">+15% (แนะนำ)</option>
+                <option :value="20">+20% (วันหยุด/ขายดี)</option>
+                <option :value="30">+30% (เทศกาล)</option>
+              </select>
+            </div>
+            <button @click="exportPurchaseListTxt" class="bg-[#2C1810] hover:bg-red-800 text-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
+              📄 โหลดใบสั่งซื้อวัตถุดิบ (.txt)
+            </button>
           </div>
         </div>
 
@@ -272,25 +285,49 @@
     <!-- ==================== TAB 4: ประวัติ & นำเข้าข้อมูลย้อนหลัง ==================== -->
     <div v-if="activeTab === 'history'" class="space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
             <h2 class="text-lg font-bold text-slate-800">📅 ประวัติยอดขายย้อนหลัง & นำเข้าข้อมูลจากไฟล์</h2>
-            <p class="text-xs text-slate-500">รองรับทั้งการซิงก์อัตโนมัติจากหน้าสั่งอาหารและการนำเข้าไฟล์ใบออเดอร์ย้อนหลัง</p>
+            <p class="text-xs text-slate-500">เรียงลำดับยอดขาย นำเข้าไฟล์ย้อนหลัง และส่งออก/ปริ้นรายงานแบบ .txt</p>
           </div>
-          <div class="flex gap-2">
-            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+              <span class="text-xs font-bold text-slate-600 pl-1">เรียงตาม:</span>
+              <select v-model="historySortBy" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 outline-none">
+                <option value="date">วันที่บันทึก</option>
+                <option value="totalRevenue">ยอดขาย (บาท)</option>
+                <option value="totalProfit">กำไรขั้นต้น (บาท)</option>
+                <option value="totalBowls">จำนวนขาย (ชาม/ชิ้น)</option>
+              </select>
+              <button @click="historySortOrder = 'desc'"
+                      :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition', historySortOrder === 'desc' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+                ⬇️ มากไปน้อย
+              </button>
+              <button @click="historySortOrder = 'asc'"
+                      :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition', historySortOrder === 'asc' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+                ⬆️ น้อยไปมาก
+              </button>
+            </div>
+
+            <button v-if="historyLogs.length > 0" @click="exportAllHistoryTxt"
+                    class="bg-slate-700 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1">
+              <span>📄 โหลดประวัติทั้งหมด (.txt)</span>
+            </button>
+
+            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
               <span>📂 นำเข้าไฟล์ย้อนหลัง (JSON / CSV)</span>
               <input type="file" accept=".json,.csv,.txt" @change="handleFileImport" class="hidden">
             </label>
           </div>
         </div>
 
-        <div v-if="historyLogs.length === 0" class="text-center py-10 text-slate-400">
+        <div v-if="sortedHistoryLogs.length === 0" class="text-center py-10 text-slate-400">
           ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดประจำวันลงประวัติ")
         </div>
 
         <div v-else class="space-y-3">
-          <div v-for="(log, idx) in historyLogs" :key="idx" class="p-4 rounded-xl border border-slate-200 hover:border-red-300 transition flex flex-wrap justify-between items-center gap-3">
+          <div v-for="(log, idx) in sortedHistoryLogs" :key="log._origIdx" class="p-4 rounded-xl border border-slate-200 hover:border-red-300 transition flex flex-wrap justify-between items-center gap-3">
             <div>
               <div class="font-bold text-slate-800 flex items-center gap-2">
                 <span>🗓️ {{ log.date }}</span>
@@ -301,7 +338,7 @@
               </div>
               <div class="text-xs text-slate-500 mt-1">ขายได้ทั้งหมด {{ log.totalBowls }} ชาม/ชิ้น</div>
             </div>
-            <div class="flex items-center gap-4 text-right">
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-right">
               <div>
                 <div class="text-xs text-slate-400">ยอดขาย</div>
                 <div class="font-bold text-blue-600">฿{{ formatMoney(log.totalRevenue) }}</div>
@@ -314,10 +351,20 @@
                 <div class="text-xs text-slate-400">กำไรขั้นต้น</div>
                 <div class="font-extrabold text-emerald-600">฿{{ formatMoney(log.totalProfit) }}</div>
               </div>
-              <button @click="loadHistoryToCurrent(log)" class="text-xs bg-slate-100 hover:bg-red-50 text-red-700 px-3 py-1.5 rounded-lg font-semibold">
-                ดูรายละเอียด
-              </button>
-              <button @click="deleteHistory(idx)" class="text-xs text-red-400 hover:text-red-600">ลบ</button>
+              <div class="flex items-center gap-1.5">
+                <button @click="exportLogTxt(log, false)" title="ดาวน์โหลดรายงานวันนี้เป็นไฟล์ .txt"
+                        class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-2.5 py-1.5 rounded-lg font-bold">
+                  📄 .txt
+                </button>
+                <button @click="exportLogTxt(log, true)" title="สั่งพิมพ์รายงานวันนี้"
+                        class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1.5 rounded-lg font-bold">
+                  🖨️ ปริ้น
+                </button>
+                <button @click="loadHistoryToCurrent(log)" class="text-xs bg-slate-100 hover:bg-red-50 text-red-700 px-2.5 py-1.5 rounded-lg font-semibold">
+                  ดูรายละเอียด
+                </button>
+                <button @click="deleteHistory(log._origIdx)" class="text-xs text-red-400 hover:text-red-600 px-1.5">ลบ</button>
+              </div>
             </div>
           </div>
         </div>
@@ -358,6 +405,9 @@
       setup() {
         const activeTab = ref('sales');
         const purchaseBufferPercent = ref(15);
+        const historySortBy = ref('date');
+        const historySortOrder = ref('desc');
+
         const tabs = [
           { id: 'sales', name: 'บันทึกยอดขายวันนี้', icon: '🧾' },
           { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
@@ -366,7 +416,7 @@
         ];
 
         const showSyncModal = ref(false);
-        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
+        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || 'https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app');
 
         const currentDateDisplay = computed(() => {
           const d = new Date();
@@ -444,6 +494,22 @@
         const customDrinks = ref([]);
         const newDrink = ref({ name: '', price: null, qty: 1 });
         const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
+
+        const sortedHistoryLogs = computed(() => {
+          const list = historyLogs.value.map((item, idx) => ({ ...item, _origIdx: idx }));
+          const dir = historySortOrder.value === 'desc' ? -1 : 1;
+          return list.sort((a, b) => {
+            if (historySortBy.value === 'date') {
+              const keyA = a.isoDate || a.date || '';
+              const keyB = b.isoDate || b.date || '';
+              if (keyA !== keyB) return keyA.localeCompare(keyB) * dir;
+              return (a._origIdx - b._origIdx) * (historySortOrder.value === 'desc' ? 1 : -1);
+            }
+            const valA = Number(a[historySortBy.value] || 0);
+            const valB = Number(b[historySortBy.value] || 0);
+            return (valA - valB) * dir;
+          });
+        });
 
         const loadTodaySyncedSales = () => {
           try {
@@ -543,6 +609,108 @@
             kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' }
           };
         });
+
+        const buildTxtReport = (logObj) => {
+          const lines = [];
+          lines.push('===================================================');
+          lines.push('           ร้านเหมาะโอชา The Next+');
+          lines.push('     รายงานสรุปยอดขาย ต้นทุน และกำไรขั้นต้น');
+          lines.push('===================================================');
+          lines.push(`วันที่ : ${logObj.date} (เวลา ${logObj.time || '-'})`);
+          lines.push('---------------------------------------------------');
+
+          const s = logObj.sales || {};
+          const soldItems = menuCatalog.value.filter(m => (s[m.id] || 0) > 0);
+          if (soldItems.length > 0) {
+            lines.push('[ รายการอาหาร & ท็อปปิ้ง ]');
+            soldItems.forEach(item => {
+              const q = s[item.id];
+              const subRev = q * item.price;
+              lines.push(`- ${item.name} x${q}  =  ${formatMoney(subRev)} บาท`);
+            });
+            lines.push('');
+          }
+
+          const drinks = logObj.customDrinks || [];
+          if (drinks.length > 0) {
+            lines.push('[ รายการเครื่องดื่ม ]');
+            drinks.forEach(d => {
+              lines.push(`- ${d.name} x${d.qty}  =  ${formatMoney(d.price * d.qty)} บาท`);
+            });
+            lines.push('');
+          }
+
+          lines.push('---------------------------------------------------');
+          lines.push(`จำนวนขายรวม      : ${logObj.totalBowls} ชาม/ชิ้น`);
+          lines.push(`ยอดขายรวม (รายรับ) : ${formatMoney(logObj.totalRevenue)} บาท`);
+          lines.push(`ต้นทุนวัตถุดิบรวม   : ${formatMoney(logObj.totalCOGS)} บาท`);
+          lines.push(`กำไรขั้นต้น         : ${formatMoney(logObj.totalProfit)} บาท`);
+          lines.push('===================================================');
+          return lines.join('\r\n');
+        };
+
+        const triggerTxtOutput = (textContent, filename, shouldPrint) => {
+          if (shouldPrint) {
+            const win = window.open('', '_blank', 'width=520,height=700');
+            if (!win) { alert('กรุณาอนุญาต Pop-up เพื่อสั่งพิมพ์ครับ'); return; }
+            win.document.write(`<html><head><title>${filename}</title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:14px;line-height:1.5;}</style></head><body>${textContent.replace(/</g, '&lt;')}</body></html>`);
+            win.document.close();
+            win.focus();
+            setTimeout(() => { win.print(); }, 250);
+          } else {
+            const blob = new Blob(['\uFEFF' + textContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }
+        };
+
+        const exportCurrentDayTxt = (shouldPrint = false) => {
+          const now = new Date();
+          const logObj = {
+            date: currentDateDisplay.value,
+            time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+            totalBowls: totalBowls.value,
+            totalRevenue: totalRevenue.value,
+            totalCOGS: totalCOGS.value,
+            totalProfit: totalProfit.value,
+            sales: sales.value,
+            customDrinks: customDrinks.value
+          };
+          const txt = buildTxtReport(logObj);
+          triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${now.toISOString().slice(0, 10)}.txt`, shouldPrint);
+        };
+
+        const exportLogTxt = (log, shouldPrint = false) => {
+          const txt = buildTxtReport(log);
+          const safeDate = (log.isoDate || log.date || 'report').replace(/[^\wก-๙-]/g, '_');
+          triggerTxtOutput(txt, `สรุปยอดขาย_${safeDate}.txt`, shouldPrint);
+        };
+
+        const exportAllHistoryTxt = () => {
+          if (sortedHistoryLogs.value.length === 0) return;
+          const allText = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
+          triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${new Date().toISOString().slice(0, 10)}.txt`, false);
+        };
+
+        const exportPurchaseListTxt = () => {
+          const lines = [];
+          lines.push('===================================================');
+          lines.push('    ใบประมาณการจัดซื้อวัตถุดิบ - ร้านเหมาะโอชา');
+          lines.push(`    คำนวณจากยอดขายวันที่: ${currentDateDisplay.value}`);
+          lines.push(`    เผื่อสต็อกจัดซื้อ: +${purchaseBufferPercent.value}%`);
+          lines.push('===================================================');
+          Object.values(rawMaterialUsage.value).forEach(v => {
+            lines.push(`- ${v.label}: ใช้จริง ${v.amount} ${v.unit}  ==>  สั่งซื้อ ${v.orderAmount} ${v.unit}`);
+          });
+          lines.push('===================================================');
+          triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${new Date().toISOString().slice(0, 10)}.txt`, false);
+        };
 
         const resetTodaySales = () => {
           if (confirm('ต้องการล้างตัวเลขบนหน้าจอทั้งหมดเป็น 0 ใช่ไหมครับ?')) {
@@ -679,7 +847,7 @@
         };
 
         onMounted(() => {
-          lucide.createIcons();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
           loadTodaySyncedSales();
           window.addEventListener('storage', handleStorageSync);
         });
@@ -689,13 +857,15 @@
         });
 
         return {
-          activeTab, purchaseBufferPercent, tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
+          activeTab, purchaseBufferPercent, historySortBy, historySortOrder,
+          tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
           unitCosts, saveCostsToStorage, resetDefaultCosts,
-          sales, customDrinks, newDrink, historyLogs,
+          sales, customDrinks, newDrink, historyLogs, sortedHistoryLogs,
           getMenuByCategory, categoryCount, updateQty,
           addCustomDrink, drinkTotalQty,
           totalBowls, totalRevenue, totalCOGS, totalProfit,
           rawMaterialUsage, resetTodaySales, saveDailyRecord,
+          exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
           loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
         };
       }
