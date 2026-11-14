@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เหมาะโอชา The Next⁺ - POS & Cost Calculator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Tesseract.js OCR สำหรับอ่านข้อมูลจากรูปภาพแคปหน้าจอ -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- Google Fonts (Kanit) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+  <div id="app">
+    <!-- Header -->
+    <header class="bg-emerald-700 text-white shadow-lg sticky top-0 z-50">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <div class="flex items-center justify-center h-14 sm:h-20 w-auto select-none overflow-visible">
+            <img src="Asset/MLOGO.png" alt="โลโก้แบรนด์เหมาะโอชา" class="h-full w-auto object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)] transition transform hover:scale-105 duration-200">
+          </div>
+          <div>
+            <h1 class="text-lg sm:text-2xl font-bold leading-tight tracking-wide flex items-center gap-2 text-amber-300">
+              เหมาะโอชา <span class="text-xs tracking-widest bg-amber-500/20 px-2.5 py-0.5 rounded-md text-amber-200 border border-amber-400/30">The Next⁺</span>
+            </h1>
+            <p class="text-[11px] sm:text-xs text-emerald-100/90 font-light tracking-wide">ระบบบันทึกยอดขายหน้าร้าน คำนวณท็อปปิ้ง & เครื่องดื่ม (POS & Cost Calculator)</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="bg-emerald-800 hover:bg-emerald-900 border border-emerald-500/50 text-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+            <span>🧾</span>
+            <span class="hidden sm:inline">หน้ารับออเดอร์</span>
+          </a>
+
+          <button @click="showSyncModal = true" class="flex items-center space-x-2 text-xs bg-emerald-800/90 hover:bg-emerald-900 border border-emerald-600/60 px-3 py-1.5 rounded-xl transition">
+            <span class="w-2 h-2 rounded-full" :class="firebaseUrl ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"></span>
+            <span class="font-medium text-emerald-100">{{ firebaseUrl ? 'Cloud ซิงค์สด' : 'โหมดในเครื่อง' }}</span>
+            <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-300"></i>
+          </button>
+
+          <div class="hidden md:flex items-center space-x-2 text-xs bg-emerald-800/80 border border-emerald-600/40 px-3.5 py-2 rounded-xl backdrop-blur-sm">
+            <i data-lucide="calendar" class="w-4 h-4 text-amber-300"></i>
+            <span class="font-medium text-emerald-100">{{ currentDate }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="bg-emerald-800 px-4 border-t border-emerald-600/50">
+        <div class="max-w-5xl mx-auto flex space-x-1 sm:space-x-4 overflow-x-auto">
+          <button @click="activeTab = 'history'" :class="['px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors flex items-center gap-2', activeTab === 'history' ? 'border-amber-400 text-amber-300 bg-emerald-900/40' : 'border-transparent text-emerald-100 hover:text-white']">
+            <i data-lucide="history" class="w-4 h-4"></i> ประวัติตัวเลขขาย ({{ historyLogs.length }})
+          </button>
+          <button @click="activeTab = 'pos'" :class="['px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors flex items-center gap-2', activeTab === 'pos' ? 'border-amber-400 text-amber-300 bg-emerald-900/40' : 'border-transparent text-emerald-100 hover:text-white']">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i> บันทึกยอดขายหน้าร้าน (POS)
+          </button>
+          <button @click="activeTab = 'analytics'" :class="['px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors flex items-center gap-2', activeTab === 'analytics' ? 'border-amber-400 text-amber-300 bg-emerald-900/40' : 'border-transparent text-emerald-100 hover:text-white']">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i> สถิติ & แผนสั่งซื้อวัตถุดิบ
+          </button>
+          <button @click="activeTab = 'summary'" :class="['px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors flex items-center gap-2', activeTab === 'summary' ? 'border-amber-400 text-amber-300 bg-emerald-900/40' : 'border-transparent text-emerald-100 hover:text-white']">
+            <i data-lucide="calculator" class="w-4 h-4"></i> ตารางต้นทุน & กำไร
+          </button>
+          <button @click="activeTab = 'ingredients'" :class="['px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap transition-colors flex items-center gap-2', activeTab === 'ingredients' ? 'border-amber-400 text-amber-300 bg-emerald-900/40' : 'border-transparent text-emerald-100 hover:text-white']">
+            <i data-lucide="database" class="w-4 h-4"></i> คลังราคากลางวัตถุดิบ
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 mt-6">
+
+      <!-- TAB 1: POS & DAILY SALES TRACKER -->
+      <div v-if="activeTab === 'pos'" class="space-y-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div class="flex items-center gap-2 text-amber-900 font-bold text-sm">
+            <i data-lucide="calendar-days" class="w-5 h-5 text-amber-600"></i>
+            <span>เลือกวันที่บันทึกยอดขาย:</span>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="date" v-model="selectedRecordDate" class="p-2 border border-amber-300 rounded-lg text-sm font-bold bg-white text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none w-full sm:w-auto">
+            <button @click="resetToToday" class="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-2 rounded-lg font-bold transition whitespace-nowrap">ใช้วันนี้</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">ยอดขายรวม</span>
+            <div class="text-2xl font-bold text-emerald-600">{{ formatNumber(posTotalRevenue) }} <span class="text-xs font-normal text-slate-500">บาท</span></div>
+            <span class="text-xs text-slate-400 mt-1 block">ขายได้ทั้งหมด {{ posTotalBowls }} รายการ</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">ต้นทุนวัตถุดิบรวม</span>
+            <div class="text-2xl font-bold text-rose-600">{{ formatNumber(posTotalCOGS) }} <span class="text-xs font-normal text-slate-500">บาท</span></div>
+            <span class="text-xs text-slate-400 mt-1 block">Food Cost เฉลี่ย {{ posAvgFoodCostPct.toFixed(1) }}%</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">กำไรขั้นต้น</span>
+            <div class="text-2xl font-bold text-blue-600">{{ formatNumber(posTotalProfit) }} <span class="text-xs font-normal text-slate-500">บาท</span></div>
+            <span class="text-xs text-slate-400 mt-1 block">ก่อนหักค่าใช้จ่ายคงที่</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+            <span class="text-xs text-slate-500 font-medium block">ตัวเลือกการจัดการ</span>
+            <div class="flex gap-2 mt-2">
+              <button @click="saveDailyRecord" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-2 rounded-lg font-medium transition flex items-center justify-center gap-1 shadow-sm">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i> บันทึกยอด
+              </button>
+              <button @click="resetPOS" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs py-2 px-2 rounded-lg font-medium transition flex items-center justify-center" title="รีเซ็ตช่องป้อนข้อมูล">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+          <button @click="posCategory = 'radna'" :class="['px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap', posCategory === 'radna' ? 'bg-emerald-700 text-white shadow' : 'bg-white text-slate-600 border hover:bg-slate-50']">🍲 หมวดราดหน้า</button>
+          <button @click="posCategory = 'padseeew'" :class="['px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap', posCategory === 'padseeew' ? 'bg-amber-600 text-white shadow' : 'bg-white text-slate-600 border hover:bg-slate-50']">🍳 หมวดผัดซีอิ๊ว (ใส่ไข่ #3)</button>
+          <button @click="posCategory = 'topping'" :class="['px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap', posCategory === 'topping' ? 'bg-orange-600 text-white shadow' : 'bg-white text-slate-600 border hover:bg-slate-50']">➕ ท็อปปิ้ง & เพิ่มเติม</button>
+          <button @click="posCategory = 'drink'" :class="['px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap', posCategory === 'drink' ? 'bg-blue-600 text-white shadow' : 'bg-white text-slate-600 border hover:bg-slate-50']">🍹 เครื่องดื่มระบุราคาเอง</button>
+        </div>
+
+        <div v-if="posCategory !== 'drink'" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="touchpad" class="w-5 h-5 text-emerald-600"></i>
+              ป้อนยอดขาย {{ posCategory === 'radna' ? 'หมวดราดหน้า' : posCategory === 'padseeew' ? 'หมวดผัดซีอิ๊ว' : 'ท็อปปิ้ง & เพิ่มเติม' }}
+            </h2>
+            <span class="text-xs text-slate-500">กดปุ่ม + หรือ - เพื่อเพิ่ม/ลดรายการ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-for="menu in filteredMenus" :key="menu.id" class="border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:border-emerald-300 transition bg-slate-50/50">
+              <div class="flex-1 pr-3">
+                <div class="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <span>{{ menu.name }}</span>
+                  <span v-if="menu.isBestSeller" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-normal">ขายดี</span>
+                </div>
+                <div class="text-xs text-slate-500 mt-0.5">{{ menu.description }}</div>
+                <div class="mt-2 flex items-baseline gap-3">
+                  <span class="text-emerald-700 font-bold text-lg">฿{{ menu.price }}</span>
+                  <span class="text-xs text-slate-400">ต้นทุน: ฿{{ getMenuCOGS(menu).toFixed(2) }}</span>
+                  <span v-if="menu.type !== 'topping'" class="text-xs font-medium px-1.5 py-0.5 rounded" :class="getFoodCostBadgeClass(getMenuFoodCostPct(menu))">{{ getMenuFoodCostPct(menu).toFixed(0) }}% FC</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+                <button @click="decrementSales(menu.id)" class="w-10 h-10 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-600 font-bold text-xl flex items-center justify-center transition active:scale-95">-</button>
+                <input type="number" min="0" v-model.number="dailySales[menu.id]" class="w-12 text-center font-bold text-slate-800 text-lg focus:outline-none bg-transparent">
+                <button @click="incrementSales(menu.id)" class="w-10 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xl flex items-center justify-center transition active:scale-95 shadow-sm">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="coffee" class="w-5 h-5 text-blue-600"></i> เพิ่มรายการเครื่องดื่ม / สินค้าอื่นๆ (ระบุราคาเอง)
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+              <label class="text-xs font-bold text-slate-700 block mb-1">ชื่อเครื่องดื่ม/สินค้า</label>
+              <input type="text" v-model="customDrink.name" placeholder="เช่น ชาดำเย็น / น้ำอัดลม" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-700 block mb-1">ราคาขาย (บาท)</label>
+              <input type="number" v-model.number="customDrink.price" placeholder="เช่น 15 หรือ 20" class="w-full p-2 border border-slate-300 rounded-lg text-sm font-bold bg-white">
+            </div>
+            <div class="flex items-end">
+              <button @click="addCustomDrink" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition shadow-sm">➕ เพิ่มเข้ายอดขาย</button>
+            </div>
+          </div>
+          <div v-if="customDrinkList.length > 0" class="mt-4">
+            <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">รายการเครื่องดื่มที่บันทึกแล้ว:</h3>
+            <div class="space-y-2">
+              <div v-for="(item, index) in customDrinkList" :key="index" class="flex justify-between items-center bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm">
+                <span class="font-bold text-slate-800">{{ item.name }} (฿{{ item.price }})</span>
+                <div class="flex items-center gap-3">
+                  <span class="text-xs text-blue-700 font-bold">{{ item.qty }} ชิ้น = ฿{{ item.qty * item.price }}</span>
+                  <button @click="removeCustomDrink(index)" class="text-rose-600 hover:text-rose-800 text-xs font-bold">🗑️ ลบ</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ANALYTICS & PROCUREMENT -->
+      <div v-if="activeTab === 'analytics'" class="space-y-6">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="trophy" class="w-5 h-5 text-amber-500"></i> อันดับเมนูยอดฮิต (Top Best-Selling Menus)
+            </h2>
+            <p class="text-xs text-slate-500">วิเคราะห์รวมจากประวัติการบันทึกยอดขายย้อนหลังทั้งหมด ({{ historyLogs.length }} วัน)</p>
+          </div>
+          <div v-if="topSellingMenus.length === 0" class="text-center py-10 text-slate-400">
+            <i data-lucide="bar-chart-2" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+            <p class="text-sm">ยังไม่มีข้อมูลการขายเพียงพอสำหรับการจัดอันดับ</p>
+          </div>
+          <div v-else class="space-y-3">
+            <div v-for="(item, index) in topSellingMenus" :key="item.id" class="p-3 border border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-100/60 transition">
+              <div class="flex justify-between items-center mb-1">
+                <div class="flex items-center gap-2">
+                  <span :class="['w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white', index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : index === 2 ? 'bg-amber-700' : 'bg-slate-300 text-slate-700']">{{ index + 1 }}</span>
+                  <span class="font-bold text-slate-800 text-sm sm:text-base">{{ item.name }}</span>
+                  <span class="text-[10px] text-slate-400">({{ item.category }})</span>
+                </div>
+                <div class="text-right">
+                  <span class="font-bold text-emerald-700 text-sm sm:text-base">{{ item.totalQty }} รายการ</span>
+                  <span class="text-xs text-slate-500 block">฿{{ formatNumber(item.totalRevenue) }}</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden mt-2">
+                <div class="bg-emerald-600 h-2 rounded-full" :style="{ width: item.percentage + '%' }"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>สัดส่วนการขาย: {{ item.percentage.toFixed(1) }}%</span>
+                <span>เฉลี่ย {{ (item.totalQty / (historyLogs.length || 1)).toFixed(1) }} จาน/วัน</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+            <div>
+              <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="shopping-cart" class="w-5 h-5 text-emerald-600"></i> ประมาณการและแผนจัดซื้อวัตถุดิบ (Procurement Calculator)
+              </h2>
+              <p class="text-xs text-slate-500">ประมวลผลจากอัตราการขายเฉลี่ยจริง เพื่อซื้อวัตถุดิบได้คุ้มค่า ไม่เหลือทิ้ง</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-700">คำนวณเตรียมล่วงหน้า:</span>
+              <select v-model.number="procurementDays" class="p-1.5 border border-emerald-300 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-900 outline-none">
+                <option :value="3">3 วัน</option>
+                <option :value="5">5 วัน</option>
+                <option :value="7">7 วัน (1 สัปดาห์)</option>
+              </select>
+            </div>
+          </div>
+          <div v-if="historyLogs.length === 0" class="text-center py-8 text-slate-400">
+            <p class="text-sm">กรุณาบันทึกยอดขายอย่างน้อย 1 วัน เพื่อประเมินสถิติการสั่งซื้อวัตถุดิบ</p>
+          </div>
+          <div v-else class="space-y-4">
+            <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex justify-between items-center">
+              <div><span class="font-bold">💡 ประมาณการยอดขายใน {{ procurementDays }} วันข้างหน้า:</span> <span class="ml-2 font-bold text-emerald-700 text-sm">~{{ (avgDailyBowls * procurementDays).toFixed(0) }} ชาม</span></div>
+              <div><span class="font-bold">งบจัดซื้อวัตถุดิบโดยประมาณ:</span> <span class="ml-2 font-bold text-rose-600 text-sm">฿{{ formatNumber(estimatedProcurementCost) }}</span></div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-600 uppercase">
+                  <tr>
+                    <th class="p-2.5 rounded-l-lg">วัตถุดิบ</th>
+                    <th class="p-2.5 text-right">ปริมาณสุทธิที่ต้องใช้</th>
+                    <th class="p-2.5 text-right">ขนาดบรรจุซื้อสด/ตลาด</th>
+                    <th class="p-2.5 text-right">ประมาณการเงินที่ต้องเตรียม</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr v-for="item in procurementList" :key="item.name" class="hover:bg-slate-50">
+                    <td class="p-2.5 font-bold text-slate-800">{{ item.name }}</td>
+                    <td class="p-2.5 text-right font-semibold text-emerald-700">{{ item.neededQty.toFixed(2) }} {{ item.unit }}</td>
+                    <td class="p-2.5 text-right text-slate-500">{{ item.suggestedPack }}</td>
+                    <td class="p-2.5 text-right font-bold text-slate-800">฿{{ formatNumber(item.estimatedCost) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: MENU COST & PROFIT BREAKDOWN TABLE -->
+      <div v-if="activeTab === 'summary'" class="space-y-6">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-800">ตารางวิเคราะห์ต้นทุนและกำไรต่อชาม</h2>
+            <p class="text-xs text-slate-500">คำนวณจากสเปกวัตถุดิบที่ซื้อจริงและ Yield การตัดแต่ง</p>
+          </div>
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600 uppercase text-xs">
+              <tr>
+                <th class="p-3 rounded-l-lg">ชื่อเมนู</th>
+                <th class="p-3">เครื่องแน่นหน้าร้าน</th>
+                <th class="p-3 text-right">ราคาขาย</th>
+                <th class="p-3 text-right">ต้นทุน/ชาม</th>
+                <th class="p-3 text-right">กำไรขั้นต้น</th>
+                <th class="p-3 text-center">Food Cost %</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="menu in menus" :key="menu.id" class="hover:bg-slate-50">
+                <td class="p-3 font-bold text-slate-800">
+                  {{ menu.name }}
+                  <span v-if="menu.type==='padseeew'" class="text-[10px] text-amber-700 font-normal border border-amber-300 bg-amber-50 px-1.5 py-0.5 rounded ml-1">ผัดซีอิ๊ว</span>
+                  <span v-if="menu.type==='topping'" class="text-[10px] text-orange-700 font-normal border border-orange-300 bg-orange-50 px-1.5 py-0.5 rounded ml-1">ท็อปปิ้ง</span>
+                </td>
+                <td class="p-3 text-xs text-slate-500">{{ menu.description }}</td>
+                <td class="p-3 text-right font-bold text-slate-800">
+                  <div class="flex items-center justify-end gap-1">
+                    <span>฿</span>
+                    <input type="number" v-model.number="menu.price" class="w-16 text-right border rounded px-1 py-0.5 text-sm font-bold bg-amber-50 border-amber-200">
+                  </div>
+                </td>
+                <td class="p-3 text-right text-rose-600 font-medium">฿{{ getMenuCOGS(menu).toFixed(2) }}</td>
+                <td class="p-3 text-right text-emerald-600 font-bold">฿{{ (menu.price - getMenuCOGS(menu)).toFixed(2) }}</td>
+                <td class="p-3 text-center">
+                  <span class="px-2 py-1 rounded text-xs font-bold" :class="getFoodCostBadgeClass(getMenuFoodCostPct(menu))">{{ getMenuFoodCostPct(menu).toFixed(1) }}%</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: INGREDIENT COST SETTINGS -->
+      <div v-if="activeTab === 'ingredients'" class="space-y-6">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-5 h-5 text-emerald-600"></i> ปรับราคากลางวัตถุดิบ (Real-time Calculator)
+            </h2>
+            <p class="text-xs text-slate-500">ระบุจำนวนที่ซื้อจริงและราคารวม ระบบจะคำนวณราคาต่อหน่วยและต้นทุนให้อัตโนมัติ</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">🥬 ผักคะน้าสด</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">น้ำหนักซื้อจริง (กก.)</span><input type="number" v-model.number="ingredients.kaleBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.kaleTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="mb-2"><span class="text-[10px] text-slate-500 block">สุทธิหลังตัดแต่ง (กก.)</span><input type="number" v-model.number="ingredients.kaleNetKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200">
+                <div>เฉลี่ย: ฿{{ kaleCostPerKg.toFixed(2) }} / กก. สุทธิ</div>
+                <div class="text-emerald-700 font-bold">ใช้ 50g = ฿{{ (kaleCostPerKg * 0.05).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">🍜 เส้นใหญ่ก๋วยเตี๋ยว</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">น้ำหนักถุง (กก.)</span><input type="number" v-model.number="ingredients.noodleKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคาถุงละ (บาท)</span><input type="number" v-model.number="ingredients.noodlePrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>เฉลี่ย: ฿{{ (ingredients.noodlePrice / ingredients.noodleKg).toFixed(2) }} / กก.</div>
+                <div class="text-emerald-700 font-bold">ใช้ 150g = ฿{{ (ingredients.noodlePrice / 6).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">🥚 ไข่ไก่ เบอร์ 3 (ผัดซีอิ๊ว)</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวน/แผง (ฟอง)</span><input type="number" v-model.number="ingredients.eggNo3Count" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคาแผงละ (บาท)</span><input type="number" v-model.number="ingredients.eggNo3TrayPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>ตกฟองละ: ฿{{ eggNo3CostPerPc.toFixed(2) }}</div>
+                <div class="text-emerald-700 font-bold">ใช้ 1 ฟอง = ฿{{ eggNo3CostPerPc.toFixed(2) }}</div>
+              </div>
+            </div>
+            <div class="p-3 border border-amber-200 rounded-xl bg-amber-50/50">
+              <label class="text-xs font-bold text-amber-900 block mb-2">🪺 ไข่นกกระทาต้มสด</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวน/แผง (ฟอง)</span><input type="number" v-model.number="ingredients.quailEggCount" class="w-full p-1.5 border border-amber-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคาแผงละ (บาท)</span><input type="number" v-model.number="ingredients.quailEggPrice" class="w-full p-1.5 border border-amber-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-amber-200 mt-7">
+                <div>ตกฟองละ: ฿{{ quailEggCostPerPc.toFixed(2) }}</div>
+                <div class="text-emerald-700 font-bold">ใส่ 8 ฟอง = ฿{{ (quailEggCostPerPc * 8).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">หมูสดหมัก</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวนซื้อ (กก.)</span><input type="number" v-model.number="ingredients.porkBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.porkTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>เฉลี่ย: ฿{{ porkCostPerKg.toFixed(2) }} / กก.</div>
+                <div class="text-emerald-700 font-bold">ใส่ 60g = ฿{{ (porkCostPerKg * 0.06).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">เนื้อวัวสดหมัก</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวนซื้อ (กก.)</span><input type="number" v-model.number="ingredients.beefBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.beefTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>เฉลี่ย: ฿{{ beefCostPerKg.toFixed(2) }} / กก.</div>
+                <div class="text-emerald-700 font-bold">ใส่ 60g = ฿{{ (beefCostPerKg * 0.06).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">ตับหมูสด</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวนซื้อ (กก.)</span><input type="number" v-model.number="ingredients.liverBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.liverTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>เฉลี่ย: ฿{{ liverCostPerKg.toFixed(2) }} / กก.</div>
+                <div class="text-emerald-700 font-bold">ใส่ 60g = ฿{{ (liverCostPerKg * 0.06).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">หมูกรอบสำเร็จรูป</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวนซื้อ (กก.)</span><input type="number" v-model.number="ingredients.crispyPorkBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.crispyPorkTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>เฉลี่ย: ฿{{ crispyPorkCostPerKg.toFixed(2) }} / กก.</div>
+                <div class="text-emerald-700 font-bold">ใส่ 50g = ฿{{ (crispyPorkCostPerKg * 0.05).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">🦐 กุ้งขาวแม็คโคร</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">จำนวนตัว/กล่อง</span><input type="number" v-model.number="ingredients.shrimpCount" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคากล่องละ (บาท)</span><input type="number" v-model.number="ingredients.shrimpBoxPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200 mt-7">
+                <div>ตกตัวละ: ฿{{ shrimpCostPerPc.toFixed(2) }}</div>
+                <div class="text-emerald-700 font-bold">ใส่ 3 ตัว = ฿{{ (shrimpCostPerPc * 3).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+            <div class="p-3 border border-slate-200 rounded-xl bg-slate-50">
+              <label class="text-xs font-bold text-slate-700 block mb-2">🦑 หมึกกล้วยสดแม็คโคร</label>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div><span class="text-[10px] text-slate-500 block">น้ำหนักซื้อจริง (กก.)</span><input type="number" v-model.number="ingredients.squidBuyKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+                <div><span class="text-[10px] text-slate-500 block">ราคารวม (บาท)</span><input type="number" v-model.number="ingredients.squidTotalPrice" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              </div>
+              <div class="mb-2"><span class="text-[10px] text-slate-500 block">สุทธิหลังล้างไส้ (กก.)</span><input type="number" v-model.number="ingredients.squidNetKg" class="w-full p-1.5 border border-slate-300 rounded text-xs font-bold bg-white"></div>
+              <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-200">
+                <div>เฉลี่ย: ฿{{ squidNetCostPerKg.toFixed(2) }} / กก. สุทธิ</div>
+                <div class="text-emerald-700 font-bold">ใส่ 6 วง (65g) = ฿{{ (squidNetCostPerKg * 0.065).toFixed(2) }} / ชาม</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: DAILY HISTORY LOG -->
+      <div v-if="activeTab === 'history'" class="space-y-6">
+
+        <!-- การ์ดสรุปยอดขาย ต้นทุน และกำไรรวมสะสมทุกวัน -->
+        <div v-if="historyLogs.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-emerald-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">ยอดขายรวมสะสมทุกวัน</span>
+            <div class="text-xl sm:text-2xl font-bold text-emerald-600">฿{{ formatNumber(historyGrandTotalRevenue) }}</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">รวม {{ historyLogs.length }} วัน ({{ historyGrandTotalBowls }} รายการ)</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-rose-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">ต้นทุนวัตถุดิบรวมสะสม</span>
+            <div class="text-xl sm:text-2xl font-bold text-rose-600">฿{{ formatNumber(historyGrandTotalCOGS) }}</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">Food Cost เฉลี่ย {{ historyOverallFoodCostPct.toFixed(1) }}%</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">กำไรขั้นต้นรวมสะสม</span>
+            <div class="text-xl sm:text-2xl font-bold text-blue-600">฿{{ formatNumber(historyGrandTotalProfit) }}</div>
+            <span class="text-[11px] text-slate-400 mt-1 block">อัตรากำไรขั้นต้น {{ historyOverallGrossMarginPct.toFixed(1) }}%</span>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-amber-200">
+            <span class="text-xs text-slate-500 font-medium block mb-1">เฉลี่ยต่อวัน (ขาย / กำไร)</span>
+            <div class="text-base sm:text-lg font-bold text-slate-800">
+              <span class="text-emerald-700">฿{{ formatNumber(historyGrandTotalRevenue / historyLogs.length) }}</span>
+              <span class="text-slate-400 mx-1">/</span>
+              <span class="text-blue-700">฿{{ formatNumber(historyGrandTotalProfit / historyLogs.length) }}</span>
+            </div>
+            <span class="text-[11px] text-slate-400 mt-1 block">เฉลี่ย {{ (historyGrandTotalBowls / historyLogs.length).toFixed(1) }} รายการ/วัน</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+            <div>
+              <h2 class="text-lg font-bold text-slate-800">ประวัติการบันทึกยอดขายย้อนหลัง</h2>
+              <p class="text-xs text-slate-500">ข้อมูลถูกบันทึกลงในเบราว์เซอร์และเชื่อมกับหน้ารับออเดอร์อัตโนมัติ</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button @click="openImportModal" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> นำเข้าจากภาพ / เอกสาร
+              </button>
+
+              <!-- ชุดปุ่มส่งออก TXT เลือกเรียงลำดับวันที่ได้ -->
+              <div v-if="historyLogs.length > 0" class="inline-flex items-center bg-sky-50 border border-sky-200 rounded-lg p-0.5 shadow-xs">
+                <select v-model="txtSortOrder" class="text-xs font-bold text-sky-900 bg-transparent px-2 py-1 outline-none cursor-pointer" title="เลือกลำดับการเรียงวันที่ในไฟล์ TXT">
+                  <option value="asc">เรียงเก่า → ใหม่</option>
+                  <option value="desc">เรียงใหม่ → เก่า</option>
+                </select>
+                <button @click="exportTXT" class="text-xs bg-sky-600 hover:bg-sky-700 text-white font-bold px-2.5 py-1 rounded-md transition flex items-center gap-1">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i> ส่งออก TXT
+                </button>
+              </div>
+
+              <button v-if="historyLogs.length > 0" @click="exportCSV" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> ส่งออก CSV
+              </button>
+              <button v-if="historyLogs.length > 0" @click="exportJSONBackup" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm">
+                <i data-lucide="file-json" class="w-3.5 h-3.5"></i> สำรอง JSON
+              </button>
+              <button v-if="historyLogs.length > 0" @click="clearHistory" class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 transition flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> ล้างประวัติ
+              </button>
+            </div>
+          </div>
+
+          <div v-if="historyLogs.length === 0" class="text-center py-12 text-slate-400">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 stroke-1"></i>
+            <p class="text-sm">ยังไม่มีประวัติการบันทึกยอดขาย</p>
+            <p class="text-xs mt-1">กดส่งออเดอร์จากหน้าหลัก, กด "บันทึกยอด" ที่หน้า POS หรือกด <strong class="text-amber-600">"นำเข้าจากภาพ / เอกสาร"</strong></p>
+          </div>
+
+          <div v-else class="space-y-4">
+            <div v-for="(log, idx) in historyLogs" :key="idx" class="border border-slate-200 rounded-xl p-4 bg-slate-50 hover:border-emerald-200 transition">
+              <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-200">
+                <div class="font-bold text-emerald-800 flex items-center gap-2">
+                  <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i>
+                  <span>วันที่ {{ log.date }}</span>
+                  <span v-if="log.importedFrom" class="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-bold">📥 {{ log.importedFrom }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-500">บันทึกเมื่อ: {{ log.time }}</span>
+                  <button @click="editHistoryLog(idx)" class="text-amber-600 hover:text-amber-800 text-xs font-bold border border-amber-200 bg-amber-50 px-2 py-0.5 rounded transition">✏️ แก้ไข</button>
+                  <button @click="deleteSingleLog(idx)" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1" title="ลบรายการนี้">✕</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-3 gap-2 mb-3 text-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
+                <div><span class="text-[10px] text-slate-400 block">ยอดขายรวม</span><span class="font-bold text-emerald-600 text-sm">฿{{ formatNumber(log.totalRevenue) }}</span></div>
+                <div><span class="text-[10px] text-slate-400 block">ต้นทุนวัตถุดิบ</span><span class="font-bold text-rose-600 text-sm">฿{{ formatNumber(log.totalCOGS) }}</span></div>
+                <div><span class="text-[10px] text-slate-400 block">กำไรขั้นต้น</span><span class="font-bold text-blue-600 text-sm">฿{{ formatNumber(log.totalProfit) }}</span></div>
+              </div>
+              <div class="text-xs text-slate-600">
+                <span class="font-semibold block mb-1 text-slate-700">รายการที่ขายได้ (รวม {{ log.totalBowls }} รายการ):</span>
+                <div class="flex flex-wrap gap-2">
+                  <span v-for="(qty, menuId) in log.sales" :key="menuId" v-show="qty > 0" class="bg-white border border-slate-200 px-2 py-1 rounded text-slate-700">{{ getMenuName(menuId) }}: <strong>{{ qty }} รายการ</strong></span>
+                  <span v-for="(drink, dIdx) in log.customDrinks" :key="'d_'+dIdx" class="bg-blue-50 border border-blue-200 px-2 py-1 rounded text-blue-800">{{ drink.name }}: <strong>{{ drink.qty }} แก้ว/ชิ้น (฿{{ drink.price * drink.qty }})</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODAL: ตั้งค่า Firebase URL ข้ามเครื่อง -->
+    <div v-if="showSyncModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 border-t-4 border-emerald-700">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+          <h3 class="font-bold text-base text-emerald-900 flex items-center gap-2">
+            <span>📡</span> ตั้งค่าการเชื่อมต่อ Firebase ข้ามเครื่อง
+          </h3>
+          <button @click="showSyncModal = false" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+        </div>
+        <div class="text-xs text-slate-600 space-y-2">
+          <p class="bg-emerald-50 text-emerald-900 p-2.5 rounded-xl border border-emerald-200">
+            ใส่ลิงก์ <strong>Firebase Realtime Database URL</strong> เดียวกับที่ตั้งค่าไว้ในหน้ารับออเดอร์ (<code>index.html</code>) เพื่อรับยอดขายและซิงค์ข้อมูลอัตโนมัติข้ามเครื่อง
+          </p>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL:</label>
+            <input type="url" v-model="firebaseUrl" placeholder="https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+                   class="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-600 outline-none">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button @click="showSyncModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-xl text-xs font-bold">ปิด</button>
+          <button @click="saveSyncSettings" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกและดึงข้อมูล</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: นำเข้ายอดขายย้อนหลังจากภาพหน้าจอ หรือเอกสาร (CSV / JSON) -->
+    <div v-if="showImportModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 border-t-4 border-emerald-700 max-h-[92vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+          <h3 class="font-bold text-base sm:text-lg text-emerald-900 flex items-center gap-2"><span>📥</span> นำเข้ายอดขายย้อนหลัง (ภาพหน้าจอ / CSV / JSON)</h3>
+          <button @click="closeImportModal" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
+        </div>
+
+        <div class="border-2 border-dashed border-emerald-400 bg-emerald-50/70 rounded-2xl p-4 text-center space-y-2">
+          <div class="text-3xl">🖼️ 📄</div>
+          <div class="text-sm font-bold text-emerald-950">เลือกภาพหน้าจอรายงานเก่า (.jpg, .png) หรือเอกสาร (.csv, .json)</div>
+          <input type="file" accept="image/*,.csv,.json" @change="handleImportFile" class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800 cursor-pointer mx-auto max-w-sm pt-1">
+          <div v-if="importStatusMsg" class="text-xs font-bold px-3 py-1.5 rounded-lg inline-block mt-1" :class="isOcrScanning ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-emerald-100 text-emerald-800'">{{ importStatusMsg }}</div>
+        </div>
+
+        <div v-if="importPreviewImage" class="bg-slate-100 p-2 rounded-xl border border-slate-200 text-center">
+          <img :src="importPreviewImage" alt="ตัวอย่างภาพ" class="max-h-36 mx-auto rounded-lg object-contain">
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-700">📝 ตรวจสอบความถูกต้องก่อนบันทึก:</span>
+            <button type="button" @click="autoCalcImportFromItems" class="text-[11px] bg-emerald-100 hover:bg-emerald-200 text-emerald-900 px-2.5 py-1 rounded-lg font-bold transition">🧮 คำนวณเงินใหม่จากรายการเมนู</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div class="sm:col-span-2">
+              <label class="text-[11px] font-bold text-slate-600 block mb-1">วันที่ขาย (ภาษาไทย):</label>
+              <input type="text" v-model="importDraft.date" placeholder="เช่น 13 พฤศจิกายน 2569" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold bg-white">
+            </div>
+            <div>
+              <label class="text-[11px] font-bold text-slate-600 block mb-1">เวลาที่บันทึก:</label>
+              <input type="text" v-model="importDraft.time" placeholder="18:39" class="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white">
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div><label class="text-[11px] font-bold text-emerald-800 block mb-1">ยอดขายรวม (บาท):</label><input type="number" step="0.01" v-model.number="importDraft.totalRevenue" @input="updateImportProfit" class="w-full p-2 border border-emerald-300 rounded-lg text-xs font-bold text-emerald-700 bg-white"></div>
+            <div><label class="text-[11px] font-bold text-rose-800 block mb-1">ต้นทุนวัตถุดิบ (บาท):</label><input type="number" step="0.01" v-model.number="importDraft.totalCOGS" @input="updateImportProfit" class="w-full p-2 border border-rose-300 rounded-lg text-xs font-bold text-rose-700 bg-white"></div>
+            <div><label class="text-[11px] font-bold text-blue-800 block mb-1">กำไรขั้นต้น (บาท):</label><input type="number" step="0.01" v-model.number="importDraft.totalProfit" class="w-full p-2 border border-blue-300 rounded-lg text-xs font-bold text-blue-700 bg-blue-50/50"></div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-[11px] font-bold text-slate-700">รายการเมนูที่ขายได้ (รวม {{ importTotalItemsCount }} รายการ):</label>
+              <select @change="addMenuToImportDraft($event)" class="text-[11px] border border-slate-300 rounded-lg px-2 py-1 bg-white font-bold text-slate-700">
+                <option value="">+ เพิ่มเมนูเข้าในรายการ...</option>
+                <option v-for="m in menus" :key="'opt_'+m.id" :value="m.id">{{ m.name }} (฿{{ m.price }})</option>
+              </select>
+            </div>
+            <div v-if="activeImportMenuIds.length === 0" class="text-[11px] text-slate-400 bg-white p-2.5 rounded-lg border border-slate-200 text-center">ยังไม่มีรายการเมนูย่อย (อัปโหลดภาพหรือเลือกเพิ่มจากตัวเลือกด้านขวาบน)</div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1">
+              <div v-for="menuId in activeImportMenuIds" :key="'imp_m_'+menuId" class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs">
+                <span class="font-bold text-slate-700 truncate pr-2">{{ getMenuName(menuId) }}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <input type="number" min="0" v-model.number="importDraft.sales[menuId]" class="w-12 text-center border border-slate-300 rounded py-0.5 font-bold text-emerald-700">
+                  <span class="text-[10px] text-slate-400">รายการ</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-between items-center gap-2 pt-1">
+          <button @click="loadImportDraftToPOS" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3.5 py-2 rounded-xl text-xs font-bold transition">✏️ นำไปแก้ไขต่อในหน้า POS</button>
+          <div class="flex gap-2">
+            <button @click="closeImportModal" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-xl text-xs font-bold transition">ยกเลิก</button>
+            <button @click="saveImportedHistory" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition">✅ บันทึกลงประวัติ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('history');
+        const posCategory = ref('radna');
+        const procurementDays = ref(3);
+        const txtSortOrder = ref('asc');
+
+        // เชื่อมต่อ Firebase URL ตัวเดียวกับ index.html
+        const showSyncModal = ref(false);
+        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
+
+        const getTodayISODate = () => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+        const selectedRecordDate = ref(getTodayISODate());
+        const resetToToday = () => { selectedRecordDate.value = getTodayISODate(); };
+
+        const formatThaiDate = (iso) => {
+          if (!iso) return '';
+          const p = iso.split('-');
+          return p.length === 3 ? new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : iso;
+        };
+
+        const parseThaiDateToISO = (thaiStr) => {
+          const months = { 'มกราคม':'01','กุมภาพันธ์':'02','มีนาคม':'03','เมษายน':'04','พฤษภาคม':'05','มิถุนายน':'06','กรกฎาคม':'07','สิงหาคม':'08','กันยายน':'09','ตุลาคม':'10','พฤศจิกายน':'11','ธันวาคม':'12' };
+          const m = (thaiStr || '').match(/(\d{1,2})\s+([ก-๙]+)\s+(\d{4})/);
+          if (!m) return getTodayISODate();
+          let y = parseInt(m[3], 10);
+          if (y > 2400) y -= 543;
+          return `${y}-${months[m[2]] || '01'}-${String(m[1]).padStart(2, '0')}`;
+        };
+
+        const customDrink = ref({ name: '', price: null });
+        const customDrinkList = ref([]);
+        const currentDate = computed(() => new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }));
+
+        const ingredients = ref({
+          kaleBuyKg: 5, kaleTotalPrice: 200, kaleNetKg: 2, noodleKg: 1, noodlePrice: 30,
+          eggNo3Count: 30, eggNo3TrayPrice: 105, porkBuyKg: 1, porkTotalPrice: 200,
+          beefBuyKg: 1, beefTotalPrice: 200, liverBuyKg: 1, liverTotalPrice: 100,
+          crispyPorkBuyKg: 1, crispyPorkTotalPrice: 400, shrimpCount: 21.5, shrimpBoxPrice: 315,
+          squidBuyKg: 1, squidTotalPrice: 350, squidNetKg: 0.65, quailEggCount: 100, quailEggPrice: 121,
+          bentoCrabStickPc: 3.75, soupAndGasPerBowl: 7.00, padSeeEwGasAndSauce: 5.00
+        });
+
+        const kaleCostPerKg = computed(() => ingredients.value.kaleNetKg > 0 ? ingredients.value.kaleTotalPrice / ingredients.value.kaleNetKg : 0);
+        const porkCostPerKg = computed(() => ingredients.value.porkBuyKg > 0 ? ingredients.value.porkTotalPrice / ingredients.value.porkBuyKg : 0);
+        const beefCostPerKg = computed(() => ingredients.value.beefBuyKg > 0 ? ingredients.value.beefTotalPrice / ingredients.value.beefBuyKg : 0);
+        const liverCostPerKg = computed(() => ingredients.value.liverBuyKg > 0 ? ingredients.value.liverTotalPrice / ingredients.value.liverBuyKg : 0);
+        const crispyPorkCostPerKg = computed(() => ingredients.value.crispyPorkBuyKg > 0 ? ingredients.value.crispyPorkTotalPrice / ingredients.value.crispyPorkBuyKg : 0);
+        const shrimpCostPerPc = computed(() => ingredients.value.shrimpCount > 0 ? ingredients.value.shrimpBoxPrice / ingredients.value.shrimpCount : 0);
+        const squidNetCostPerKg = computed(() => ingredients.value.squidNetKg > 0 ? ingredients.value.squidTotalPrice / ingredients.value.squidNetKg : 0);
+        const quailEggCostPerPc = computed(() => ingredients.value.quailEggCount > 0 ? ingredients.value.quailEggPrice / ingredients.value.quailEggCount : 0);
+        const eggNo3CostPerPc = computed(() => ingredients.value.eggNo3Count > 0 ? ingredients.value.eggNo3TrayPrice / ingredients.value.eggNo3Count : 0);
+
+        const menus = ref([
+          { id: 'rn_pork', type: 'radna', name: 'ราดหน้าหมู', description: 'เส้นใหญ่ 150g + หมู 60g + คะน้า 4 ต้น', price: 55, isBestSeller: false },
+          { id: 'rn_liver', type: 'radna', name: 'ราดหน้าตับหมู', description: 'เส้นใหญ่ 150g + ตับหมู 60g + คะน้า 4 ต้น', price: 55, isBestSeller: true },
+          { id: 'rn_quail', type: 'radna', name: 'ราดหน้าไข่นกกระทา', description: 'เส้นใหญ่ 150g + ไข่นก 8 ฟอง + คะน้า 4 ต้น', price: 55, isBestSeller: false },
+          { id: 'rn_beef', type: 'radna', name: 'ราดหน้าเนื้อวัว', description: 'เส้นใหญ่ 150g + เนื้อวัว 60g + คะน้า 4 ต้น', price: 65, isBestSeller: false },
+          { id: 'rn_crispy', type: 'radna', name: 'ราดหน้าหมูกรอบ', description: 'เส้นใหญ่ 150g + หมูกรอบ 50g + คะน้า 4 ต้น', price: 75, isBestSeller: true },
+          { id: 'rn_seafood', type: 'radna', name: 'ราดหน้าทะเล', description: 'เส้นใหญ่ + กุ้ง 1 + หมึก 2 + ปูอัด 1 + ไข่นก 2', price: 75, isBestSeller: false },
+          { id: 'rn_mixed', type: 'radna', name: 'ราดหน้ารวมมิตร', description: 'เครื่องรวม 8 อย่าง อย่างละ 1 ชิ้น', price: 85, isBestSeller: false },
+          { id: 'rn_shrimp', type: 'radna', name: 'ราดหน้ากุ้ง', description: 'เส้นใหญ่ + กุ้งขาวใหญ่คัดไซส์ 3 ตัว', price: 95, isBestSeller: true },
+          { id: 'se_pork', type: 'padseeew', name: 'ผัดซีอิ๊วหมู', description: 'ผัดไข่ไก่ #3 + หมู 60g + คะน้า 4 ต้น', price: 55, isBestSeller: false },
+          { id: 'se_liver', type: 'padseeew', name: 'ผัดซีอิ๊วตับหมู', description: 'ผัดไข่ไก่ #3 + ตับหมู 60g + คะน้า 4 ต้น', price: 55, isBestSeller: false },
+          { id: 'se_quail', type: 'padseeew', name: 'ผัดซีอิ๊วไข่นกกระทา', description: 'ผัดไข่ไก่ #3 + ไข่นก 8 ฟอง + คะน้า 4 ต้น', price: 55, isBestSeller: false },
+          { id: 'se_beef', type: 'padseeew', name: 'ผัดซีอิ๊วเนื้อวัว', description: 'ผัดไข่ไก่ #3 + เนื้อวัว 60g + คะน้า 4 ต้น', price: 65, isBestSeller: false },
+          { id: 'se_crispy', type: 'padseeew', name: 'ผัดซีอิ๊วหมูกรอบ', description: 'ผัดไข่ไก่ #3 + หมูกรอบ 50g + คะน้า 4 ต้น', price: 75, isBestSeller: false },
+          { id: 'se_seafood', type: 'padseeew', name: 'ผัดซีอิ๊วทะเล', description: 'ผัดไข่ไก่ #3 + กุ้ง 1 + หมึก 2 + ปูอัด 1 + ไข่นก 2', price: 75, isBestSeller: false },
+          { id: 'se_mixed', type: 'padseeew', name: 'ผัดซีอิ๊วรวมมิตร', description: 'ผัดไข่ไก่ #3 + เครื่องรวม 8 อย่าง', price: 85, isBestSeller: false },
+          { id: 'se_shrimp', type: 'padseeew', name: 'ผัดซีอิ๊วกุ้ง', description: 'ผัดไข่ไก่ #3 + กุ้งขาวใหญ่คัดไซส์ 3 ตัว', price: 95, isBestSeller: false },
+          { id: 'top_veg', type: 'topping', name: 'เพิ่มผัก', description: 'ผักคะน้าสดตัดแต่ง 50g', price: 10, isBestSeller: false },
+          { id: 'top_noodle', type: 'topping', name: 'เพิ่มเส้น', description: 'เส้นใหญ่ / เส้นหมี่ 150g', price: 10, isBestSeller: false },
+          { id: 'top_pork', type: 'topping', name: 'เพิ่มหมู', description: 'หมูสดหมักนุ่ม 50g', price: 10, isBestSeller: false },
+          { id: 'top_beef', type: 'topping', name: 'เพิ่มเนื้อ', description: 'เนื้อวัวสดหมักนุ่ม 50g', price: 10, isBestSeller: false },
+          { id: 'top_quail_egg', type: 'topping', name: 'เพิ่มไข่นก (4 ฟอง)', description: 'ไข่นกกระทาต้มสด 4 ฟอง', price: 10, isBestSeller: false },
+          { id: 'top_crispy_noodle', type: 'topping', name: 'เพิ่มหมี่กรอบ (1 ลูก)', description: 'หมี่กรอบทอดสำเร็จ 1 ลูก', price: 10, isBestSeller: false },
+          { id: 'top_liver', type: 'topping', name: 'เพิ่มตับ (3 ชิ้น)', description: 'ตับหมูสดสไลซ์ 3 ชิ้น', price: 10, isBestSeller: false },
+          { id: 'top_squid', type: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', description: 'หมึกกล้วยสดตัดแต่ง 3 ชิ้น', price: 20, isBestSeller: false },
+          { id: 'top_crispy_pork', type: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', description: 'หมูกรอบสำเร็จรูป 3 ชิ้น', price: 20, isBestSeller: false },
+          { id: 'top_shrimp', type: 'topping', name: 'เพิ่มกุ้ง (1 ตัว)', description: 'กุ้งขาวใหญ่คัดไซส์แม็คโคร 1 ตัว', price: 22, isBestSeller: false }
+        ]);
+
+        const filteredMenus = computed(() => menus.value.filter(m => m.type === posCategory.value));
+        const createEmptySalesMap = () => Object.fromEntries(menus.value.map(m => [m.id, 0]));
+        const dailySales = ref(createEmptySalesMap());
+        const historyLogs = ref([]);
+
+        // สรุปยอดรวมสะสมทุกวันในหน้าประวัติ
+        const historyGrandTotalRevenue = computed(() => historyLogs.value.reduce((s, l) => s + (Number(l.totalRevenue) || 0), 0));
+        const historyGrandTotalCOGS = computed(() => historyLogs.value.reduce((s, l) => s + (Number(l.totalCOGS) || 0), 0));
+        const historyGrandTotalProfit = computed(() => historyLogs.value.reduce((s, l) => s + (Number(l.totalProfit) || 0), 0));
+        const historyGrandTotalBowls = computed(() => historyLogs.value.reduce((s, l) => s + (Number(l.totalBowls) || 0), 0));
+        const historyOverallFoodCostPct = computed(() => historyGrandTotalRevenue.value > 0 ? (historyGrandTotalCOGS.value / historyGrandTotalRevenue.value) * 100 : 0);
+        const historyOverallGrossMarginPct = computed(() => historyGrandTotalRevenue.value > 0 ? (historyGrandTotalProfit.value / historyGrandTotalRevenue.value) * 100 : 0);
+
+        const getMenuCOGS = (menu) => {
+          const ing = ingredients.value;
+          const noodleCost = (ing.noodlePrice / ing.noodleKg) * 0.15;
+          const kaleCost = kaleCostPerKg.value * 0.05;
+          if (menu.type === 'topping') {
+            const map = {
+              top_veg: kaleCost, top_noodle: noodleCost, top_pork: porkCostPerKg.value * 0.05, top_beef: beefCostPerKg.value * 0.05,
+              top_quail_egg: quailEggCostPerPc.value * 4, top_crispy_noodle: 3.50, top_liver: liverCostPerKg.value * 0.03,
+              top_squid: squidNetCostPerKg.value * 0.0325, top_crispy_pork: crispyPorkCostPerKg.value * 0.025, top_shrimp: shrimpCostPerPc.value
+            };
+            return map[menu.id] || 0;
+          }
+          const baseCost = menu.type === 'radna' ? ing.soupAndGasPerBowl : (ing.padSeeEwGasAndSauce + eggNo3CostPerPc.value);
+          const key = menu.id.replace('rn_', '').replace('se_', '');
+          const topMap = {
+            pork: porkCostPerKg.value * 0.06, liver: liverCostPerKg.value * 0.06, quail: quailEggCostPerPc.value * 8,
+            beef: beefCostPerKg.value * 0.06, crispy: crispyPorkCostPerKg.value * 0.05, shrimp: shrimpCostPerPc.value * 3,
+            seafood: shrimpCostPerPc.value + (squidNetCostPerKg.value * 0.0216) + (quailEggCostPerPc.value * 2) + ing.bentoCrabStickPc,
+            mixed: (porkCostPerKg.value + beefCostPerKg.value + liverCostPerKg.value) * 0.01 + (crispyPorkCostPerKg.value * 0.007) + (squidNetCostPerKg.value * 0.0108) + shrimpCostPerPc.value + ing.bentoCrabStickPc + (quailEggCostPerPc.value * 2)
+          };
+          return noodleCost + kaleCost + baseCost + (topMap[key] || 0);
+        };
+
+        const getMenuFoodCostPct = (menu) => menu.price > 0 ? (getMenuCOGS(menu) / menu.price) * 100 : 0;
+        const getFoodCostBadgeClass = (pct) => pct <= 45 ? 'bg-emerald-100 text-emerald-800' : pct <= 55 ? 'bg-blue-100 text-blue-800' : pct <= 65 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800';
+
+        const topSellingMenus = computed(() => {
+          if (!historyLogs.value.length) return [];
+          const totals = {}; let grandQty = 0;
+          historyLogs.value.forEach(log => Object.entries(log.sales || {}).forEach(([id, qty]) => {
+            if (qty > 0) {
+              if (!totals[id]) {
+                const m = menus.value.find(x => x.id === id);
+                totals[id] = { id, name: m ? m.name : id, category: m ? (m.type === 'radna' ? 'ราดหน้า' : m.type === 'padseeew' ? 'ผัดซีอิ๊ว' : 'ท็อปปิ้ง') : '', price: m ? m.price : 0, totalQty: 0, totalRevenue: 0 };
+              }
+              totals[id].totalQty += qty; totals[id].totalRevenue += qty * totals[id].price; grandQty += qty;
+            }
+          }));
+          return Object.values(totals).map(m => ({ ...m, percentage: grandQty > 0 ? (m.totalQty / grandQty) * 100 : 0 })).sort((a, b) => b.totalQty - a.totalQty);
+        });
+
+        const avgDailyBowls = computed(() => historyLogs.value.length ? historyLogs.value.reduce((s, l) => s + (l.totalBowls || 0), 0) / historyLogs.value.length : 0);
+
+        const procurementList = computed(() => {
+          if (!historyLogs.value.length) return [];
+          const days = historyLogs.value.length, target = procurementDays.value, agg = {};
+          historyLogs.value.forEach(l => Object.entries(l.sales || {}).forEach(([id, q]) => { agg[id] = (agg[id] || 0) + (q || 0); }));
+          const q = (id) => ((agg[id] || 0) / days) * target;
+          const mainBowls = ['rn_pork','rn_liver','rn_quail','rn_beef','rn_crispy','rn_seafood','rn_mixed','rn_shrimp','se_pork','se_liver','se_quail','se_beef','se_crispy','se_seafood','se_mixed','se_shrimp'].reduce((s, id) => s + q(id), 0);
+          const kaleNet = (mainBowls + q('top_veg')) * 0.05;
+          const kaleRaw = ingredients.value.kaleNetKg > 0 ? kaleNet * (ingredients.value.kaleBuyKg / ingredients.value.kaleNetKg) : kaleNet * 2.5;
+          const noodleKg = (mainBowls + q('top_noodle')) * 0.15;
+          const porkKg = (q('rn_pork') + q('se_pork')) * 0.06 + (q('rn_mixed') + q('se_mixed')) * 0.01 + q('top_pork') * 0.05;
+          const liverKg = (q('rn_liver') + q('se_liver')) * 0.06 + (q('rn_mixed') + q('se_mixed')) * 0.01 + q('top_liver') * 0.03;
+          const beefKg = (q('rn_beef') + q('se_beef')) * 0.06 + (q('rn_mixed') + q('se_mixed')) * 0.01 + q('top_beef') * 0.05;
+          const crispyKg = (q('rn_crispy') + q('se_crispy')) * 0.05 + (q('rn_mixed') + q('se_mixed')) * 0.007 + q('top_crispy_pork') * 0.025;
+          const shrimpPcs = (q('rn_shrimp') + q('se_shrimp')) * 3 + q('rn_seafood') + q('se_seafood') + q('rn_mixed') + q('se_mixed') + q('top_shrimp');
+          const squidNet = (q('rn_seafood') + q('se_seafood')) * 0.0216 + (q('rn_mixed') + q('se_mixed')) * 0.0108 + q('top_squid') * 0.0325;
+          const squidRaw = ingredients.value.squidNetKg > 0 ? squidNet * (ingredients.value.squidBuyKg / ingredients.value.squidNetKg) : squidNet * 1.5;
+          const egg3 = ['se_pork','se_liver','se_quail','se_beef','se_crispy','se_seafood','se_mixed','se_shrimp'].reduce((s, id) => s + q(id), 0);
+          const quail = (q('rn_quail') + q('se_quail')) * 8 + (q('rn_seafood') + q('se_seafood') + q('rn_mixed') + q('se_mixed')) * 2 + q('top_quail_egg') * 4;
+          return [
+            { name: 'ผักคะน้าสด (ตลาดสด)', neededQty: kaleRaw, unit: 'กก.', suggestedPack: `ซื้อประมาณ ${Math.ceil(kaleRaw)} กก.`, estimatedCost: kaleRaw * (ingredients.value.kaleTotalPrice / (ingredients.value.kaleBuyKg || 1)) },
+            { name: 'เส้นใหญ่ก๋วยเตี๋ยว', neededQty: noodleKg, unit: 'กก.', suggestedPack: `ซื้อถุง 1 กก. จำนวน ${Math.ceil(noodleKg)} ถุง`, estimatedCost: noodleKg * (ingredients.value.noodlePrice / (ingredients.value.noodleKg || 1)) },
+            { name: 'หมูสด (สำหรับหมัก)', neededQty: porkKg, unit: 'กก.', suggestedPack: `เตรียมสด ${porkKg.toFixed(2)} กก.`, estimatedCost: porkKg * porkCostPerKg.value },
+            { name: 'ตับหมูสด', neededQty: liverKg, unit: 'กก.', suggestedPack: `เตรียมสด ${liverKg.toFixed(2)} กก.`, estimatedCost: liverKg * liverCostPerKg.value },
+            { name: 'เนื้อวัวสดหมัก', neededQty: beefKg, unit: 'กก.', suggestedPack: `เตรียมสด ${beefKg.toFixed(2)} กก.`, estimatedCost: beefKg * beefCostPerKg.value },
+            { name: 'หมูกรอบสำเร็จรูป', neededQty: crispyKg, unit: 'กก.', suggestedPack: `ซื้อประมาณ ${crispyKg.toFixed(2)} กก.`, estimatedCost: crispyKg * crispyPorkCostPerKg.value },
+            { name: 'กุ้งขาว (แม็คโคร)', neededQty: shrimpPcs, unit: 'ตัว', suggestedPack: `ประมาณ ${Math.ceil(shrimpPcs / (ingredients.value.shrimpCount || 20))} กล่อง/ถุง`, estimatedCost: shrimpPcs * shrimpCostPerPc.value },
+            { name: 'หมึกกล้วยสด (แม็คโคร)', neededQty: squidRaw, unit: 'กก.', suggestedPack: `ซื้อสดประมาณ ${squidRaw.toFixed(2)} กก.`, estimatedCost: squidRaw * (ingredients.value.squidTotalPrice / (ingredients.value.squidBuyKg || 1)) },
+            { name: 'ไข่ไก่ เบอร์ 3', neededQty: egg3, unit: 'ฟอง', suggestedPack: `ประมาณ ${(egg3 / 30).toFixed(1)} แผง (${Math.ceil(egg3)} ฟอง)`, estimatedCost: egg3 * eggNo3CostPerPc.value },
+            { name: 'ไข่นกกระทาต้มสด', neededQty: quail, unit: 'ฟอง', suggestedPack: `ประมาณ ${(quail / 100).toFixed(1)} แผง (${Math.ceil(quail)} ฟอง)`, estimatedCost: quail * quailEggCostPerPc.value }
+          ];
+        });
+
+        const estimatedProcurementCost = computed(() => procurementList.value.reduce((s, i) => s + i.estimatedCost, 0));
+
+        const incrementSales = (id) => dailySales.value[id] = (dailySales.value[id] || 0) + 1;
+        const decrementSales = (id) => { if (dailySales.value[id] > 0) dailySales.value[id]--; };
+        const resetPOS = () => { if (confirm('รีเซ็ตตัวเลขยอดขายในหน้านี้เป็น 0 ทั้งหมดใช่หรือไม่?')) { dailySales.value = createEmptySalesMap(); customDrinkList.value = []; } };
+
+        const addCustomDrink = () => {
+          if (!customDrink.value.name || !customDrink.value.price) return alert('กรุณากรอกชื่อเครื่องดื่มและราคาขายให้ครบถ้วน');
+          const ex = customDrinkList.value.find(d => d.name === customDrink.value.name && d.price === customDrink.value.price);
+          ex ? ex.qty++ : customDrinkList.value.push({ name: customDrink.value.name, price: customDrink.value.price, qty: 1 });
+          customDrink.value = { name: '', price: null };
+        };
+        const removeCustomDrink = (i) => customDrinkList.value.splice(i, 1);
+
+        const customDrinkTotalRevenue = computed(() => customDrinkList.value.reduce((s, d) => s + (d.price * d.qty), 0));
+        const posTotalBowls = computed(() => Object.values(dailySales.value).reduce((a, b) => a + (b || 0), 0) + customDrinkList.value.reduce((s, d) => s + d.qty, 0));
+        const posTotalRevenue = computed(() => menus.value.reduce((s, m) => s + ((dailySales.value[m.id] || 0) * m.price), 0) + customDrinkTotalRevenue.value);
+        const posTotalCOGS = computed(() => menus.value.reduce((s, m) => s + ((dailySales.value[m.id] || 0) * getMenuCOGS(m)), 0) + (customDrinkTotalRevenue.value * 0.40));
+        const posTotalProfit = computed(() => posTotalRevenue.value - posTotalCOGS.value);
+        const posAvgFoodCostPct = computed(() => posTotalRevenue.value > 0 ? (posTotalCOGS.value / posTotalRevenue.value) * 100 : 0);
+
+        // บันทึกทั้งลงเครื่องและ Firebase Cloud
+        const saveHistoryToStorage = async () => {
+          localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+          if (dbUrl) {
+            try {
+              await fetch(`${dbUrl}/mpos_history.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(historyLogs.value)
+              });
+            } catch (e) {}
+          }
+        };
+
+        const fetchCloudHistory = async () => {
+          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+          if (!dbUrl) return;
+          try {
+            const res = await fetch(`${dbUrl}/mpos_history.json`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              historyLogs.value = data;
+              localStorage.setItem('radna_pos_history', JSON.stringify(data));
+            }
+          } catch (e) {}
+        };
+
+        const loadHistoryFromStorage = () => {
+          try {
+            const s = localStorage.getItem('radna_pos_history');
+            if (s) historyLogs.value = JSON.parse(s);
+          } catch (e) {}
+          fetchCloudHistory();
+        };
+
+        const saveSyncSettings = () => {
+          localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
+          showSyncModal.value = false;
+          fetchCloudHistory();
+        };
+
+        // ดักฟังการอัปเดตสดเมื่ออีกแท็บ (index.html) กดส่งออเดอร์
+        const handleStorageSync = (e) => {
+          if (e.key === 'radna_pos_history' && e.newValue) {
+            try { historyLogs.value = JSON.parse(e.newValue); } catch (err) {}
+          }
+        };
+
+        const saveDailyRecord = async () => {
+          if (posTotalBowls.value === 0) return alert('กรุณาป้อนจำนวนรายการที่ขายได้ก่อนกดบันทึก');
+          const thaiDateText = formatThaiDate(selectedRecordDate.value);
+          historyLogs.value.unshift({
+            date: thaiDateText, isoDate: selectedRecordDate.value,
+            time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+            totalBowls: posTotalBowls.value, totalRevenue: posTotalRevenue.value, totalCOGS: posTotalCOGS.value, totalProfit: posTotalProfit.value,
+            sales: { ...dailySales.value }, customDrinks: [...customDrinkList.value]
+          });
+          await saveHistoryToStorage();
+          alert(`บันทึกยอดขายประจำวันที่ ${thaiDateText} เรียบร้อยแล้ว!`);
+          dailySales.value = createEmptySalesMap(); customDrinkList.value = []; resetToToday(); activeTab.value = 'history';
+        };
+
+        const editHistoryLog = async (index) => {
+          const log = historyLogs.value[index];
+          if (!log || !confirm(`ดึงข้อมูลยอดขายของวันที่ ${log.date} กลับขึ้นมาแก้ไขบนหน้า POS ใช่หรือไม่?`)) return;
+          Object.keys(dailySales.value).forEach(k => { dailySales.value[k] = (log.sales && log.sales[k]) || 0; });
+          customDrinkList.value = log.customDrinks ? [...log.customDrinks] : [];
+          selectedRecordDate.value = log.isoDate || parseThaiDateToISO(log.date);
+          historyLogs.value.splice(index, 1); await saveHistoryToStorage(); activeTab.value = 'pos';
+        };
+
+        const deleteSingleLog = async (i) => { if (confirm('ยืนยันล้างประวัติการขายของรายการนี้?')) { historyLogs.value.splice(i, 1); await saveHistoryToStorage(); } };
+        const clearHistory = async () => { if (confirm('ยืนยันล้างประวัติการบันทึกทั้งหมด?')) { historyLogs.value = []; await saveHistoryToStorage(); } };
+
+        // นำเข้าข้อมูลย้อนหลัง (ภาพหน้าจอ OCR / CSV / JSON)
+        const showImportModal = ref(false), isOcrScanning = ref(false), importStatusMsg = ref(''), importPreviewImage = ref('');
+        const createDefaultImportDraft = () => ({ date: formatThaiDate(getTodayISODate()), time: '18:00', totalRevenue: 0, totalCOGS: 0, totalProfit: 0, sales: createEmptySalesMap(), customDrinks: [], importedFrom: 'รูปภาพ/เอกสาร' });
+        const importDraft = ref(createDefaultImportDraft());
+
+        const activeImportMenuIds = computed(() => Object.keys(importDraft.value.sales).filter(k => (importDraft.value.sales[k] || 0) > 0));
+        const importTotalItemsCount = computed(() => Object.values(importDraft.value.sales).reduce((a, b) => a + (Number(b) || 0), 0) + (importDraft.value.customDrinks || []).reduce((a, d) => a + (Number(d.qty) || 0), 0));
+
+        const openImportModal = () => { importDraft.value = createDefaultImportDraft(); importStatusMsg.value = ''; importPreviewImage.value = ''; showImportModal.value = true; };
+        const closeImportModal = () => { showImportModal.value = false; };
+        const updateImportProfit = () => { importDraft.value.totalProfit = Number(((Number(importDraft.value.totalRevenue) || 0) - (Number(importDraft.value.totalCOGS) || 0)).toFixed(2)); };
+        const addMenuToImportDraft = (e) => { if (e.target.value) { importDraft.value.sales[e.target.value] = (importDraft.value.sales[e.target.value] || 0) + 1; e.target.value = ''; } };
+
+        const autoCalcImportFromItems = () => {
+          let rev = 0, cogs = 0;
+          menus.value.forEach(m => { const q = Number(importDraft.value.sales[m.id]) || 0; if (q > 0) { rev += q * m.price; cogs += q * getMenuCOGS(m); } });
+          (importDraft.value.customDrinks || []).forEach(d => { rev += (d.price || 0) * (d.qty || 0); cogs += (d.price || 0) * (d.qty || 0) * 0.40; });
+          importDraft.value.totalRevenue = Number(rev.toFixed(2)); importDraft.value.totalCOGS = Number(cogs.toFixed(2)); updateImportProfit();
+        };
+
+        const loadImportDraftToPOS = () => {
+          Object.keys(dailySales.value).forEach(k => { dailySales.value[k] = Number(importDraft.value.sales[k]) || 0; });
+          customDrinkList.value = [...(importDraft.value.customDrinks || [])];
+          selectedRecordDate.value = parseThaiDateToISO(importDraft.value.date);
+          closeImportModal(); activeTab.value = 'pos';
+        };
+
+        const matchMenuIdByName = (rawName) => {
+          const clean = rawName.replace(/\s+/g, '').replace(/[()0-9ฟองลูกชิ้นตัว]/g, '');
+          let bestId = null, bestScore = 0;
+          menus.value.forEach(m => {
+            const mClean = m.name.replace(/\s+/g, '').replace(/[()0-9ฟองลูกชิ้นตัว]/g, '');
+            if (clean === mClean) { bestId = m.id; bestScore = 100; }
+            else if (bestScore < 80 && (clean.includes(mClean) || mClean.includes(clean)) && clean.length >= 4) { bestId = m.id; bestScore = 80; }
+          });
+          return bestId;
+        };
+
+        const handleImportFile = async (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+          importPreviewImage.value = ''; importDraft.value = createDefaultImportDraft();
+
+          if (file.name.toLowerCase().endsWith('.json')) {
+            try {
+              const list = [].concat(JSON.parse(await file.text()));
+              let count = 0;
+              list.forEach(e => { if (e && e.date && e.totalRevenue !== undefined) { historyLogs.value.unshift({ ...e, importedFrom: e.importedFrom || 'ไฟล์ JSON' }); count++; } });
+              if (count > 0) { await saveHistoryToStorage(); alert(`✅ นำเข้าสำเร็จ ${count} วัน!`); closeImportModal(); }
+            } catch { importStatusMsg.value = '⚠️ ไฟล์ JSON ไม่ถูกต้อง'; }
+            return;
+          }
+
+          if (file.name.toLowerCase().endsWith('.csv')) {
+            const rows = (await file.text()).split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(1);
+            if (rows.length === 1) {
+              const c = rows[0].split(',').map(x => x.replace(/^"|"$/g, '').trim());
+              importDraft.value.date = c[0] || importDraft.value.date; importDraft.value.time = c[1] || '18:00';
+              importDraft.value.totalRevenue = parseFloat((c[3] || '0').replace(/[^0-9.]/g, '')) || 0;
+              importDraft.value.totalCOGS = parseFloat((c[4] || '0').replace(/[^0-9.]/g, '')) || 0;
+              importDraft.value.totalProfit = parseFloat((c[5] || '0').replace(/[^0-9.]/g, '')) || (importDraft.value.totalRevenue - importDraft.value.totalCOGS);
+              importDraft.value.importedFrom = 'ไฟล์ CSV';
+              importStatusMsg.value = '✅ อ่านไฟล์ CSV เรียบร้อย ตรวจสอบแล้วกดบันทึกได้เลยครับ';
+            } else if (rows.length > 1) {
+              rows.forEach(r => {
+                const c = r.split(',').map(x => x.replace(/^"|"$/g, '').trim());
+                if (c.length >= 4) {
+                  const rev = parseFloat((c[3] || '0').replace(/[^0-9.]/g, '')) || 0, cogs = parseFloat((c[4] || '0').replace(/[^0-9.]/g, '')) || 0;
+                  historyLogs.value.push({ date: c[0], isoDate: parseThaiDateToISO(c[0]), time: c[1] || '18:00', totalBowls: parseInt(c[2], 10) || 0, totalRevenue: rev, totalCOGS: cogs, totalProfit: parseFloat((c[5] || '0').replace(/[^0-9.]/g, '')) || (rev - cogs), sales: createEmptySalesMap(), customDrinks: [], importedFrom: 'ไฟล์ CSV' });
+                }
+              });
+              await saveHistoryToStorage(); alert(`✅ นำเข้าสำเร็จ ${rows.length} วัน!`); closeImportModal();
+            }
+            return;
+          }
+
+          if (file.type.startsWith('image/')) {
+            importPreviewImage.value = URL.createObjectURL(file); importDraft.value.importedFrom = 'ภาพหน้าจอ';
+            if (!window.Tesseract) { importStatusMsg.value = '⚠️ ระบบอ่านภาพกำลังโหลด กรุณากรอกตัวเลขด้านล่างครับ'; return; }
+            isOcrScanning.value = true; importStatusMsg.value = '⏳ กำลังสแกนอ่านข้อมูลจากภาพ (3-6 วินาที)...';
+            try {
+              const rawText = (await Tesseract.recognize(file, 'tha+eng')).data.text || '';
+              const dMatch = rawText.match(/(\d{1,2}\s+(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s+\d{4})/);
+              if (dMatch) importDraft.value.date = dMatch[1];
+              const tMatch = rawText.match(/(\d{1,2}:\d{2})/);
+              if (tMatch) importDraft.value.time = tMatch[1];
+              const nums = [...rawText.matchAll(/[฿B]\s*([0-9,]+(?:\.[0-9]{1,2})?)/g)].map(m => parseFloat(m[1].replace(/,/g, ''))).filter(n => !isNaN(n) && n > 0);
+              if (nums[0]) importDraft.value.totalRevenue = nums[0];
+              if (nums[1]) importDraft.value.totalCOGS = nums[1];
+              nums[2] ? (importDraft.value.totalProfit = nums[2]) : updateImportProfit();
+
+              let matched = 0;
+              for (const m of rawText.matchAll(/([ก-๙a-zA-Z0-9\s\(\)]+?)\s*[:：]\s*(\d+)\s*(?:รายการ|จาน|ชาม)/g)) {
+                const label = m[1].trim(), qty = parseInt(m[2], 10);
+                if (qty > 0) {
+                  const id = matchMenuIdByName(label);
+                  if (id) { importDraft.value.sales[id] = qty; matched++; }
+                  else if (!label.includes('รวม')) importDraft.value.customDrinks.push({ name: label, price: 15, qty });
+                }
+              }
+              isOcrScanning.value = false;
+              importStatusMsg.value = `✅ สแกนสำเร็จ! พบเมนู ${matched} รายการ ตรวจสอบตัวเลขแล้วกดบันทึกได้เลยครับ`;
+            } catch { isOcrScanning.value = false; importStatusMsg.value = '⚠️ อ่านภาพไม่สำเร็จ กรุณากรอกตัวเลขในช่องด้านล่างครับ'; }
+          }
+        };
+
+        const saveImportedHistory = async () => {
+          if (!importDraft.value.date) return alert('กรุณาระบุวันที่ขายครับ');
+          const totalBowls = importTotalItemsCount.value > 0 ? importTotalItemsCount.value : Math.max(1, Math.round((Number(importDraft.value.totalRevenue) || 0) / 60));
+          historyLogs.value.unshift({
+            date: importDraft.value.date.trim(), isoDate: parseThaiDateToISO(importDraft.value.date.trim()), time: importDraft.value.time || '18:00',
+            totalBowls, totalRevenue: Number(importDraft.value.totalRevenue) || 0, totalCOGS: Number(importDraft.value.totalCOGS) || 0, totalProfit: Number(importDraft.value.totalProfit) || 0,
+            sales: { ...importDraft.value.sales }, customDrinks: [...(importDraft.value.customDrinks || [])], importedFrom: importDraft.value.importedFrom
+          });
+          await saveHistoryToStorage(); alert(`✅ บันทึกข้อมูลย้อนหลังวันที่ ${importDraft.value.date} เรียบร้อยแล้ว!`); closeImportModal();
+        };
+
+        // ส่งออกรายงานแบบ TXT เรียงลำดับวันที่ได้ (asc = เก่า->ใหม่, desc = ใหม่->เก่า)
+        const exportTXT = () => {
+          if (!historyLogs.value.length) return;
+          const sortedLogs = [...historyLogs.value].sort((a, b) => {
+            const isoA = a.isoDate || parseThaiDateToISO(a.date);
+            const isoB = b.isoDate || parseThaiDateToISO(b.date);
+            if (isoA !== isoB) {
+              return txtSortOrder.value === 'asc' ? isoA.localeCompare(isoB) : isoB.localeCompare(isoA);
+            }
+            return txtSortOrder.value === 'asc'
+              ? (a.time || '').localeCompare(b.time || '')
+              : (b.time || '').localeCompare(a.time || '');
+          });
+
+          const nowTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+          const sortLabel = txtSortOrder.value === 'asc' ? 'วันที่เก่าสุด → ใหม่สุด' : 'วันที่ใหม่สุด → เก่าสุด';
+
+          const lines = [
+            '==================================================',
+            'รายงานสรุปยอดขายร้าน เหมาะโอชา The Next+',
+            `พิมพ์รายงานเมื่อ: ${currentDate.value} เวลา ${nowTime} น.`,
+            `การเรียงลำดับ: ${sortLabel}`,
+            '==================================================',
+            `[สรุปรวมสะสมทั้งหมด ${sortedLogs.length} วัน]`,
+            `- ยอดขายรวมสะสม:    ${formatNumber(historyGrandTotalRevenue.value)} บาท (${historyGrandTotalBowls.value} รายการ)`,
+            `- ต้นทุนวัตถุดิบรวม:   ${formatNumber(historyGrandTotalCOGS.value)} บาท (Food Cost ${historyOverallFoodCostPct.value.toFixed(1)}%)`,
+            `- กำไรขั้นต้นรวม:      ${formatNumber(historyGrandTotalProfit.value)} บาท (อัตรากำไร ${historyOverallGrossMarginPct.value.toFixed(1)}%)`,
+            '==================================================',
+            ''
+          ];
+
+          sortedLogs.forEach((log) => {
+            lines.push(`วันที่: ${log.date} (บันทึกเวลา ${log.time || '-'})`);
+            lines.push(`ยอดขาย: ${formatNumber(log.totalRevenue)} บาท | ต้นทุน: ${formatNumber(log.totalCOGS)} บาท | กำไร: ${formatNumber(log.totalProfit)} บาท`);
+            lines.push(`รายการที่ขายได้ (รวม ${log.totalBowls || 0} รายการ):`);
+
+            let hasItems = false;
+            Object.entries(log.sales || {}).forEach(([menuId, qty]) => {
+              if (qty > 0) {
+                lines.push(`  • ${getMenuName(menuId)}: ${qty} รายการ`);
+                hasItems = true;
+              }
+            });
+            (log.customDrinks || []).forEach((drink) => {
+              if (drink.qty > 0) {
+                lines.push(`  • ${drink.name} (฿${drink.price}): ${drink.qty} แก้ว/ชิ้น (฿${formatNumber(drink.price * drink.qty)})`);
+                hasItems = true;
+              }
+            });
+            if (!hasItems) {
+              lines.push('  • (บันทึกยอดรวมแบบไม่ระบุรายการเมนูย่อย)');
+            }
+            lines.push('--------------------------------------------------');
+          });
+
+          const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `รายงานยอดขาย_เหมาะโอชา_${txtSortOrder.value === 'asc' ? 'เก่าไปใหม่' : 'ใหม่ไปเก่า'}_${getTodayISODate()}.txt`;
+          link.click();
+          URL.revokeObjectURL(url);
+        };
+
+        const exportCSV = () => {
+          let csv = "data:text/csv;charset=utf-8,\uFEFFวันที่,เวลา,จำนวนรายการรวม,ยอดขายรวม(บาท),ต้นทุนรวม(บาท),กำไรขั้นต้น(บาท)\n";
+          historyLogs.value.forEach(l => { csv += `"${l.date}","${l.time}",${l.totalBowls},${l.totalRevenue},${Number(l.totalCOGS).toFixed(2)},${Number(l.totalProfit).toFixed(2)}\n`; });
+          const link = document.createElement("a"); link.href = encodeURI(csv); link.download = `รายงานยอดขาย_เหมาะโอชา_${getTodayISODate()}.csv`; link.click();
+        };
+
+        const exportJSONBackup = () => {
+          const link = document.createElement("a");
+          link.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historyLogs.value, null, 2));
+          link.download = `สำรองข้อมูลยอดขาย_เหมาะโอชา_${getTodayISODate()}.json`; link.click();
+        };
+
+        const getMenuName = (id) => (menus.value.find(i => i.id === id) || {}).name || id;
+        const formatNumber = (val) => new Intl.NumberFormat('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val || 0);
+
+        let cloudPollTimer = null;
+        onMounted(() => {
+          lucide.createIcons();
+          loadHistoryFromStorage();
+          window.addEventListener('storage', handleStorageSync);
+          cloudPollTimer = setInterval(fetchCloudHistory, 6000);
+        });
+
+        onUnmounted(() => {
+          window.removeEventListener('storage', handleStorageSync);
+          if (cloudPollTimer) clearInterval(cloudPollTimer);
+        });
+
+        return {
+          activeTab, posCategory, currentDate, selectedRecordDate, resetToToday, ingredients, menus, filteredMenus, dailySales, historyLogs,
+          showSyncModal, firebaseUrl, saveSyncSettings,
+          historyGrandTotalRevenue, historyGrandTotalCOGS, historyGrandTotalProfit, historyGrandTotalBowls, historyOverallFoodCostPct, historyOverallGrossMarginPct,
+          customDrink, customDrinkList, addCustomDrink, removeCustomDrink,
+          kaleCostPerKg, porkCostPerKg, beefCostPerKg, liverCostPerKg, crispyPorkCostPerKg, shrimpCostPerPc, squidNetCostPerKg, quailEggCostPerPc, eggNo3CostPerPc,
+          topSellingMenus, procurementDays, avgDailyBowls, procurementList, estimatedProcurementCost,
+          getMenuCOGS, getMenuFoodCostPct, getFoodCostBadgeClass,
+          incrementSales, decrementSales, resetPOS, posTotalBowls, posTotalRevenue, posTotalCOGS, posTotalProfit, posAvgFoodCostPct,
+          saveDailyRecord, editHistoryLog, deleteSingleLog, clearHistory,
+          showImportModal, isOcrScanning, importStatusMsg, importPreviewImage, importDraft, activeImportMenuIds, importTotalItemsCount,
+          openImportModal, closeImportModal, updateImportProfit, addMenuToImportDraft, autoCalcImportFromItems, loadImportDraftToPOS,
+          handleImportFile, saveImportedHistory, txtSortOrder, exportTXT, exportCSV, exportJSONBackup, getMenuName, formatNumber
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

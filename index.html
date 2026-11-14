@@ -1569,6 +1569,7 @@
             });
 
             localStorage.setItem('radna_pos_history', JSON.stringify(history));
+            fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(history) });
           } catch (err) {
             console.error('MPOS sync error:', err);
           }
