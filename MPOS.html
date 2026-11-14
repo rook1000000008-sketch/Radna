@@ -27,7 +27,7 @@
           <h1 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2 text-amber-300">
             <span>เหมาะโอชา POS & บัญชีต้นทุน</span>
           </h1>
-          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขายและคำนวณต้นทุนวัตถุดิบแบบเรียลไทม์ (ซิงก์อัตโนมัติจากหน้าร้าน)</p>
+          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ และประมาณการจัดซื้ออัตโนมัติ</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -131,7 +131,7 @@
       <!-- 3. หมวดท็อปปิ้งเพิ่มเติม -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="bg-purple-50/70 px-4 py-3 border-b border-purple-100 flex justify-between items-center">
-          <h2 class="font-bold text-purple-900 flex items-center gap-2">✨ ท็อปปิ้ง & เพิ่มปริมาณ (แยกหมู 3 ชิ้น / เนื้อ 2 ชิ้น / หมูกรอบ 20.-)</h2>
+          <h2 class="font-bold text-purple-900 flex items-center gap-2">✨ ท็อปปิ้ง & เพิ่มปริมาณ (แยกหมู 3 ชิ้น / เนื้อ 2 ชิ้น / ตับ 3 ชิ้น / หมี่กรอบ 2 ก้อน)</h2>
           <span class="text-xs text-purple-700 font-bold bg-purple-100 px-2.5 py-0.5 rounded-full">รวม {{ categoryCount('topping') }} รายการ</span>
         </div>
         <div class="divide-y divide-slate-100">
@@ -152,7 +152,7 @@
         </div>
       </div>
 
-      <!-- 4. หมวดเครื่องดื่ม (ยืดหยุ่นเพิ่มรายการได้) -->
+      <!-- 4. หมวดเครื่องดื่ม -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="bg-cyan-50/70 px-4 py-3 border-b border-cyan-100 flex justify-between items-center">
           <h2 class="font-bold text-cyan-900 flex items-center gap-2">🥤 เครื่องดื่ม (บันทึกตามรายการที่ขายได้จริง)</h2>
@@ -200,25 +200,44 @@
 
     </div>
 
-    <!-- ==================== TAB 2: ปริมาณวัตถุดิบที่ต้องเตรียม ==================== -->
+    <!-- ==================== TAB 2: ปริมาณวัตถุดิบที่ต้องเตรียม & ประมาณการจัดซื้อ ==================== -->
     <div v-if="activeTab === 'prep'" class="space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">📦 ปริมาณวัตถุดิบที่ถูกใช้ไปจริง (คำนวณจากยอดขายวันนี้)</h2>
-            <p class="text-xs text-slate-500">ใช้ตัวเลขนี้เช็กสต็อกคงเหลือ และวางแผนสั่งซื้อวัตถุดิบสำหรับวันพรุ่งนี้</p>
+            <h2 class="text-lg font-bold text-slate-800">📦 ปริมาณวัตถุดิบที่ใช้ไปจริง & ประมาณการจัดซื้อพรุ่งนี้</h2>
+            <p class="text-xs text-slate-500">คำนวณจากยอดขายจริงวันนี้ พร้อมตัวคูณเผื่อสต็อกสำหรับวางแผนสั่งซื้อวัตถุดิบวันถัดไป</p>
+          </div>
+          <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+            <span class="text-xs font-bold text-amber-900">เผื่อสต็อกจัดซื้อ:</span>
+            <select v-model.number="purchaseBufferPercent" class="bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-extrabold text-red-700 outline-none">
+              <option :value="0">0% (ตามยอดขายจริง)</option>
+              <option :value="10">+10% (เผื่อเล็กน้อย)</option>
+              <option :value="15">+15% (แนะนำ)</option>
+              <option :value="20">+20% (วันหยุด/ขายดี)</option>
+              <option :value="30">+30% (เทศกาล)</option>
+            </select>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="(val, key) in rawMaterialUsage" :key="key" class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex justify-between items-center">
-            <div>
-              <div class="text-sm font-bold text-slate-700">{{ val.label }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ val.note }}</div>
+          <div v-for="(val, key) in rawMaterialUsage" :key="key" class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between gap-2">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <div class="text-sm font-bold text-slate-800">{{ val.label }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">{{ val.note }}</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-[10px] text-slate-400">ใช้ไปจริง</div>
+                <span class="text-lg font-extrabold text-slate-700">{{ val.amount }}</span>
+                <span class="text-xs font-medium text-slate-600 ml-1">{{ val.unit }}</span>
+              </div>
             </div>
-            <div class="text-right">
-              <span class="text-xl font-extrabold text-red-700">{{ val.amount }}</span>
-              <span class="text-xs font-medium text-slate-600 ml-1">{{ val.unit }}</span>
+            <div class="pt-2 border-t border-slate-200/80 flex justify-between items-center text-xs">
+              <span class="font-bold text-emerald-800">🛒 แนะนำสั่งซื้อ (+{{ purchaseBufferPercent }}%):</span>
+              <span class="font-extrabold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-lg">
+                {{ val.orderAmount }} {{ val.unit }}
+              </span>
             </div>
           </div>
         </div>
@@ -320,7 +339,7 @@
           </p>
           <div>
             <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL (ใช้ลิงก์เดียวกับหน้าสั่งอาหาร):</label>
-            <input type="url" v-model="firebaseUrl" placeholder="https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app"
+            <input type="url" v-model="firebaseUrl" placeholder="https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app"
                    class="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-red-500 outline-none">
           </div>
         </div>
@@ -338,9 +357,10 @@
     createApp({
       setup() {
         const activeTab = ref('sales');
+        const purchaseBufferPercent = ref(15);
         const tabs = [
           { id: 'sales', name: 'บันทึกยอดขายวันนี้', icon: '🧾' },
-          { id: 'prep', name: 'วัตถุดิบที่ใช้ไป', icon: '📦' },
+          { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
           { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ', icon: '⚙️' },
           { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
         ];
@@ -388,7 +408,6 @@
           const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost;
 
           return [
-            // ราดหน้า
             { id: 'rn_pork', category: 'radna', name: 'ราดหน้าหมู', price: 55, cogs: baseRadna + (0.06 * u.pork.cost) },
             { id: 'rn_liver', category: 'radna', name: 'ราดหน้าตับ', price: 55, cogs: baseRadna + (0.06 * u.liver.cost) },
             { id: 'rn_quail', category: 'radna', name: 'ราดหน้าไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseRadna + (7 * u.quail_egg.cost) },
@@ -398,7 +417,6 @@
             { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
             { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (5 ตัว)', price: 95, cogs: baseRadna + (5 * u.shrimp.cost) },
 
-            // ผัดซีอิ๊ว
             { id: 'se_pork', category: 'seeew', name: 'ผัดซีอิ๊วหมู', price: 55, cogs: baseSeeew + (0.06 * u.pork.cost) },
             { id: 'se_liver', category: 'seeew', name: 'ผัดซีอิ๊วตับ', price: 55, cogs: baseSeeew + (0.06 * u.liver.cost) },
             { id: 'se_quail', category: 'seeew', name: 'ผัดซีอิ๊วไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseSeeew + (7 * u.quail_egg.cost) },
@@ -408,14 +426,14 @@
             { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
             { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (5 ตัว)', price: 95, cogs: baseSeeew + (5 * u.shrimp.cost) },
 
-            // ท็อปปิ้งเพิ่มเติม (แยกหมู 3 ชิ้น / เนื้อ 2 ชิ้น / หมูกรอบ 20.-)
             { id: 'top_pork', category: 'topping', name: 'เพิ่มหมู (3 ชิ้น)', price: 10, cogs: 0.045 * u.pork.cost },
             { id: 'top_beef', category: 'topping', name: 'เพิ่มเนื้อ (2 ชิ้น)', price: 10, cogs: 0.035 * u.beef.cost },
+            { id: 'top_liver', category: 'topping', name: 'เพิ่มตับ (3 ชิ้น)', price: 10, cogs: 0.033 * u.liver.cost },
             { id: 'top_veg', category: 'topping', name: 'เพิ่มผัก', price: 10, cogs: 0.125 * u.kale.cost },
             { id: 'top_noodle', category: 'topping', name: 'เพิ่มเส้น', price: 10, cogs: 0.15 * u.noodle.cost },
             { id: 'top_quail_egg', category: 'topping', name: 'เพิ่มไข่นกกระทา (4 ฟอง)', price: 10, cogs: 4 * u.quail_egg.cost },
-            { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (1 ก้อน)', price: 10, cogs: 3.50 },
-            { id: 'top_liver', category: 'topping', name: 'เพิ่มตับ', price: 10, cogs: 0.033 * u.liver.cost },
+            { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (2 ก้อน)', price: 10, cogs: 3.50 },
+            { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + 1.0 },
             { id: 'top_squid', category: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', price: 20, cogs: 0.07 * u.squid.cost },
             { id: 'top_crispy_pork', category: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', price: 20, cogs: 0.035 * u.crispy_pork.cost },
             { id: 'top_shrimp', category: 'topping', name: 'เพิ่มกุ้ง (ตัวละ)', price: 22, cogs: u.shrimp.cost }
@@ -485,6 +503,7 @@
 
         const rawMaterialUsage = computed(() => {
           const s = sales.value;
+          const mult = 1 + ((purchaseBufferPercent.value || 0) / 100);
           const porkBowls = (s.rn_pork || 0) + (s.se_pork || 0);
           const liverBowls = (s.rn_liver || 0) + (s.se_liver || 0);
           const beefBowls = (s.rn_beef || 0) + (s.se_beef || 0);
@@ -498,67 +517,30 @@
           const totalSeeew = categoryCount('seeew');
           const totalMainBowls = totalRadna + totalSeeew;
 
+          const porkKg = (porkBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_pork || 0) * 0.045);
+          const beefKg = (beefBowls * 0.055) + ((s.top_beef || 0) * 0.035);
+          const liverKg = (liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033);
+          const crispyKg = (crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035);
+          const squidKg = (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
+          const shrimpPcs = (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0);
+          const quailPcs = (quailBowls * 7) + ((s.top_quail_egg || 0) * 4);
+          const chickenEggPcs = totalSeeew + (s.top_fried_egg || 0);
+          const noodleKg = (totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15);
+          const meeKrobPcs = (s.top_crispy_noodle || 0) * 2;
+          const kaleKg = (totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125);
+
           return {
-            pork: {
-              label: 'หมูหมัก (ชั่งสด)',
-              amount: ((porkBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_pork || 0) * 0.045)).toFixed(2),
-              unit: 'กก.',
-              note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)'
-            },
-            beef: {
-              label: 'เนื้อวัวหมัก',
-              amount: ((beefBowls * 0.055) + ((s.top_beef || 0) * 0.035)).toFixed(2),
-              unit: 'กก.',
-              note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)'
-            },
-            liver: {
-              label: 'ตับหมู',
-              amount: ((liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033)).toFixed(2),
-              unit: 'กก.',
-              note: 'รวมเมนูตับ + รวมมิตร + ท็อปปิ้ง'
-            },
-            crispy_pork: {
-              label: 'หมูกรอบ',
-              amount: ((crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035)).toFixed(2),
-              unit: 'กก.',
-              note: 'รวมเมนูหมูกรอบ + ท็อปปิ้ง'
-            },
-            squid: {
-              label: 'หมึกสด',
-              amount: ((seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07)).toFixed(2),
-              unit: 'กก.',
-              note: 'รวมเมนูทะเล + รวมมิตร + ท็อปปิ้ง'
-            },
-            shrimp: {
-              label: 'กุ้งสด',
-              amount: (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0),
-              unit: 'ตัว',
-              note: 'นับเป็นจำนวนตัวที่ใช้จริง'
-            },
-            quail_egg: {
-              label: 'ไข่นกกระทาต้ม',
-              amount: (quailBowls * 7) + ((s.top_quail_egg || 0) * 4),
-              unit: 'ฟอง',
-              note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง'
-            },
-            chicken_egg: {
-              label: 'ไข่ไก่ (สำหรับผัดซีอิ๊ว)',
-              amount: totalSeeew,
-              unit: 'ฟอง',
-              note: 'ใช้ 1 ฟองต่อผัดซีอิ๊ว 1 จาน'
-            },
-            noodle: {
-              label: 'เส้นก๋วยเตี๋ยว (รวมทุกเส้น)',
-              amount: ((totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15)).toFixed(2),
-              unit: 'กก.',
-              note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น'
-            },
-            kale: {
-              label: 'ผักคะน้า (ตัดแต่งแล้ว)',
-              amount: ((totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125)).toFixed(2),
-              unit: 'กก.',
-              note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g'
-            }
+            pork: { label: 'หมูหมัก (ชั่งสด)', amount: porkKg.toFixed(2), orderAmount: (porkKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)' },
+            beef: { label: 'เนื้อวัวหมัก', amount: beefKg.toFixed(2), orderAmount: (beefKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)' },
+            liver: { label: 'ตับหมู', amount: liverKg.toFixed(2), orderAmount: (liverKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูตับ + รวมมิตร + เพิ่มตับ (3 ชิ้น)' },
+            crispy_pork: { label: 'หมูกรอบ', amount: crispyKg.toFixed(2), orderAmount: (crispyKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมูกรอบ + เพิ่มหมูกรอบ (3 ชิ้น)' },
+            squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
+            shrimp: { label: 'กุ้งสด', amount: shrimpPcs, orderAmount: Math.ceil(shrimpPcs * mult), unit: 'ตัว', note: 'นับเป็นจำนวนตัวที่ใช้จริง' },
+            quail_egg: { label: 'ไข่นกกระทาต้ม', amount: quailPcs, orderAmount: Math.ceil(quailPcs * mult), unit: 'ฟอง', note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง' },
+            chicken_egg: { label: 'ไข่ไก่ (ผัดซีอิ๊ว + ไข่ดาว)', amount: chickenEggPcs, orderAmount: Math.ceil(chickenEggPcs * mult), unit: 'ฟอง', note: 'ผัดซีอิ๊ว 1 ฟอง + เพิ่มไข่ดาวกรอบ' },
+            noodle: { label: 'เส้นก๋วยเตี๋ยว (เส้นใหญ่/เส้นหมี่)', amount: noodleKg.toFixed(2), orderAmount: (noodleKg * mult).toFixed(2), unit: 'กก.', note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น' },
+            mee_krob: { label: 'หมี่กรอบ (ถ้วยเสริม)', amount: meeKrobPcs, orderAmount: Math.ceil(meeKrobPcs * mult), unit: 'ก้อน', note: 'นับจากรายการเพิ่มหมี่กรอบ (2 ก้อน)' },
+            kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' }
           };
         });
 
@@ -707,7 +689,7 @@
         });
 
         return {
-          activeTab, tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
+          activeTab, purchaseBufferPercent, tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
           unitCosts, saveCostsToStorage, resetDefaultCosts,
           sales, customDrinks, newDrink, historyLogs,
           getMenuByCategory, categoryCount, updateQty,
