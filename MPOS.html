@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เหมาะโอชา The Next⁺ - ระบบ POS & บัญชีต้นทุน</title>
+  <title>เหมาะโอชา The Next+ - ระบบ POS & บัญชีต้นทุน</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    if (typeof Vue === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"><\/script>');
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,10 +18,11 @@
     body { font-family: 'Kanit', sans-serif; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    [v-cloak] { display: none !important; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 pb-24">
-  <div id="app" class="max-w-7xl mx-auto p-3 sm:p-5">
+  <div id="app" v-cloak class="max-w-7xl mx-auto p-3 sm:p-5">
     
     <!-- Header -->
     <header class="bg-gradient-to-r from-[#2C1810] via-[#4A2511] to-red-800 text-white p-4 sm:p-5 rounded-2xl shadow-lg mb-5 flex flex-wrap justify-between items-center gap-3 border-b-4 border-amber-400">
@@ -40,8 +45,8 @@
           <div class="font-bold text-xs sm:text-sm">{{ currentDateDisplay }}</div>
         </div>
         <button @click="showSyncModal = true" title="ตั้งค่าเชื่อมต่อข้ามเครื่อง (Firebase)"
-                class="bg-white/15 hover:bg-white/25 text-white p-2 rounded-xl text-xs font-bold transition relative">
-          <i data-lucide="settings" class="w-4 h-4"></i>
+                class="bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-xl text-xs font-bold transition relative">
+          <span>⚙️</span>
           <span class="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
         </button>
       </div>
@@ -372,7 +377,7 @@
     </div>
 
     <!-- Modal ตั้งค่าการเชื่อมต่อข้ามเครื่อง (Firebase) -->
-    <div v-if="showSyncModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div v-if="showSyncModal" style="display: none;" :style="{ display: showSyncModal ? 'flex' : 'none' }" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
         <div class="flex justify-between items-center border-b pb-2">
           <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
@@ -399,477 +404,485 @@
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+    (function() {
+      if (typeof Vue === 'undefined') {
+        alert('ไม่สามารถโหลดไลบรารี Vue.js ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วกด F5 ใหม่อีกครั้งครับ');
+        return;
+      }
 
-    createApp({
-      setup() {
-        const activeTab = ref('sales');
-        const purchaseBufferPercent = ref(15);
-        const historySortBy = ref('date');
-        const historySortOrder = ref('desc');
+      const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
-        const tabs = [
-          { id: 'sales', name: 'บันทึกยอดขายวันนี้', icon: '🧾' },
-          { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
-          { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ', icon: '⚙️' },
-          { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
-        ];
+      createApp({
+        setup() {
+          const activeTab = ref('sales');
+          const purchaseBufferPercent = ref(15);
+          const historySortBy = ref('date');
+          const historySortOrder = ref('desc');
 
-        const showSyncModal = ref(false);
-        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || 'https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app');
-
-        const currentDateDisplay = computed(() => {
-          const d = new Date();
-          return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-        });
-
-        const defaultUnitCosts = {
-          pork: { name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
-          liver: { name: 'ตับหมู (กิโลกรัมละ)', cost: 90, unit: 'บาท/กก.' },
-          beef: { name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
-          crispy_pork: { name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
-          squid: { name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
-          shrimp: { name: 'กุ้งสด (ตัวละ ~20g)', cost: 7.5, unit: 'บาท/ตัว' },
-          quail_egg: { name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
-          chicken_egg: { name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
-          noodle: { name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
-          kale: { name: 'ผักคะน้า (กิโลกรัมละ)', cost: 40, unit: 'บาท/กก.' },
-          radna_base: { name: 'น้ำราดหน้า+แป้ง+เครื่องปรุง/ชาม', cost: 4.5, unit: 'บาท/ชาม' },
-          seeew_base: { name: 'ซีอิ๊วดำ+น้ำมัน+กระเทียม/จาน', cost: 3.0, unit: 'บาท/จาน' }
-        };
-
-        const savedCosts = JSON.parse(localStorage.getItem('radna_unit_costs') || 'null');
-        const unitCosts = ref(savedCosts ? { ...JSON.parse(JSON.stringify(defaultUnitCosts)), ...savedCosts } : JSON.parse(JSON.stringify(defaultUnitCosts)));
-
-        const saveCostsToStorage = () => {
-          localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
-        };
-
-        const resetDefaultCosts = () => {
-          if (confirm('ต้องการคืนค่าราคาวัตถุดิบเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
-            unitCosts.value = JSON.parse(JSON.stringify(defaultUnitCosts));
-            saveCostsToStorage();
-          }
-        };
-
-        const menuCatalog = computed(() => {
-          const u = unitCosts.value;
-          const baseRadna = (0.15 * u.noodle.cost) + (0.10 * u.kale.cost) + u.radna_base.cost;
-          const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost;
-
-          return [
-            { id: 'rn_pork', category: 'radna', name: 'ราดหน้าหมู', price: 55, cogs: baseRadna + (0.06 * u.pork.cost) },
-            { id: 'rn_liver', category: 'radna', name: 'ราดหน้าตับ', price: 55, cogs: baseRadna + (0.06 * u.liver.cost) },
-            { id: 'rn_quail', category: 'radna', name: 'ราดหน้าไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseRadna + (7 * u.quail_egg.cost) },
-            { id: 'rn_beef', category: 'radna', name: 'ราดหน้าเนื้อ', price: 65, cogs: baseRadna + (0.055 * u.beef.cost) },
-            { id: 'rn_crispy', category: 'radna', name: 'ราดหน้าหมูกรอบ', price: 75, cogs: baseRadna + (0.055 * u.crispy_pork.cost) },
-            { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
-            { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
-            { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (5 ตัว)', price: 95, cogs: baseRadna + (5 * u.shrimp.cost) },
-
-            { id: 'se_pork', category: 'seeew', name: 'ผัดซีอิ๊วหมู', price: 55, cogs: baseSeeew + (0.06 * u.pork.cost) },
-            { id: 'se_liver', category: 'seeew', name: 'ผัดซีอิ๊วตับ', price: 55, cogs: baseSeeew + (0.06 * u.liver.cost) },
-            { id: 'se_quail', category: 'seeew', name: 'ผัดซีอิ๊วไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseSeeew + (7 * u.quail_egg.cost) },
-            { id: 'se_beef', category: 'seeew', name: 'ผัดซีอิ๊วเนื้อ', price: 65, cogs: baseSeeew + (0.055 * u.beef.cost) },
-            { id: 'se_crispy', category: 'seeew', name: 'ผัดซีอิ๊วหมูกรอบ', price: 75, cogs: baseSeeew + (0.055 * u.crispy_pork.cost) },
-            { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
-            { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
-            { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (5 ตัว)', price: 95, cogs: baseSeeew + (5 * u.shrimp.cost) },
-
-            { id: 'top_pork', category: 'topping', name: 'เพิ่มหมู (3 ชิ้น)', price: 10, cogs: 0.045 * u.pork.cost },
-            { id: 'top_beef', category: 'topping', name: 'เพิ่มเนื้อ (2 ชิ้น)', price: 10, cogs: 0.035 * u.beef.cost },
-            { id: 'top_liver', category: 'topping', name: 'เพิ่มตับ (3 ชิ้น)', price: 10, cogs: 0.033 * u.liver.cost },
-            { id: 'top_veg', category: 'topping', name: 'เพิ่มผัก', price: 10, cogs: 0.125 * u.kale.cost },
-            { id: 'top_noodle', category: 'topping', name: 'เพิ่มเส้น', price: 10, cogs: 0.15 * u.noodle.cost },
-            { id: 'top_quail_egg', category: 'topping', name: 'เพิ่มไข่นกกระทา (4 ฟอง)', price: 10, cogs: 4 * u.quail_egg.cost },
-            { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (2 ก้อน)', price: 10, cogs: 3.50 },
-            { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + 1.0 },
-            { id: 'top_squid', category: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', price: 20, cogs: 0.07 * u.squid.cost },
-            { id: 'top_crispy_pork', category: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', price: 20, cogs: 0.035 * u.crispy_pork.cost },
-            { id: 'top_shrimp', category: 'topping', name: 'เพิ่มกุ้ง (ตัวละ)', price: 22, cogs: u.shrimp.cost }
+          const tabs = [
+            { id: 'sales', name: 'บันทึกยอดขายวันนี้', icon: '🧾' },
+            { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
+            { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ', icon: '⚙️' },
+            { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
           ];
-        });
 
-        const sales = ref({});
-        const customDrinks = ref([]);
-        const newDrink = ref({ name: '', price: null, qty: 1 });
-        const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
+          const showSyncModal = ref(false);
+          const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || 'https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app');
 
-        const sortedHistoryLogs = computed(() => {
-          const list = historyLogs.value.map((item, idx) => ({ ...item, _origIdx: idx }));
-          const dir = historySortOrder.value === 'desc' ? -1 : 1;
-          return list.sort((a, b) => {
-            if (historySortBy.value === 'date') {
-              const keyA = a.isoDate || a.date || '';
-              const keyB = b.isoDate || b.date || '';
-              if (keyA !== keyB) return keyA.localeCompare(keyB) * dir;
-              return (a._origIdx - b._origIdx) * (historySortOrder.value === 'desc' ? 1 : -1);
-            }
-            const valA = Number(a[historySortBy.value] || 0);
-            const valB = Number(b[historySortBy.value] || 0);
-            return (valA - valB) * dir;
-          });
-        });
-
-        const loadTodaySyncedSales = () => {
-          try {
+          const currentDateDisplay = computed(() => {
             const d = new Date();
-            const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const thaiDate = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-            const logs = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
-            historyLogs.value = logs;
-            const todayLog = logs.find(h => h.isoDate === isoDate || h.date === thaiDate);
-            if (todayLog) {
-              sales.value = { ...(todayLog.sales || {}) };
-              customDrinks.value = JSON.parse(JSON.stringify(todayLog.customDrinks || []));
+            return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+          });
+
+          const defaultUnitCosts = {
+            pork: { name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
+            liver: { name: 'ตับหมู (กิโลกรัมละ)', cost: 90, unit: 'บาท/กก.' },
+            beef: { name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
+            crispy_pork: { name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
+            squid: { name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
+            shrimp: { name: 'กุ้งสด (ตัวละ ~20g)', cost: 7.5, unit: 'บาท/ตัว' },
+            quail_egg: { name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
+            chicken_egg: { name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
+            noodle: { name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
+            kale: { name: 'ผักคะน้า (กิโลกรัมละ)', cost: 40, unit: 'บาท/กก.' },
+            radna_base: { name: 'น้ำราดหน้า+แป้ง+เครื่องปรุง/ชาม', cost: 4.5, unit: 'บาท/ชาม' },
+            seeew_base: { name: 'ซีอิ๊วดำ+น้ำมัน+กระเทียม/จาน', cost: 3.0, unit: 'บาท/จาน' }
+          };
+
+          const savedCosts = JSON.parse(localStorage.getItem('radna_unit_costs') || 'null');
+          const unitCosts = ref(savedCosts ? { ...JSON.parse(JSON.stringify(defaultUnitCosts)), ...savedCosts } : JSON.parse(JSON.stringify(defaultUnitCosts)));
+
+          const saveCostsToStorage = () => {
+            localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
+          };
+
+          const resetDefaultCosts = () => {
+            if (confirm('ต้องการคืนค่าราคาวัตถุดิบเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
+              unitCosts.value = JSON.parse(JSON.stringify(defaultUnitCosts));
+              saveCostsToStorage();
             }
-          } catch (e) {}
-        };
+          };
 
-        const getMenuByCategory = (cat) => menuCatalog.value.filter(m => m.category === cat);
-        const categoryCount = (cat) => getMenuByCategory(cat).reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
+          const menuCatalog = computed(() => {
+            const u = unitCosts.value;
+            const baseRadna = (0.15 * u.noodle.cost) + (0.10 * u.kale.cost) + u.radna_base.cost;
+            const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost;
 
-        const updateQty = (id, delta) => {
-          const current = sales.value[id] || 0;
-          sales.value[id] = Math.max(0, current + delta);
-        };
+            return [
+              { id: 'rn_pork', category: 'radna', name: 'ราดหน้าหมู', price: 55, cogs: baseRadna + (0.06 * u.pork.cost) },
+              { id: 'rn_liver', category: 'radna', name: 'ราดหน้าตับ', price: 55, cogs: baseRadna + (0.06 * u.liver.cost) },
+              { id: 'rn_quail', category: 'radna', name: 'ราดหน้าไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseRadna + (7 * u.quail_egg.cost) },
+              { id: 'rn_beef', category: 'radna', name: 'ราดหน้าเนื้อ', price: 65, cogs: baseRadna + (0.055 * u.beef.cost) },
+              { id: 'rn_crispy', category: 'radna', name: 'ราดหน้าหมูกรอบ', price: 75, cogs: baseRadna + (0.055 * u.crispy_pork.cost) },
+              { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
+              { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (5 ตัว)', price: 95, cogs: baseRadna + (5 * u.shrimp.cost) },
 
-        const addCustomDrink = () => {
-          if (!newDrink.value.name || !newDrink.value.price) return;
-          customDrinks.value.push({
-            name: newDrink.value.name,
-            price: Number(newDrink.value.price),
-            qty: Number(newDrink.value.qty) || 1
+              { id: 'se_pork', category: 'seeew', name: 'ผัดซีอิ๊วหมู', price: 55, cogs: baseSeeew + (0.06 * u.pork.cost) },
+              { id: 'se_liver', category: 'seeew', name: 'ผัดซีอิ๊วตับ', price: 55, cogs: baseSeeew + (0.06 * u.liver.cost) },
+              { id: 'se_quail', category: 'seeew', name: 'ผัดซีอิ๊วไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseSeeew + (7 * u.quail_egg.cost) },
+              { id: 'se_beef', category: 'seeew', name: 'ผัดซีอิ๊วเนื้อ', price: 65, cogs: baseSeeew + (0.055 * u.beef.cost) },
+              { id: 'se_crispy', category: 'seeew', name: 'ผัดซีอิ๊วหมูกรอบ', price: 75, cogs: baseSeeew + (0.055 * u.crispy_pork.cost) },
+              { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
+              { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (5 ตัว)', price: 95, cogs: baseSeeew + (5 * u.shrimp.cost) },
+
+              { id: 'top_pork', category: 'topping', name: 'เพิ่มหมู (3 ชิ้น)', price: 10, cogs: 0.045 * u.pork.cost },
+              { id: 'top_beef', category: 'topping', name: 'เพิ่มเนื้อ (2 ชิ้น)', price: 10, cogs: 0.035 * u.beef.cost },
+              { id: 'top_liver', category: 'topping', name: 'เพิ่มตับ (3 ชิ้น)', price: 10, cogs: 0.033 * u.liver.cost },
+              { id: 'top_veg', category: 'topping', name: 'เพิ่มผัก', price: 10, cogs: 0.125 * u.kale.cost },
+              { id: 'top_noodle', category: 'topping', name: 'เพิ่มเส้น', price: 10, cogs: 0.15 * u.noodle.cost },
+              { id: 'top_quail_egg', category: 'topping', name: 'เพิ่มไข่นกกระทา (4 ฟอง)', price: 10, cogs: 4 * u.quail_egg.cost },
+              { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (2 ก้อน)', price: 10, cogs: 3.50 },
+              { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + 1.0 },
+              { id: 'top_squid', category: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', price: 20, cogs: 0.07 * u.squid.cost },
+              { id: 'top_crispy_pork', category: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', price: 20, cogs: 0.035 * u.crispy_pork.cost },
+              { id: 'top_shrimp', category: 'topping', name: 'เพิ่มกุ้ง (ตัวละ)', price: 22, cogs: u.shrimp.cost }
+            ];
           });
-          newDrink.value = { name: '', price: null, qty: 1 };
-        };
 
-        const drinkTotalQty = computed(() => customDrinks.value.reduce((sum, d) => sum + d.qty, 0));
-        const drinkRevenue = computed(() => customDrinks.value.reduce((sum, d) => sum + (d.price * d.qty), 0));
-        const drinkCOGS = computed(() => drinkRevenue.value * 0.40);
+          const sales = ref({});
+          const customDrinks = ref([]);
+          const newDrink = ref({ name: '', price: null, qty: 1 });
+          const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
 
-        const totalBowls = computed(() => {
-          const mainBowls = menuCatalog.value
-            .filter(m => m.category === 'radna' || m.category === 'seeew')
-            .reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
-          return mainBowls + drinkTotalQty.value;
-        });
-
-        const totalRevenue = computed(() => {
-          const menuRev = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.price), 0);
-          return menuRev + drinkRevenue.value;
-        });
-
-        const totalCOGS = computed(() => {
-          const menuCogs = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.cogs), 0);
-          return menuCogs + drinkCOGS.value;
-        });
-
-        const totalProfit = computed(() => totalRevenue.value - totalCOGS.value);
-
-        const rawMaterialUsage = computed(() => {
-          const s = sales.value;
-          const mult = 1 + ((purchaseBufferPercent.value || 0) / 100);
-          const porkBowls = (s.rn_pork || 0) + (s.se_pork || 0);
-          const liverBowls = (s.rn_liver || 0) + (s.se_liver || 0);
-          const beefBowls = (s.rn_beef || 0) + (s.se_beef || 0);
-          const crispyBowls = (s.rn_crispy || 0) + (s.se_crispy || 0);
-          const seafoodBowls = (s.rn_seafood || 0) + (s.se_seafood || 0);
-          const mixedBowls = (s.rn_mixed || 0) + (s.se_mixed || 0);
-          const shrimpBowls = (s.rn_shrimp || 0) + (s.se_shrimp || 0);
-          const quailBowls = (s.rn_quail || 0) + (s.se_quail || 0);
-
-          const totalRadna = categoryCount('radna');
-          const totalSeeew = categoryCount('seeew');
-          const totalMainBowls = totalRadna + totalSeeew;
-
-          const porkKg = (porkBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_pork || 0) * 0.045);
-          const beefKg = (beefBowls * 0.055) + ((s.top_beef || 0) * 0.035);
-          const liverKg = (liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033);
-          const crispyKg = (crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035);
-          const squidKg = (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
-          const shrimpPcs = (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0);
-          const quailPcs = (quailBowls * 7) + ((s.top_quail_egg || 0) * 4);
-          const chickenEggPcs = totalSeeew + (s.top_fried_egg || 0);
-          const noodleKg = (totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15);
-          const meeKrobPcs = (s.top_crispy_noodle || 0) * 2;
-          const kaleKg = (totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125);
-
-          return {
-            pork: { label: 'หมูหมัก (ชั่งสด)', amount: porkKg.toFixed(2), orderAmount: (porkKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)' },
-            beef: { label: 'เนื้อวัวหมัก', amount: beefKg.toFixed(2), orderAmount: (beefKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)' },
-            liver: { label: 'ตับหมู', amount: liverKg.toFixed(2), orderAmount: (liverKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูตับ + รวมมิตร + เพิ่มตับ (3 ชิ้น)' },
-            crispy_pork: { label: 'หมูกรอบ', amount: crispyKg.toFixed(2), orderAmount: (crispyKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมูกรอบ + เพิ่มหมูกรอบ (3 ชิ้น)' },
-            squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
-            shrimp: { label: 'กุ้งสด', amount: shrimpPcs, orderAmount: Math.ceil(shrimpPcs * mult), unit: 'ตัว', note: 'นับเป็นจำนวนตัวที่ใช้จริง' },
-            quail_egg: { label: 'ไข่นกกระทาต้ม', amount: quailPcs, orderAmount: Math.ceil(quailPcs * mult), unit: 'ฟอง', note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง' },
-            chicken_egg: { label: 'ไข่ไก่ (ผัดซีอิ๊ว + ไข่ดาว)', amount: chickenEggPcs, orderAmount: Math.ceil(chickenEggPcs * mult), unit: 'ฟอง', note: 'ผัดซีอิ๊ว 1 ฟอง + เพิ่มไข่ดาวกรอบ' },
-            noodle: { label: 'เส้นก๋วยเตี๋ยว (เส้นใหญ่/เส้นหมี่)', amount: noodleKg.toFixed(2), orderAmount: (noodleKg * mult).toFixed(2), unit: 'กก.', note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น' },
-            mee_krob: { label: 'หมี่กรอบ (ถ้วยเสริม)', amount: meeKrobPcs, orderAmount: Math.ceil(meeKrobPcs * mult), unit: 'ก้อน', note: 'นับจากรายการเพิ่มหมี่กรอบ (2 ก้อน)' },
-            kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' }
-          };
-        });
-
-        const buildTxtReport = (logObj) => {
-          const lines = [];
-          lines.push('===================================================');
-          lines.push('           ร้านเหมาะโอชา The Next+');
-          lines.push('     รายงานสรุปยอดขาย ต้นทุน และกำไรขั้นต้น');
-          lines.push('===================================================');
-          lines.push(`วันที่ : ${logObj.date} (เวลา ${logObj.time || '-'})`);
-          lines.push('---------------------------------------------------');
-
-          const s = logObj.sales || {};
-          const soldItems = menuCatalog.value.filter(m => (s[m.id] || 0) > 0);
-          if (soldItems.length > 0) {
-            lines.push('[ รายการอาหาร & ท็อปปิ้ง ]');
-            soldItems.forEach(item => {
-              const q = s[item.id];
-              const subRev = q * item.price;
-              lines.push(`- ${item.name} x${q}  =  ${formatMoney(subRev)} บาท`);
+          const sortedHistoryLogs = computed(() => {
+            const list = historyLogs.value.map((item, idx) => ({ ...item, _origIdx: idx }));
+            const dir = historySortOrder.value === 'desc' ? -1 : 1;
+            return list.sort((a, b) => {
+              if (historySortBy.value === 'date') {
+                const keyA = a.isoDate || a.date || '';
+                const keyB = b.isoDate || b.date || '';
+                if (keyA !== keyB) return keyA.localeCompare(keyB) * dir;
+                return (a._origIdx - b._origIdx) * (historySortOrder.value === 'desc' ? 1 : -1);
+              }
+              const valA = Number(a[historySortBy.value] || 0);
+              const valB = Number(b[historySortBy.value] || 0);
+              return (valA - valB) * dir;
             });
-            lines.push('');
-          }
-
-          const drinks = logObj.customDrinks || [];
-          if (drinks.length > 0) {
-            lines.push('[ รายการเครื่องดื่ม ]');
-            drinks.forEach(d => {
-              lines.push(`- ${d.name} x${d.qty}  =  ${formatMoney(d.price * d.qty)} บาท`);
-            });
-            lines.push('');
-          }
-
-          lines.push('---------------------------------------------------');
-          lines.push(`จำนวนขายรวม      : ${logObj.totalBowls} ชาม/ชิ้น`);
-          lines.push(`ยอดขายรวม (รายรับ) : ${formatMoney(logObj.totalRevenue)} บาท`);
-          lines.push(`ต้นทุนวัตถุดิบรวม   : ${formatMoney(logObj.totalCOGS)} บาท`);
-          lines.push(`กำไรขั้นต้น         : ${formatMoney(logObj.totalProfit)} บาท`);
-          lines.push('===================================================');
-          return lines.join('\r\n');
-        };
-
-        const triggerTxtOutput = (textContent, filename, shouldPrint) => {
-          if (shouldPrint) {
-            const win = window.open('', '_blank', 'width=520,height=700');
-            if (!win) { alert('กรุณาอนุญาต Pop-up เพื่อสั่งพิมพ์ครับ'); return; }
-            win.document.write(`<html><head><title>${filename}</title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:14px;line-height:1.5;}</style></head><body>${textContent.replace(/</g, '&lt;')}</body></html>`);
-            win.document.close();
-            win.focus();
-            setTimeout(() => { win.print(); }, 250);
-          } else {
-            const blob = new Blob(['\uFEFF' + textContent], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }
-        };
-
-        const exportCurrentDayTxt = (shouldPrint = false) => {
-          const now = new Date();
-          const logObj = {
-            date: currentDateDisplay.value,
-            time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-            totalBowls: totalBowls.value,
-            totalRevenue: totalRevenue.value,
-            totalCOGS: totalCOGS.value,
-            totalProfit: totalProfit.value,
-            sales: sales.value,
-            customDrinks: customDrinks.value
-          };
-          const txt = buildTxtReport(logObj);
-          triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${now.toISOString().slice(0, 10)}.txt`, shouldPrint);
-        };
-
-        const exportLogTxt = (log, shouldPrint = false) => {
-          const txt = buildTxtReport(log);
-          const safeDate = (log.isoDate || log.date || 'report').replace(/[^\wก-๙-]/g, '_');
-          triggerTxtOutput(txt, `สรุปยอดขาย_${safeDate}.txt`, shouldPrint);
-        };
-
-        const exportAllHistoryTxt = () => {
-          if (sortedHistoryLogs.value.length === 0) return;
-          const allText = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
-          triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${new Date().toISOString().slice(0, 10)}.txt`, false);
-        };
-
-        const exportPurchaseListTxt = () => {
-          const lines = [];
-          lines.push('===================================================');
-          lines.push('    ใบประมาณการจัดซื้อวัตถุดิบ - ร้านเหมาะโอชา');
-          lines.push(`    คำนวณจากยอดขายวันที่: ${currentDateDisplay.value}`);
-          lines.push(`    เผื่อสต็อกจัดซื้อ: +${purchaseBufferPercent.value}%`);
-          lines.push('===================================================');
-          Object.values(rawMaterialUsage.value).forEach(v => {
-            lines.push(`- ${v.label}: ใช้จริง ${v.amount} ${v.unit}  ==>  สั่งซื้อ ${v.orderAmount} ${v.unit}`);
           });
-          lines.push('===================================================');
-          triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${new Date().toISOString().slice(0, 10)}.txt`, false);
-        };
 
-        const resetTodaySales = () => {
-          if (confirm('ต้องการล้างตัวเลขบนหน้าจอทั้งหมดเป็น 0 ใช่ไหมครับ?')) {
-            sales.value = {};
-            customDrinks.value = [];
-          }
-        };
-
-        const saveDailyRecord = async () => {
-          if (totalRevenue.value === 0) {
-            alert('กรุณากรอกยอดขายอย่างน้อย 1 รายการก่อนบันทึกครับ');
-            return;
-          }
-          const now = new Date();
-          const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-          const record = {
-            date: currentDateDisplay.value,
-            isoDate,
-            time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-            totalBowls: totalBowls.value,
-            totalRevenue: Number(totalRevenue.value.toFixed(2)),
-            totalCOGS: Number(totalCOGS.value.toFixed(2)),
-            totalProfit: Number(totalProfit.value.toFixed(2)),
-            sales: { ...sales.value },
-            customDrinks: JSON.parse(JSON.stringify(customDrinks.value))
-          };
-
-          const existingIdx = historyLogs.value.findIndex(h => h.isoDate === isoDate || h.date === record.date);
-          if (existingIdx !== -1) {
-            historyLogs.value[existingIdx] = record;
-          } else {
-            historyLogs.value.unshift(record);
-          }
-
-          localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
-
-          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
-          if (dbUrl) {
+          const loadTodaySyncedSales = () => {
             try {
-              await fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(historyLogs.value) });
-            } catch (err) {}
-          }
+              const d = new Date();
+              const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              const thaiDate = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+              const logs = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
+              historyLogs.value = logs;
+              const todayLog = logs.find(h => h.isoDate === isoDate || h.date === thaiDate);
+              if (todayLog) {
+                sales.value = { ...(todayLog.sales || {}) };
+                customDrinks.value = JSON.parse(JSON.stringify(todayLog.customDrinks || []));
+              }
+            } catch (e) {}
+          };
 
-          alert('✅ บันทึกยอดประจำวันลงประวัติเรียบร้อยแล้วครับ!');
-        };
+          const getMenuByCategory = (cat) => menuCatalog.value.filter(m => m.category === cat);
+          const categoryCount = (cat) => getMenuByCategory(cat).reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
 
-        const loadHistoryToCurrent = (log) => {
-          if (confirm(`ต้องการดึงข้อมูลยอดขายของวันที่ ${log.date} ขึ้นมาดูใช่ไหมครับ?`)) {
-            sales.value = { ...(log.sales || {}) };
-            customDrinks.value = JSON.parse(JSON.stringify(log.customDrinks || []));
-            activeTab.value = 'sales';
-          }
-        };
+          const updateQty = (id, delta) => {
+            const current = sales.value[id] || 0;
+            sales.value[id] = Math.max(0, current + delta);
+          };
 
-        const deleteHistory = (idx) => {
-          if (confirm('ต้องการลบประวัติวันนี้ออกจากระบบใช่ไหมครับ?')) {
-            historyLogs.value.splice(idx, 1);
+          const addCustomDrink = () => {
+            if (!newDrink.value.name || !newDrink.value.price) return;
+            customDrinks.value.push({
+              name: newDrink.value.name,
+              price: Number(newDrink.value.price),
+              qty: Number(newDrink.value.qty) || 1
+            });
+            newDrink.value = { name: '', price: null, qty: 1 };
+          };
+
+          const drinkTotalQty = computed(() => customDrinks.value.reduce((sum, d) => sum + d.qty, 0));
+          const drinkRevenue = computed(() => customDrinks.value.reduce((sum, d) => sum + (d.price * d.qty), 0));
+          const drinkCOGS = computed(() => drinkRevenue.value * 0.40);
+
+          const totalBowls = computed(() => {
+            const mainBowls = menuCatalog.value
+              .filter(m => m.category === 'radna' || m.category === 'seeew')
+              .reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
+            return mainBowls + drinkTotalQty.value;
+          });
+
+          const totalRevenue = computed(() => {
+            const menuRev = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.price), 0);
+            return menuRev + drinkRevenue.value;
+          });
+
+          const totalCOGS = computed(() => {
+            const menuCogs = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.cogs), 0);
+            return menuCogs + drinkCOGS.value;
+          });
+
+          const totalProfit = computed(() => totalRevenue.value - totalCOGS.value);
+
+          const rawMaterialUsage = computed(() => {
+            const s = sales.value;
+            const mult = 1 + ((purchaseBufferPercent.value || 0) / 100);
+            const porkBowls = (s.rn_pork || 0) + (s.se_pork || 0);
+            const liverBowls = (s.rn_liver || 0) + (s.se_liver || 0);
+            const beefBowls = (s.rn_beef || 0) + (s.se_beef || 0);
+            const crispyBowls = (s.rn_crispy || 0) + (s.se_crispy || 0);
+            const seafoodBowls = (s.rn_seafood || 0) + (s.se_seafood || 0);
+            const mixedBowls = (s.rn_mixed || 0) + (s.se_mixed || 0);
+            const shrimpBowls = (s.rn_shrimp || 0) + (s.se_shrimp || 0);
+            const quailBowls = (s.rn_quail || 0) + (s.se_quail || 0);
+
+            const totalRadna = categoryCount('radna');
+            const totalSeeew = categoryCount('seeew');
+            const totalMainBowls = totalRadna + totalSeeew;
+
+            const porkKg = (porkBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_pork || 0) * 0.045);
+            const beefKg = (beefBowls * 0.055) + ((s.top_beef || 0) * 0.035);
+            const liverKg = (liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033);
+            const crispyKg = (crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035);
+            const squidKg = (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
+            const shrimpPcs = (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0);
+            const quailPcs = (quailBowls * 7) + ((s.top_quail_egg || 0) * 4);
+            const chickenEggPcs = totalSeeew + (s.top_fried_egg || 0);
+            const noodleKg = (totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15);
+            const meeKrobPcs = (s.top_crispy_noodle || 0) * 2;
+            const kaleKg = (totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125);
+
+            return {
+              pork: { label: 'หมูหมัก (ชั่งสด)', amount: porkKg.toFixed(2), orderAmount: (porkKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)' },
+              beef: { label: 'เนื้อวัวหมัก', amount: beefKg.toFixed(2), orderAmount: (beefKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)' },
+              liver: { label: 'ตับหมู', amount: liverKg.toFixed(2), orderAmount: (liverKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูตับ + รวมมิตร + เพิ่มตับ (3 ชิ้น)' },
+              crispy_pork: { label: 'หมูกรอบ', amount: crispyKg.toFixed(2), orderAmount: (crispyKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมูกรอบ + เพิ่มหมูกรอบ (3 ชิ้น)' },
+              squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
+              shrimp: { label: 'กุ้งสด', amount: shrimpPcs, orderAmount: Math.ceil(shrimpPcs * mult), unit: 'ตัว', note: 'นับเป็นจำนวนตัวที่ใช้จริง' },
+              quail_egg: { label: 'ไข่นกกระทาต้ม', amount: quailPcs, orderAmount: Math.ceil(quailPcs * mult), unit: 'ฟอง', note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง' },
+              chicken_egg: { label: 'ไข่ไก่ (ผัดซีอิ๊ว + ไข่ดาว)', amount: chickenEggPcs, orderAmount: Math.ceil(chickenEggPcs * mult), unit: 'ฟอง', note: 'ผัดซีอิ๊ว 1 ฟอง + เพิ่มไข่ดาวกรอบ' },
+              noodle: { label: 'เส้นก๋วยเตี๋ยว (เส้นใหญ่/เส้นหมี่)', amount: noodleKg.toFixed(2), orderAmount: (noodleKg * mult).toFixed(2), unit: 'กก.', note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น' },
+              mee_krob: { label: 'หมี่กรอบ (ถ้วยเสริม)', amount: meeKrobPcs, orderAmount: Math.ceil(meeKrobPcs * mult), unit: 'ก้อน', note: 'นับจากรายการเพิ่มหมี่กรอบ (2 ก้อน)' },
+              kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' }
+            };
+          });
+
+          const buildTxtReport = (logObj) => {
+            const lines = [];
+            lines.push('===================================================');
+            lines.push('           ร้านเหมาะโอชา The Next+');
+            lines.push('     รายงานสรุปยอดขาย ต้นทุน และกำไรขั้นต้น');
+            lines.push('===================================================');
+            lines.push(`วันที่ : ${logObj.date} (เวลา ${logObj.time || '-'})`);
+            lines.push('---------------------------------------------------');
+
+            const s = logObj.sales || {};
+            const soldItems = menuCatalog.value.filter(m => (s[m.id] || 0) > 0);
+            if (soldItems.length > 0) {
+              lines.push('[ รายการอาหาร & ท็อปปิ้ง ]');
+              soldItems.forEach(item => {
+                const q = s[item.id];
+                const subRev = q * item.price;
+                lines.push(`- ${item.name} x${q}  =  ${formatMoney(subRev)} บาท`);
+              });
+              lines.push('');
+            }
+
+            const drinks = logObj.customDrinks || [];
+            if (drinks.length > 0) {
+              lines.push('[ รายการเครื่องดื่ม ]');
+              drinks.forEach(d => {
+                lines.push(`- ${d.name} x${d.qty}  =  ${formatMoney(d.price * d.qty)} บาท`);
+              });
+              lines.push('');
+            }
+
+            lines.push('---------------------------------------------------');
+            lines.push(`จำนวนขายรวม      : ${logObj.totalBowls} ชาม/ชิ้น`);
+            lines.push(`ยอดขายรวม (รายรับ) : ${formatMoney(logObj.totalRevenue)} บาท`);
+            lines.push(`ต้นทุนวัตถุดิบรวม   : ${formatMoney(logObj.totalCOGS)} บาท`);
+            lines.push(`กำไรขั้นต้น         : ${formatMoney(logObj.totalProfit)} บาท`);
+            lines.push('===================================================');
+            return lines.join('\r\n');
+          };
+
+          const triggerTxtOutput = (textContent, filename, shouldPrint) => {
+            if (shouldPrint) {
+              const win = window.open('', '_blank', 'width=520,height=700');
+              if (!win) { alert('กรุณาอนุญาต Pop-up เพื่อสั่งพิมพ์ครับ'); return; }
+              const safeText = textContent.replace(/</g, '&lt;');
+              win.document.open();
+              win.document.write('<html><head><title>' + filename + '<\/title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:14px;line-height:1.5;}<\/style><\/head><body>' + safeText + '<\/body><\/html>');
+              win.document.close();
+              win.focus();
+              setTimeout(() => { win.print(); }, 250);
+            } else {
+              const blob = new Blob(['\uFEFF' + textContent], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+          };
+
+          const exportCurrentDayTxt = (shouldPrint = false) => {
+            const now = new Date();
+            const logObj = {
+              date: currentDateDisplay.value,
+              time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+              totalBowls: totalBowls.value,
+              totalRevenue: totalRevenue.value,
+              totalCOGS: totalCOGS.value,
+              totalProfit: totalProfit.value,
+              sales: sales.value,
+              customDrinks: customDrinks.value
+            };
+            const txt = buildTxtReport(logObj);
+            triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${now.toISOString().slice(0, 10)}.txt`, shouldPrint);
+          };
+
+          const exportLogTxt = (log, shouldPrint = false) => {
+            const txt = buildTxtReport(log);
+            const safeDate = (log.isoDate || log.date || 'report').replace(/[^\wก-๙-]/g, '_');
+            triggerTxtOutput(txt, `สรุปยอดขาย_${safeDate}.txt`, shouldPrint);
+          };
+
+          const exportAllHistoryTxt = () => {
+            if (sortedHistoryLogs.value.length === 0) return;
+            const allText = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
+            triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${new Date().toISOString().slice(0, 10)}.txt`, false);
+          };
+
+          const exportPurchaseListTxt = () => {
+            const lines = [];
+            lines.push('===================================================');
+            lines.push('    ใบประมาณการจัดซื้อวัตถุดิบ - ร้านเหมาะโอชา');
+            lines.push(`    คำนวณจากยอดขายวันที่: ${currentDateDisplay.value}`);
+            lines.push(`    เผื่อสต็อกจัดซื้อ: +${purchaseBufferPercent.value}%`);
+            lines.push('===================================================');
+            Object.values(rawMaterialUsage.value).forEach(v => {
+              lines.push(`- ${v.label}: ใช้จริง ${v.amount} ${v.unit}  ==>  สั่งซื้อ ${v.orderAmount} ${v.unit}`);
+            });
+            lines.push('===================================================');
+            triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${new Date().toISOString().slice(0, 10)}.txt`, false);
+          };
+
+          const resetTodaySales = () => {
+            if (confirm('ต้องการล้างตัวเลขบนหน้าจอทั้งหมดเป็น 0 ใช่ไหมครับ?')) {
+              sales.value = {};
+              customDrinks.value = [];
+            }
+          };
+
+          const saveDailyRecord = async () => {
+            if (totalRevenue.value === 0) {
+              alert('กรุณากรอกยอดขายอย่างน้อย 1 รายการก่อนบันทึกครับ');
+              return;
+            }
+            const now = new Date();
+            const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const record = {
+              date: currentDateDisplay.value,
+              isoDate,
+              time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+              totalBowls: totalBowls.value,
+              totalRevenue: Number(totalRevenue.value.toFixed(2)),
+              totalCOGS: Number(totalCOGS.value.toFixed(2)),
+              totalProfit: Number(totalProfit.value.toFixed(2)),
+              sales: { ...sales.value },
+              customDrinks: JSON.parse(JSON.stringify(customDrinks.value))
+            };
+
+            const existingIdx = historyLogs.value.findIndex(h => h.isoDate === isoDate || h.date === record.date);
+            if (existingIdx !== -1) {
+              historyLogs.value[existingIdx] = record;
+            } else {
+              historyLogs.value.unshift(record);
+            }
+
             localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
-          }
-        };
 
-        const handleFileImport = (event) => {
-          const file = event.target.files[0];
-          if (!file) return;
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (dbUrl) {
+              try {
+                await fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(historyLogs.value) });
+              } catch (err) {}
+            }
 
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const content = e.target.result;
-              let importedRecords = [];
+            alert('✅ บันทึกยอดประจำวันลงประวัติเรียบร้อยแล้วครับ!');
+          };
 
-              if (file.name.endsWith('.json')) {
-                const parsed = JSON.parse(content);
-                if (Array.isArray(parsed)) {
-                  importedRecords = parsed;
-                } else if (parsed.historyLogs && Array.isArray(parsed.historyLogs)) {
-                  importedRecords = parsed.historyLogs;
-                } else if (parsed.totalRevenue !== undefined) {
-                  importedRecords = [parsed];
-                }
-              } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
-                const lines = content.split(/\r?\n/).filter(l => l.trim());
-                for (let i = 1; i < lines.length; i++) {
-                  const cols = lines[i].split(',');
-                  if (cols.length >= 4) {
-                    const rev = parseFloat(cols[2]) || 0;
-                    const cogs = parseFloat(cols[3]) || 0;
-                    importedRecords.push({
-                      date: cols[0].trim(),
-                      time: 'นำเข้าจาก CSV',
-                      totalBowls: parseInt(cols[1]) || 0,
-                      totalRevenue: rev,
-                      totalCOGS: cogs,
-                      totalProfit: rev - cogs,
-                      sales: {},
-                      customDrinks: [],
-                      importedFrom: file.name
-                    });
+          const loadHistoryToCurrent = (log) => {
+            if (confirm(`ต้องการดึงข้อมูลยอดขายของวันที่ ${log.date} ขึ้นมาดูใช่ไหมครับ?`)) {
+              sales.value = { ...(log.sales || {}) };
+              customDrinks.value = JSON.parse(JSON.stringify(log.customDrinks || []));
+              activeTab.value = 'sales';
+            }
+          };
+
+          const deleteHistory = (idx) => {
+            if (confirm('ต้องการลบประวัติวันนี้ออกจากระบบใช่ไหมครับ?')) {
+              historyLogs.value.splice(idx, 1);
+              localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+            }
+          };
+
+          const handleFileImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const content = e.target.result;
+                let importedRecords = [];
+
+                if (file.name.endsWith('.json')) {
+                  const parsed = JSON.parse(content);
+                  if (Array.isArray(parsed)) {
+                    importedRecords = parsed;
+                  } else if (parsed.historyLogs && Array.isArray(parsed.historyLogs)) {
+                    importedRecords = parsed.historyLogs;
+                  } else if (parsed.totalRevenue !== undefined) {
+                    importedRecords = [parsed];
+                  }
+                } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+                  const lines = content.split(/\r?\n/).filter(l => l.trim());
+                  for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length >= 4) {
+                      const rev = parseFloat(cols[2]) || 0;
+                      const cogs = parseFloat(cols[3]) || 0;
+                      importedRecords.push({
+                        date: cols[0].trim(),
+                        time: 'นำเข้าจาก CSV',
+                        totalBowls: parseInt(cols[1]) || 0,
+                        totalRevenue: rev,
+                        totalCOGS: cogs,
+                        totalProfit: rev - cogs,
+                        sales: {},
+                        customDrinks: [],
+                        importedFrom: file.name
+                      });
+                    }
                   }
                 }
-              }
 
-              if (importedRecords.length > 0) {
-                importedRecords.forEach(rec => {
-                  rec.importedFrom = rec.importedFrom || file.name;
-                  historyLogs.value.unshift(rec);
-                });
-                localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
-                alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedRecords.length} รายการ!`);
-              } else {
-                alert('ไม่พบข้อมูลรูปแบบยอดขายในไฟล์ที่เลือกครับ');
+                if (importedRecords.length > 0) {
+                  importedRecords.forEach(rec => {
+                    rec.importedFrom = rec.importedFrom || file.name;
+                    historyLogs.value.unshift(rec);
+                  });
+                  localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+                  alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedRecords.length} รายการ!`);
+                } else {
+                  alert('ไม่พบข้อมูลรูปแบบยอดขายในไฟล์ที่เลือกครับ');
+                }
+              } catch (err) {
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message);
               }
-            } catch (err) {
-              alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message);
-            }
-            event.target.value = '';
+              event.target.value = '';
+            };
+            reader.readAsText(file);
           };
-          reader.readAsText(file);
-        };
 
-        const saveSyncSettings = () => {
-          localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
-          showSyncModal.value = false;
-        };
+          const saveSyncSettings = () => {
+            localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
+            showSyncModal.value = false;
+          };
 
-        const formatMoney = (num) => {
-          return Number(num || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        };
+          const formatMoney = (num) => {
+            return Number(num || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          };
 
-        const handleStorageSync = (e) => {
-          if (e.key === 'radna_pos_history') {
+          const handleStorageSync = (e) => {
+            if (e.key === 'radna_pos_history') {
+              loadTodaySyncedSales();
+            }
+          };
+
+          onMounted(() => {
             loadTodaySyncedSales();
-          }
-        };
+            window.addEventListener('storage', handleStorageSync);
+          });
 
-        onMounted(() => {
-          if (typeof lucide !== 'undefined') lucide.createIcons();
-          loadTodaySyncedSales();
-          window.addEventListener('storage', handleStorageSync);
-        });
+          onUnmounted(() => {
+            window.removeEventListener('storage', handleStorageSync);
+          });
 
-        onUnmounted(() => {
-          window.removeEventListener('storage', handleStorageSync);
-        });
-
-        return {
-          activeTab, purchaseBufferPercent, historySortBy, historySortOrder,
-          tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
-          unitCosts, saveCostsToStorage, resetDefaultCosts,
-          sales, customDrinks, newDrink, historyLogs, sortedHistoryLogs,
-          getMenuByCategory, categoryCount, updateQty,
-          addCustomDrink, drinkTotalQty,
-          totalBowls, totalRevenue, totalCOGS, totalProfit,
-          rawMaterialUsage, resetTodaySales, saveDailyRecord,
-          exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
-          loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
-        };
-      }
-    }).mount('#app');
+          return {
+            activeTab, purchaseBufferPercent, historySortBy, historySortOrder,
+            tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
+            unitCosts, saveCostsToStorage, resetDefaultCosts,
+            sales, customDrinks, newDrink, historyLogs, sortedHistoryLogs,
+            getMenuByCategory, categoryCount, updateQty,
+            addCustomDrink, drinkTotalQty,
+            totalBowls, totalRevenue, totalCOGS, totalProfit,
+            rawMaterialUsage, resetTodaySales, saveDailyRecord,
+            exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
+            loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
+          };
+        }
+      }).mount('#app');
+    })();
   </script>
 </body>
 </html>
