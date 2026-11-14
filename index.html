@@ -19,6 +19,11 @@
       50% { transform: translateY(-10px) scale(1.12); opacity: 0.65; }
     }
     .steam-anim { animation: floatSteam 2.5s infinite ease-in-out; }
+    @keyframes popIn {
+      0% { opacity: 0; transform: translateY(4px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .popup-anim { animation: popIn 0.16s ease-out forwards; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @media print {
@@ -28,7 +33,7 @@
     }
   </style>
 </head>
-<body class="bg-orange-50/50 text-stone-800 min-h-screen">
+<body class="bg-orange-50/50 text-stone-800 min-h-screen" @click="activePopupTarget = null">
   <div id="app" class="max-w-7xl mx-auto p-2 sm:p-3 flex flex-col min-h-screen lg:h-screen">
     
     <!-- Header ธีมน้ำตาลเข้มคั่วกระทะ + ขอบแดง -->
@@ -45,11 +50,11 @@
         </div>
       </div>
 
-      <!-- ระบุโต๊ะ / ลำดับที่ / ลิงก์เชื่อมจอ / ปุ่ม Admin -->
+      <!-- ระบุโต๊ะ / ลำดับที่ / ปุ่ม Save ระหว่างวัน / ลิงก์เชื่อมจอ / ปุ่ม Admin -->
       <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <div class="bg-[#1E0F09] border border-amber-800/60 px-2 py-1 rounded-xl flex items-center gap-1">
           <span class="text-[11px] text-amber-200/80 hidden sm:inline">โต๊ะ:</span>
-          <select v-model="billHeader.location" @change="broadcastCustomerLive" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
+          <select v-model="billHeader.location" @change="onStateChanged" class="bg-transparent border-none text-xs sm:text-sm font-bold focus:outline-none text-amber-300 cursor-pointer">
             <option value="โต๊ะ 1" class="text-stone-800">โต๊ะ 1</option>
             <option value="โต๊ะ 2" class="text-stone-800">โต๊ะ 2</option>
             <option value="โต๊ะ 3" class="text-stone-800">โต๊ะ 3</option>
@@ -62,8 +67,16 @@
 
         <div class="bg-[#1E0F09] border border-amber-800/60 px-2 py-1 rounded-xl flex items-center gap-1">
           <span class="text-[11px] text-amber-200/80">คิว:</span>
-          <input type="number" v-model.number="billHeader.queueNo" @input="broadcastCustomerLive" class="w-10 sm:w-11 bg-[#1E0F09] text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-amber-700/70 focus:outline-none">
+          <input type="number" v-model.number="billHeader.queueNo" @input="onStateChanged" class="w-10 sm:w-11 bg-[#1E0F09] text-center font-bold text-amber-300 rounded px-1 py-0.5 text-xs sm:text-sm border border-amber-700/70 focus:outline-none">
         </div>
+
+        <!-- ปุ่ม Save ระหว่างวัน (กันแบตหมด / รีสตาร์ท) -->
+        <button @click="manualMidDaySave" title="บันทึกข้อมูลระหว่างวันกันแบตหมดหรือรีสตาร์ทเครื่อง"
+                class="bg-amber-500 hover:bg-amber-400 text-[#2C1810] border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1 shadow-sm transition active:scale-95">
+          <span>💾</span>
+          <span>Save ระหว่างวัน</span>
+          <span v-if="lastSavedTime" class="text-[10px] bg-[#2C1810]/15 px-1.5 py-0.2 rounded font-bold">{{ lastSavedTime }}</span>
+        </button>
 
         <!-- ปุ่มย่อภาพบนมือถือ (Mobile Compact Mode) -->
         <button @click="compactPreview = !compactPreview" title="ย่อ/ขยายภาพตัวอย่างบนมือถือ"
@@ -104,6 +117,12 @@
         </button>
       </div>
     </header>
+
+    <!-- แถบแจ้งเตือนการบันทึกระหว่างวัน / กู้คืนข้อมูลอัตโนมัติ -->
+    <div v-if="saveToastMsg" class="mb-2 bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow flex justify-between items-center popup-anim shrink-0">
+      <span>{{ saveToastMsg }}</span>
+      <button @click="saveToastMsg = ''" class="text-emerald-200 hover:text-white font-bold ml-3">✕</button>
+    </div>
 
     <!-- Main Workspace -->
     <div class="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:overflow-hidden mb-1.5 min-h-0">
@@ -146,11 +165,12 @@
               <!-- กรณีรายการอาหาร (ราดหน้า / ผัดซีอิ๊ว) -->
               <template v-else>
                 <div class="relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center">
-                  <div v-if="item.config.noodle === 'mee_krob'" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
+                  <!-- แสดงถ้วยหมี่กรอบเล็กเมื่อเลือกหมี่กรอบหลัก หรือกดเพิ่มหมี่กรอบ 2 ก้อน -->
+                  <div v-if="hasMeeKrobCup(item.config)" class="relative w-[34%] aspect-square mr-0.5 flex items-center justify-center">
                     <img src="Asset/bowl_empty.png" class="w-full h-full object-contain">
                     <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
                   </div>
-                  <div :class="['relative aspect-square flex items-center justify-center', item.config.noodle === 'mee_krob' ? 'w-[62%]' : 'w-full']">
+                  <div :class="['relative aspect-square flex items-center justify-center', hasMeeKrobCup(item.config) ? 'w-[62%]' : 'w-full']">
                     <template v-if="isPadseeewPlateMode(item.config)">
                       <img :src="getPadseeewPlateImg()" class="w-full h-full object-cover rounded-full">
                       <img v-if="item.config.noodle === 'sen_yai' && padseeewSprites.sen_yai" :src="padseeewSprites.sen_yai" :style="getLayerStyle('padseeew_sen_yai')" class="absolute h-auto">
@@ -164,6 +184,10 @@
                       <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
                     </template>
                     <img v-if="item.config.meat" :src="getMeatImage(item.config.meat)" :style="getLayerStyle('meat_' + item.config.meat)" class="absolute h-auto">
+                    <img v-if="item.config.addPork" :src="extraMeatSprites.pork" :style="getLayerStyle('pork_0')" class="absolute h-auto">
+                    <img v-if="item.config.addBeef" :src="extraMeatSprites.beef" :style="getLayerStyle('beef_0')" class="absolute h-auto">
+                    <img v-if="item.config.addLiver" :src="extraMeatSprites.liver" :style="getLayerStyle('liver_0')" class="absolute h-auto">
+                    <img v-if="item.config.addCrispy" src="Asset/meat_crispy_a.png" :style="getLayerStyle('crispy_0')" class="absolute h-auto">
                     <img v-if="item.config.addShrimp > 0" src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_0')" class="absolute h-auto">
                     <img v-if="item.config.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')" class="absolute h-auto">
                     <div v-if="item.config.dishType === 'radna'" class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
@@ -187,28 +211,39 @@
           </span>
         </div>
 
-        <!-- พื้นที่จัดวางภาชนะหลัก (ซ่อนได้บนมือถือเมื่อเปิดโหมดกดไว) -->
+        <!-- พื้นที่จัดวางภาชนะหลัก -->
         <div v-show="!compactPreview || adminMode"
              :class="['relative w-full max-w-[340px] my-auto flex items-center justify-center select-none min-h-0',
                       (billItems.length > 0 && !adminMode) ? 'h-36 sm:h-48 lg:h-52' : 'h-40 sm:h-56 lg:h-64']">
           
-          <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย -->
-          <div v-if="currentItem.noodle === 'mee_krob'"
+          <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย (แสดงเมื่อเลือกหมี่กรอบหลัก หรือ กดเพิ่มหมี่กรอบ 2 ก้อน) -->
+          <div v-if="hasMeeKrobCup(currentItem)"
                class="relative w-[34%] aspect-square mr-1.5 flex items-center justify-center layer-transition shrink-0">
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-md" alt="ถ้วยหมี่กรอบ">
+            <!-- กรณีสั่งหมี่กรอบหลัก + กดเพิ่มหมี่กรอบ 2 ก้อนอีก แสดงถ้วยซ้อนด้านหลังให้เห็นเป็น 2 ถ้วย -->
+            <div v-if="currentItem.noodle === 'mee_krob' && currentItem.addMeeKrob"
+                 class="absolute -top-3 -left-2 w-[88%] aspect-square flex items-center justify-center opacity-95 pointer-events-none">
+              <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow" alt="ถ้วยหมี่กรอบเพิ่ม">
+              <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
+            </div>
+
+            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain pointer-events-none drop-shadow-md relative z-10" alt="ถ้วยหมี่กรอบเล็ก">
             <img src="Asset/noodle_meekrob.png"
                  @click="adminMode && selectAdminTarget('noodle_mee_krob')"
                  :style="getLayerStyle('noodle_mee_krob')"
-                 :class="['absolute max-w-none h-auto object-contain drop-shadow-lg',
+                 :class="['absolute max-w-none h-auto object-contain drop-shadow-lg z-20',
                           adminMode ? 'cursor-pointer pointer-events-auto hover:ring-2 hover:ring-red-500' : 'pointer-events-none layer-transition',
                           adminSelectedKey === 'noodle_mee_krob' && adminMode ? 'ring-2 ring-red-600 bg-red-500/10 rounded-lg' : '']"
                  alt="หมี่กรอบ 2 ก้อน">
+            <span v-if="currentItem.addMeeKrob && !adminMode"
+                  class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-[#2C1810] text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow border border-white">
+              {{ currentItem.noodle === 'mee_krob' ? '+เพิ่ม 2 ก้อน' : 'หมี่กรอบ 2 ก้อน' }}
+            </span>
           </div>
 
           <!-- ภาชนะหลัก (ชามสเตนเลส หรือ จานผัดซีอิ๊ว jan.jpg) -->
           <div :class="['relative aspect-square flex items-center justify-center shrink-0 max-h-full',
                         adminMode ? 'no-transition' : 'layer-transition',
-                        currentItem.noodle === 'mee_krob' ? 'w-[56%]' : ((billItems.length > 0 && !adminMode) ? 'w-36 sm:w-48 lg:w-52' : 'w-40 sm:w-56 lg:w-64')]">
+                        hasMeeKrobCup(currentItem) ? 'w-[56%]' : ((billItems.length > 0 && !adminMode) ? 'w-36 sm:w-48 lg:w-52' : 'w-40 sm:w-56 lg:w-64')]">
             
             <!-- เส้นกากบาทเล็งกึ่งกลางภาชนะ -->
             <div v-if="adminMode" class="absolute inset-0 z-[70] pointer-events-none flex items-center justify-center">
@@ -217,7 +252,7 @@
               <div class="w-[68%] h-[68%] rounded-full border border-dashed border-red-500/50 absolute"></div>
             </div>
 
-            <!-- กรณีที่ 1: เมนูผัดซีอิ๊ว (ใช้จาน jan.jpg เป็นฐาน พร้อม Fallback แสดงผล 100%) -->
+            <!-- กรณีที่ 1: เมนูผัดซีอิ๊ว (ใช้จาน jan.jpg เป็นฐาน) -->
             <template v-if="isPadseeewPlateMode(currentItem)">
               <img :src="getPadseeewPlateImg()"
                    class="w-full h-full object-cover rounded-full pointer-events-none drop-shadow-lg layer-transition"
@@ -270,8 +305,32 @@
                  :style="getLayerStyle('meat_' + currentItem.meat)"
                  :class="getAdminInteractiveClass('meat_' + currentItem.meat, 'z-30')" :alt="currentItem.meat">
 
-            <!-- Layer 4: ท็อปปิ้งแบบแยกชิ้น (_a) และไข่ดาว -->
+            <!-- Layer 4: ท็อปปิ้งแบบแยกชิ้น (เพิ่มหมู 3 ชิ้น, เพิ่มเนื้อ 2 ชิ้น, เพิ่มตับ 3 ชิ้น, กุ้ง, หมึก, ไข่นก, หมูกรอบ, ไข่ดาว) -->
             <div class="absolute inset-0 z-40 pointer-events-none">
+              <template v-if="currentItem.addPork">
+                <img v-for="idx in 3" :key="'pork_'+(idx-1)"
+                     :src="extraMeatSprites.pork"
+                     @click="adminMode && selectAdminTarget('pork_' + (idx-1))"
+                     :style="getLayerStyle('pork_' + (idx-1))"
+                     :class="getAdminInteractiveClass('pork_' + (idx-1), 'drop-shadow-md')" alt="เพิ่มหมู">
+              </template>
+
+              <template v-if="currentItem.addBeef">
+                <img v-for="idx in 2" :key="'beef_'+(idx-1)"
+                     :src="extraMeatSprites.beef"
+                     @click="adminMode && selectAdminTarget('beef_' + (idx-1))"
+                     :style="getLayerStyle('beef_' + (idx-1))"
+                     :class="getAdminInteractiveClass('beef_' + (idx-1), 'drop-shadow-md')" alt="เพิ่มเนื้อ">
+              </template>
+
+              <template v-if="currentItem.addLiver">
+                <img v-for="idx in 3" :key="'liver_'+(idx-1)"
+                     :src="extraMeatSprites.liver"
+                     @click="adminMode && selectAdminTarget('liver_' + (idx-1))"
+                     :style="getLayerStyle('liver_' + (idx-1))"
+                     :class="getAdminInteractiveClass('liver_' + (idx-1), 'drop-shadow-md')" alt="เพิ่มตับ">
+              </template>
+
               <img v-for="idx in currentItem.addShrimp" :key="'shrimp_'+(idx-1)"
                    src="Asset/meat_shrimp_a.png"
                    @click="adminMode && selectAdminTarget('shrimp_' + (idx-1))"
@@ -319,6 +378,11 @@
             </div>
 
           </div>
+        </div>
+
+        <!-- แถบรายละเอียดท็อปปิ้งที่เลือกในชามปัจจุบัน -->
+        <div v-if="currentBowlToppingsList.length > 0 && !adminMode" class="w-full text-[11px] font-bold text-amber-900 bg-amber-100/70 border border-amber-300 rounded-lg px-2.5 py-1 mt-1 truncate">
+          ✨ เพิ่ม: {{ currentBowlToppingsList.join(', ') }}
         </div>
 
         <!-- แถบราคา & จำนวน -->
@@ -398,6 +462,16 @@
                   <option value="meat_crispy_pork">หน้าหมูกรอบ (meat_crispy.png)</option>
                   <option value="meat_seafood">หน้าทะเล (meat_seafood.png)</option>
                   <option value="meat_mixed">หน้ารวมมิตร (meat_mixed.png)</option>
+                </optgroup>
+                <optgroup label="เพิ่มหมู (3 ชิ้น) / เพิ่มเนื้อ (2 ชิ้น) / เพิ่มตับ (3 ชิ้น)">
+                  <option value="pork_0">เพิ่มหมู ชิ้นที่ 1</option>
+                  <option value="pork_1">เพิ่มหมู ชิ้นที่ 2</option>
+                  <option value="pork_2">เพิ่มหมู ชิ้นที่ 3</option>
+                  <option value="beef_0">เพิ่มเนื้อ ชิ้นที่ 1</option>
+                  <option value="beef_1">เพิ่มเนื้อ ชิ้นที่ 2</option>
+                  <option value="liver_0">เพิ่มตับ ชิ้นที่ 1</option>
+                  <option value="liver_1">เพิ่มตับ ชิ้นที่ 2</option>
+                  <option value="liver_2">เพิ่มตับ ชิ้นที่ 3</option>
                 </optgroup>
                 <optgroup label="ท็อปปิ้งเสริม & ไข่ดาว">
                   <option value="fried_egg">ไข่ดาวกรอบ (meat_friedegg.png)</option>
@@ -487,7 +561,7 @@
             <button @click="cancelEditBowl" class="text-red-700 font-bold underline">ยกเลิกแก้ไข</button>
           </div>
 
-          <!-- แถวที่ 1: ประเภท + ชนิดเส้น -->
+          <!-- แถวที่ 1: ประเภท + ชนิดเส้น (เส้นใหญ่ / เส้นหมี่ / หมี่กรอบ มี Popup เพิ่ม +10 บ.) -->
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pb-3 border-b border-amber-100">
             <div class="sm:col-span-5">
               <label class="text-xs font-bold text-[#5C3420] block mb-1.5">1. ประเภทอาหาร <span class="font-normal text-stone-400">(กดซ้ำยกเลิก)</span></label>
@@ -506,27 +580,205 @@
             </div>
 
             <div class="sm:col-span-7">
-              <label class="text-xs font-bold text-[#5C3420] block mb-1.5">2. ชนิดเส้น <span class="font-normal text-stone-400">(กดซ้ำยกเลิก)</span></label>
+              <label class="text-xs font-bold text-[#5C3420] block mb-1.5">2. ชนิดเส้น <span class="font-normal text-stone-400">(มีตัวเลือกเพิ่ม +10 บ. ข้างปุ่ม)</span></label>
               <div class="grid grid-cols-3 gap-1.5">
-                <button v-for="n in noodleOptions" :key="n.id" @click="toggleNoodle(n.id)"
-                        :class="['py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition',
-                                currentItem.noodle === n.id ? 'bg-amber-100 border-amber-700 text-[#3E2215] shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-orange-50/70']">
-                  {{ n.name }}
-                </button>
+                <div v-for="n in noodleOptions" :key="n.id" class="relative" @click.stop>
+                  <button @click="handleNoodleButtonClick(n.id)"
+                          :class="['w-full py-2 px-2 rounded-xl border-2 font-bold text-xs sm:text-sm transition relative',
+                                  currentItem.noodle === n.id ? 'bg-amber-100 border-amber-700 text-[#3E2215] shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-orange-50/70']">
+                    
+                    <!-- ป้ายสถานะถ้าติ๊กเพิ่มเส้น/เพิ่มหมี่กรอบแล้ว -->
+                    <span v-if="(n.id === 'sen_yai' || n.id === 'sen_mee') && currentItem.noodle === n.id && currentItem.extraNoodle"
+                          class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                      +เพิ่มเส้น 10.-
+                    </span>
+                    <span v-if="n.id === 'mee_krob' && currentItem.addMeeKrob"
+                          class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                      +หมี่กรอบ 2 ก้อน
+                    </span>
+
+                    <!-- ปุ่มเปิด Popup เล็กๆ มุมขวาบนสำหรับทั้ง 3 ชนิดเส้น -->
+                    <span @click.stop="togglePopupTarget('noodle_' + n.id)"
+                          title="ตัวเลือกเพิ่มเส้น / เพิ่มหมี่กรอบ (+10 บ.)"
+                          :class="['absolute top-1 right-1 w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center transition',
+                                  ((n.id !== 'mee_krob' && currentItem.noodle === n.id && currentItem.extraNoodle) || (n.id === 'mee_krob' && currentItem.addMeeKrob))
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-amber-200 hover:bg-amber-300 text-[#3E2215]']">
+                      +
+                    </span>
+
+                    <span>{{ n.name }}</span>
+                  </button>
+
+                  <!-- POPUP เล็กๆ ข้างปุ่ม เส้นใหญ่ / เส้นหมี่ -->
+                  <div v-if="(n.id === 'sen_yai' || n.id === 'sen_mee') && activePopupTarget === 'noodle_' + n.id"
+                       class="absolute left-0 sm:left-full sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-48 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                    <div class="flex justify-between items-center mb-1.5">
+                      <span class="text-[11px] font-extrabold text-amber-300">🍜 ตัวเลือก: {{ n.name }}</span>
+                      <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                    </div>
+                    <button @click.stop="toggleExtraNoodleFromPopup(n.id)"
+                            :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                    currentItem.extraNoodle
+                                      ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                      : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                      <div>
+                        <div class="text-xs">เพิ่มเส้น (10 บ.)</div>
+                        <div class="text-[10px] opacity-85">พิเศษเส้น (เพิ่มปริมาณ)</div>
+                      </div>
+                      <span class="text-sm">{{ currentItem.extraNoodle ? '✅' : '➕' }}</span>
+                    </button>
+                  </div>
+
+                  <!-- POPUP เล็กๆ ข้างปุ่ม หมี่กรอบ -->
+                  <div v-if="n.id === 'mee_krob' && activePopupTarget === 'noodle_mee_krob'"
+                       class="absolute right-0 sm:left-full sm:right-auto sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-52 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                    <div class="flex justify-between items-center mb-1.5">
+                      <span class="text-[11px] font-extrabold text-amber-300">🍜 ตัวเลือก: หมี่กรอบ</span>
+                      <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                    </div>
+                    <button @click.stop="toggleAddMeeKrobFromPopup"
+                            :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                    currentItem.addMeeKrob
+                                      ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                      : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                      <div>
+                        <div class="text-xs">เพิ่มหมี่กรอบ (10 บ.)</div>
+                        <div class="text-[10px] opacity-85">ชามหมี่กรอบเล็ก 2 ก้อน</div>
+                      </div>
+                      <span class="text-sm">{{ currentItem.addMeeKrob ? '✅' : '➕' }}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า -->
+          <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า + Popup เพิ่มสำหรับ หมู / ตับ / เนื้อวัว / หมูกรอบ -->
           <div class="pb-3 border-b border-amber-100">
-            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">3. เลือกหน้าหลักทั้งหมด <span class="font-normal text-stone-400">(กดซ้ำเพื่อนำเนื้อสัตว์ออก)</span></label>
+            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">
+              3. เลือกหน้าหลักทั้งหมด
+              <span class="font-normal text-stone-400">(หมู/ตับ/เนื้อ/หมูกรอบ มีตัวเลือกเพิ่มข้างปุ่ม)</span>
+            </label>
             <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-              <button v-for="m in meatOptions" :key="m.id" @click="toggleMeat(m.id)"
-                      :class="['p-1.5 rounded-xl border-2 text-center transition flex flex-col justify-center items-center',
-                              currentItem.meat === m.id ? 'bg-red-50 border-red-600 text-red-950 font-bold shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 font-medium hover:bg-orange-50/70']">
-                <span class="text-xs">{{ m.name }}</span>
-                <span class="text-[10px] text-red-700 font-bold mt-0.5">฿{{ m.price }}</span>
-              </button>
+              <div v-for="m in meatOptions" :key="m.id" class="relative" @click.stop>
+                <button @click="handleMeatButtonClick(m.id)"
+                        :class="['w-full h-full p-1.5 rounded-xl border-2 text-center transition flex flex-col justify-center items-center relative',
+                                currentItem.meat === m.id ? 'bg-red-50 border-red-600 text-red-950 font-bold shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 font-medium hover:bg-orange-50/70']">
+                  
+                  <!-- ป้ายสถานะถ้าเลือกเพิ่มปริมาณแล้ว -->
+                  <span v-if="m.id === 'pork' && currentItem.addPork"
+                        class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                    +เพิ่มหมู 3 ชิ้น
+                  </span>
+                  <span v-if="m.id === 'liver' && currentItem.addLiver"
+                        class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                    +เพิ่มตับ 3 ชิ้น
+                  </span>
+                  <span v-if="m.id === 'beef' && currentItem.addBeef"
+                        class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                    +เพิ่มเนื้อ 2 ชิ้น
+                  </span>
+                  <span v-if="m.id === 'crispy_pork' && currentItem.addCrispy"
+                        class="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full whitespace-nowrap shadow">
+                    +หมูกรอบ 3 ชิ้น
+                  </span>
+
+                  <!-- ปุ่มเปิด/ปิด Popup เล็กๆ มุมขวาบนสำหรับ หมู, ตับ, เนื้อวัว, หมูกรอบ -->
+                  <span v-if="hasMeatExtraPopup(m.id)"
+                        @click.stop="togglePopupTarget('meat_' + m.id)"
+                        title="ตัวเลือกเพิ่มปริมาณ"
+                        :class="['absolute top-1 right-1 w-4 h-4 rounded-full text-[10px] font-black flex items-center justify-center transition',
+                                isMeatExtraActive(m.id)
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-amber-200 hover:bg-amber-300 text-[#3E2215]']">
+                    +
+                  </span>
+
+                  <span class="text-xs">{{ m.name }}</span>
+                  <span class="text-[10px] text-red-700 font-bold mt-0.5">฿{{ m.price }}</span>
+                </button>
+
+                <!-- POPUP เล็กๆ ข้างปุ่ม หมู -->
+                <div v-if="m.id === 'pork' && activePopupTarget === 'meat_pork'"
+                     class="absolute left-0 sm:left-full sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-48 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-[11px] font-extrabold text-amber-300">🥩 ตัวเลือกพิเศษ: หมู</span>
+                    <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                  </div>
+                  <button @click.stop="toggleExtraPork"
+                          :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                  currentItem.addPork
+                                    ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                    : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                    <div>
+                      <div class="text-xs">เพิ่มหมู (10 บ.)</div>
+                      <div class="text-[10px] opacity-85">+3 ชิ้นบนชามตัวอย่าง</div>
+                    </div>
+                    <span class="text-sm">{{ currentItem.addPork ? '✅' : '➕' }}</span>
+                  </button>
+                </div>
+
+                <!-- POPUP เล็กๆ ข้างปุ่ม ตับ -->
+                <div v-if="m.id === 'liver' && activePopupTarget === 'meat_liver'"
+                     class="absolute left-0 sm:left-full sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-48 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-[11px] font-extrabold text-amber-300">🫀 ตัวเลือกพิเศษ: ตับ</span>
+                    <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                  </div>
+                  <button @click.stop="toggleExtraLiver"
+                          :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                  currentItem.addLiver
+                                    ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                    : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                    <div>
+                      <div class="text-xs">เพิ่มตับ (10 บ.)</div>
+                      <div class="text-[10px] opacity-85">+3 ชิ้นบนชามตัวอย่าง</div>
+                    </div>
+                    <span class="text-sm">{{ currentItem.addLiver ? '✅' : '➕' }}</span>
+                  </button>
+                </div>
+
+                <!-- POPUP เล็กๆ ข้างปุ่ม เนื้อวัว -->
+                <div v-if="m.id === 'beef' && activePopupTarget === 'meat_beef'"
+                     class="absolute right-0 sm:left-full sm:right-auto sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-48 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-[11px] font-extrabold text-amber-300">🥩 ตัวเลือกพิเศษ: เนื้อ</span>
+                    <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                  </div>
+                  <button @click.stop="toggleExtraBeef"
+                          :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                  currentItem.addBeef
+                                    ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                    : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                    <div>
+                      <div class="text-xs">เพิ่มเนื้อ (10 บ.)</div>
+                      <div class="text-[10px] opacity-85">+2 ชิ้นบนชามตัวอย่าง</div>
+                    </div>
+                    <span class="text-sm">{{ currentItem.addBeef ? '✅' : '➕' }}</span>
+                  </button>
+                </div>
+
+                <!-- POPUP เล็กๆ ข้างปุ่ม หมูกรอบ -->
+                <div v-if="m.id === 'crispy_pork' && activePopupTarget === 'meat_crispy_pork'"
+                     class="absolute left-0 sm:left-full sm:ml-1.5 top-full sm:top-0 mt-1.5 sm:mt-0 z-50 w-52 bg-[#2C1810] text-white rounded-2xl p-2.5 shadow-2xl border-2 border-amber-400 popup-anim">
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="text-[11px] font-extrabold text-amber-300">🥓 ตัวเลือก: หมูกรอบ</span>
+                    <button @click.stop="activePopupTarget = null" class="text-amber-200/70 hover:text-white text-xs font-bold">✕</button>
+                  </div>
+                  <button @click.stop="toggleExtraCrispy"
+                          :class="['w-full p-2 rounded-xl border text-left transition flex items-center justify-between',
+                                  currentItem.addCrispy
+                                    ? 'bg-emerald-600 border-emerald-300 text-white font-extrabold'
+                                    : 'bg-[#1E0F09] hover:bg-amber-950 border-amber-700/70 text-amber-100 font-bold']">
+                    <div>
+                      <div class="text-xs">เพิ่มหมูกรอบ (20 บ.)</div>
+                      <div class="text-[10px] opacity-85">+3 ชิ้นบนชามตัวอย่าง</div>
+                    </div>
+                    <span class="text-sm">{{ currentItem.addCrispy ? '✅' : '➕' }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -555,7 +807,7 @@
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.addCrispy ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥓 หมูกรอบ เพิ่ม 3 ชิ้น</span>
-                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-red-700 text-white' : 'bg-stone-200'">+15 บ.</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addCrispy ? 'bg-red-700 text-white' : 'bg-stone-200'">+20 บ.</span>
               </button>
 
               <button @click="toggleToppingBool('addQuail')"
@@ -572,10 +824,17 @@
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addFriedEgg ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
+              <button @click="toggleToppingBool('addMeeKrob')"
+                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                              currentItem.addMeeKrob ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
+                <span>🍜 เพิ่มหมี่กรอบ (ชามเล็ก 2 ก้อน)</span>
+                <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.addMeeKrob ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
+              </button>
+
               <button @click="toggleToppingBool('extraNoodle')"
                       :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.extraNoodle ? 'bg-red-50 border-red-500 text-red-950' : 'bg-stone-50 border-stone-200 text-stone-600']">
-                <span>🍜 เพิ่มเส้น (พิเศษเส้น)</span>
+                <span>🍝 เพิ่มเส้น (พิเศษเส้น)</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.extraNoodle ? 'bg-red-700 text-white' : 'bg-stone-200'">+10 บ.</span>
               </button>
 
@@ -587,7 +846,7 @@
               </button>
 
               <button @click="toggleVeg"
-                      :class="['p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
+                      :class="['sm:col-span-2 p-2 rounded-xl border-2 text-xs font-bold flex justify-between items-center transition',
                               currentItem.includeVeg ? 'bg-amber-100/80 border-amber-700 text-[#3E2215]' : 'bg-stone-50 border-stone-200 text-stone-600']">
                 <span>🥬 ผักคะน้า</span>
                 <span class="px-2 py-0.5 rounded text-[11px]" :class="currentItem.includeVeg ? 'bg-[#4A2511] text-amber-200' : 'bg-stone-200'">{{ currentItem.includeVeg ? 'ใส่ผัก' : 'ไม่ใส่ผัก' }}</span>
@@ -597,7 +856,7 @@
 
           <!-- แถวที่ 4: คำสั่งพิเศษ + ปุ่มจัดจานเสร็จ/เพิ่มลงบิล -->
           <div class="flex flex-col sm:flex-row gap-2 pb-3 border-b border-amber-100">
-            <input type="text" v-model="currentItem.note" @input="broadcastCustomerLive" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
+            <input type="text" v-model="currentItem.note" @input="onStateChanged" placeholder="คำสั่งพิเศษ/อื่นๆ (เช่น ไม่ใส่ผัก, แยกน้ำ, เผ็ด)..." 
                    class="flex-1 p-2.5 border border-amber-300 rounded-xl text-xs sm:text-sm bg-orange-50/40 focus:bg-white focus:ring-2 focus:ring-red-600 outline-none">
             <button @click="saveBowlToTray" :disabled="isBowlEmpty"
                     :class="['font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap',
@@ -780,6 +1039,17 @@
       meat_seafood: { width: 46, top: 43, left: 27, rot: 0 },
       meat_mixed: { width: 75, top: 35, left: 12.5, rot: 0 },
 
+      pork_0: { width: 22, top: 37, left: 24, rot: -12 },
+      pork_1: { width: 22, top: 36, left: 49, rot: 14 },
+      pork_2: { width: 22, top: 53, left: 39, rot: -6 },
+
+      beef_0: { width: 24, top: 38, left: 24, rot: -10 },
+      beef_1: { width: 24, top: 40, left: 50, rot: 15 },
+
+      liver_0: { width: 22, top: 36, left: 26, rot: -15 },
+      liver_1: { width: 22, top: 36, left: 49, rot: 12 },
+      liver_2: { width: 22, top: 54, left: 38, rot: -8 },
+
       fried_egg: { width: 44, top: 36, left: 15, rot: 0 },
 
       shrimp_0: { width: 24, top: 48, left: 50, rot: -15 },
@@ -803,6 +1073,8 @@
       quail_3: { width: 15, top: 53, left: 46, rot: 0 }
     };
 
+    const SESSION_STORAGE_KEY = 'mah_ocha_active_session_v2';
+
     createApp({
       setup() {
         const billHeader = ref({
@@ -814,6 +1086,9 @@
         const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
         const editingIndex = ref(null);
         const compactPreview = ref(false);
+        const activePopupTarget = ref(null);
+        const lastSavedTime = ref('');
+        const saveToastMsg = ref('');
 
         const padseeewSprites = ref({
           empty_plate: 'Asset/jan.jpg',
@@ -822,17 +1097,51 @@
           veg: ''
         });
 
-        // โหลดภาพจานผัดซีอิ๊ว พร้อมระบบ Fallback ป้องกัน CORS / file:// ทำให้ภาพจานขึ้นแน่นอน 100%
+        const extraMeatSprites = ref({
+          pork: 'Asset/meat_pork.png',
+          beef: 'Asset/meat_beef.png',
+          liver: 'Asset/meat_liver.png'
+        });
+
+        const prepareSingleMeatPiece = (type, dedicatedCandidates, fallbackSrc) => {
+          let idx = 0;
+          const tryDedicated = () => {
+            if (idx >= dedicatedCandidates.length) {
+              const img = new Image();
+              img.onload = () => {
+                try {
+                  const w = img.naturalWidth, h = img.naturalHeight;
+                  const cropSize = Math.round(Math.min(w, h) * 0.56);
+                  const canvas = document.createElement('canvas');
+                  canvas.width = cropSize;
+                  canvas.height = cropSize;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, Math.round(w * 0.08), Math.round(h * 0.14), cropSize, cropSize, 0, 0, cropSize, cropSize);
+                  extraMeatSprites.value[type] = canvas.toDataURL('image/png');
+                } catch (e) {
+                  extraMeatSprites.value[type] = fallbackSrc;
+                }
+              };
+              img.src = fallbackSrc;
+              return;
+            }
+            const candidate = dedicatedCandidates[idx++];
+            const img = new Image();
+            img.onload = () => { extraMeatSprites.value[type] = candidate; };
+            img.onerror = tryDedicated;
+            img.src = candidate;
+          };
+          tryDedicated();
+        };
+
         const loadJanPlate = () => {
           const candidates = ['Asset/jan.jpg', 'Asset/jan.png', 'asset/jan.jpg', 'jan.jpg', 'jan.png'];
           let idx = 0;
-
           const tryNext = () => {
             if (idx >= candidates.length) return;
             const currentSrc = candidates[idx++];
             const img = new Image();
             img.onload = () => {
-              // ตั้งค่าภาพต้นฉบับทันทีเป็นฐานสำรองก่อนประมวลผลตัดขอบ
               padseeewSprites.value.empty_plate = currentSrc;
               try {
                 const size = Math.min(img.naturalWidth, img.naturalHeight);
@@ -840,79 +1149,51 @@
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(
-                  img,
-                  (img.naturalWidth - size) / 2,
-                  (img.naturalHeight - size) / 2,
-                  size, size, 0, 0, size, size
-                );
-
+                ctx.drawImage(img, (img.naturalWidth - size) / 2, (img.naturalHeight - size) / 2, size, size, 0, 0, size, size);
                 const imgData = ctx.getImageData(0, 0, size, size);
                 const d = imgData.data;
-
                 let minX = size, maxX = 0, minY = size, maxY = 0, found = false;
                 for (let y = 2; y < size - 2; y++) {
                   for (let x = 2; x < size - 2; x++) {
                     const p = (y * size + x) * 4;
-                    const r = d[p], g = d[p + 1], b = d[p + 2];
-                    if (b - r > 35 && b - g > 20 && b > 50) {
-                      if (x < minX) minX = x;
-                      if (x > maxX) maxX = x;
-                      if (y < minY) minY = y;
-                      if (y > maxY) maxY = y;
+                    if (d[p + 2] - d[p] > 35 && d[p + 2] - d[p + 1] > 20 && d[p + 2] > 50) {
+                      if (x < minX) minX = x; if (x > maxX) maxX = x;
+                      if (y < minY) minY = y; if (y > maxY) maxY = y;
                       found = true;
                     }
                   }
                 }
-
                 const cx = found ? (minX + maxX) / 2 : size / 2;
                 const cy = found ? (minY + maxY) / 2 : size / 2;
                 const radius = found ? Math.max(maxX - minX, maxY - minY) / 2 + 2 : size * 0.468;
-
                 for (let y = 0; y < size; y++) {
                   for (let x = 0; x < size; x++) {
                     const dist = Math.hypot(x - cx, y - cy);
                     const p = (y * size + x) * 4;
-                    if (dist > radius) {
-                      d[p + 3] = 0;
-                    } else if (dist > radius - 2) {
-                      d[p + 3] = Math.max(0, Math.round(255 * ((radius - dist) / 2)));
-                    }
+                    if (dist > radius) d[p + 3] = 0;
+                    else if (dist > radius - 2) d[p + 3] = Math.max(0, Math.round(255 * ((radius - dist) / 2)));
                   }
                 }
-
                 ctx.putImageData(imgData, 0, 0);
                 padseeewSprites.value.empty_plate = canvas.toDataURL('image/png');
               } catch (err) {
-                // หากเปิดผ่าน file:// แล้วเบราว์เซอร์บล็อก getImageData ให้ใช้รูป jan.jpg ตรงๆ (คลาส rounded-full จะตัดขอบกลมให้สวยอัตโนมัติ)
                 padseeewSprites.value.empty_plate = currentSrc;
               }
             };
             img.onerror = tryNext;
             img.src = currentSrc;
           };
-
           tryNext();
         };
 
-        // โหลดและตัดแยกเส้นใหญ่ / เส้นหมี่ / ผักผัดซีอิ๊ว พร้อม Fallback ไปใช้รูปเส้น/ผักมาตรฐานหากติด CORS
         const loadAndSlicePadseeewSprites = () => {
-          const candidates = [
-            'Asset/paseeew.jpg',
-            'Asset/paseeew.png',
-            'Asset/padseeew.jpg',
-            'Asset/padseeew.png',
-            'asset/paseeew.jpg',
-            'paseeew.jpg'
-          ];
+          const candidates = ['Asset/paseeew.jpg', 'Asset/paseeew.png', 'Asset/padseeew.jpg', 'Asset/padseeew.png', 'asset/paseeew.jpg', 'paseeew.jpg'];
           let attempt = 0;
-
           const applyFallbackSprites = () => {
             if (!padseeewSprites.value.sen_yai) padseeewSprites.value.sen_yai = 'Asset/noodle_senyai.png';
             if (!padseeewSprites.value.sen_mee) padseeewSprites.value.sen_mee = 'Asset/noodle_senmee.png';
             if (!padseeewSprites.value.veg) padseeewSprites.value.veg = 'Asset/veg_kale.png';
           };
-
           const tryNextImage = () => {
             if (attempt >= candidates.length) {
               applyFallbackSprites();
@@ -922,96 +1203,66 @@
             const img = new Image();
             img.onload = () => {
               try {
-                const w = img.naturalWidth;
-                const h = img.naturalHeight;
-
+                const w = img.naturalWidth, h = img.naturalHeight;
                 const extractNoodleMound = (rx, ry, rw, rh) => {
                   const tCanvas = document.createElement('canvas');
-                  tCanvas.width = rw;
-                  tCanvas.height = rh;
+                  tCanvas.width = rw; tCanvas.height = rh;
                   const tCtx = tCanvas.getContext('2d');
                   tCtx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
                   const tData = tCtx.getImageData(0, 0, rw, rh).data;
-
                   let minX = rw, maxX = 0, minY = rh, maxY = 0, found = false;
                   for (let y = 4; y < rh - 4; y++) {
                     for (let x = 4; x < rw - 4; x++) {
                       const idx = (y * rw + x) * 4;
-                      const r = tData[idx], g = tData[idx + 1], b = tData[idx + 2];
-                      if (b - r > 18 && b - g > 8 && b > 45 && b < 170) {
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                        if (y < minY) minY = y;
-                        if (y > maxY) maxY = y;
+                      if (tData[idx + 2] - tData[idx] > 18 && tData[idx + 2] - tData[idx + 1] > 8 && tData[idx + 2] > 45 && tData[idx + 2] < 170) {
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
                         found = true;
                       }
                     }
                   }
-
                   const cx = found ? (minX + maxX) / 2 : rw * 0.5;
                   const cy = found ? (minY + maxY) / 2 : rh * 0.5;
-                  const plateRadius = found ? Math.max(maxX - minX, maxY - minY) / 2 : Math.min(rw, rh) * 0.45;
-                  const foodRadius = plateRadius * 0.72;
-
+                  const foodRadius = (found ? Math.max(maxX - minX, maxY - minY) / 2 : Math.min(rw, rh) * 0.45) * 0.72;
                   const outSize = Math.ceil(foodRadius * 2);
                   const oCanvas = document.createElement('canvas');
-                  oCanvas.width = outSize;
-                  oCanvas.height = outSize;
+                  oCanvas.width = outSize; oCanvas.height = outSize;
                   const oCtx = oCanvas.getContext('2d');
                   const half = outSize / 2;
-
                   oCtx.drawImage(tCanvas, cx - half, cy - half, outSize, outSize, 0, 0, outSize, outSize);
                   const outImg = oCtx.getImageData(0, 0, outSize, outSize);
                   const d = outImg.data;
-
                   for (let y = 0; y < outSize; y++) {
                     for (let x = 0; x < outSize; x++) {
                       const dist = Math.hypot(x - half, y - half);
                       const p = (y * outSize + x) * 4;
-                      const r = d[p], g = d[p + 1], b = d[p + 2];
-                      const sat = Math.max(r, g, b) - Math.min(r, g, b);
-                      const lum = (r + g + b) / 3;
-
-                      if (dist > foodRadius || (lum > 188 && sat < 24)) {
-                        d[p + 3] = 0;
-                      } else if (lum > 170 && sat < 28) {
-                        d[p + 3] = Math.round(((188 - lum) / 18) * 255);
-                      }
+                      const sat = Math.max(d[p], d[p + 1], d[p + 2]) - Math.min(d[p], d[p + 1], d[p + 2]);
+                      const lum = (d[p] + d[p + 1] + d[p + 2]) / 3;
+                      if (dist > foodRadius || (lum > 188 && sat < 24)) d[p + 3] = 0;
+                      else if (lum > 170 && sat < 28) d[p + 3] = Math.round(((188 - lum) / 18) * 255);
                     }
                   }
-
                   oCtx.putImageData(outImg, 0, 0);
                   return oCanvas.toDataURL('image/png');
                 };
-
                 const extractVeg = (rx, ry, rw, rh) => {
                   const canvas = document.createElement('canvas');
-                  canvas.width = rw;
-                  canvas.height = rh;
+                  canvas.width = rw; canvas.height = rh;
                   const ctx = canvas.getContext('2d');
                   ctx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
                   const imgData = ctx.getImageData(0, 0, rw, rh);
                   const d = imgData.data;
-
                   for (let i = 0; i < d.length; i += 4) {
-                    const r = d[i], g = d[i + 1], b = d[i + 2];
-                    const sat = Math.max(r, g, b) - Math.min(r, g, b);
-                    if (sat < 22) {
-                      d[i + 3] = 0;
-                    } else if (sat < 34) {
-                      d[i + 3] = Math.round(((sat - 22) / 12) * 255);
-                    }
+                    const sat = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
+                    if (sat < 22) d[i + 3] = 0;
+                    else if (sat < 34) d[i + 3] = Math.round(((sat - 22) / 12) * 255);
                   }
                   ctx.putImageData(imgData, 0, 0);
                   return canvas.toDataURL('image/png');
                 };
-
                 padseeewSprites.value.sen_yai = extractNoodleMound(0, 0, Math.round(w * 0.36), h);
                 padseeewSprites.value.sen_mee = extractNoodleMound(Math.round(w * 0.37), 0, Math.round(w * 0.39), h);
-                padseeewSprites.value.veg = extractVeg(
-                  Math.round(w * 0.785), Math.round(h * 0.015),
-                  Math.round(w * 0.210), Math.round(h * 0.545)
-                );
+                padseeewSprites.value.veg = extractVeg(Math.round(w * 0.785), Math.round(h * 0.015), Math.round(w * 0.210), Math.round(h * 0.545));
               } catch (err) {
                 applyFallbackSprites();
               }
@@ -1019,11 +1270,14 @@
             img.onerror = tryNextImage;
             img.src = srcPath;
           };
-
           tryNextImage();
         };
 
-        // แสดงจานผัดซีอิ๊วเสมอเมื่อเลือกประเภท "ผัดซีอิ๊ว" (ยกเว้นหมี่กรอบที่แยกถ้วย)
+        // ตรวจสอบว่าต้องแสดงถ้วยหมี่กรอบเล็กด้านซ้ายหรือไม่ (เลือกหมี่กรอบหลัก หรือ กดเพิ่มหมี่กรอบ 2 ก้อน)
+        const hasMeeKrobCup = (cfg) => {
+          return cfg && (cfg.noodle === 'mee_krob' || cfg.addMeeKrob);
+        };
+
         const isPadseeewPlateMode = (cfg) => {
           return cfg && cfg.dishType === 'padseeew' && cfg.noodle !== 'mee_krob';
         };
@@ -1091,7 +1345,7 @@
             if (currentItem.value.dishType === 'padseeew') currentItem.value.dishType = 'radna';
             currentItem.value.noodle = 'sen_mee';
           } else if (key === 'noodle_mee_krob') {
-            currentItem.value.noodle = 'mee_krob';
+            if (!hasMeeKrobCup(currentItem.value)) currentItem.value.noodle = 'mee_krob';
           } else if (key === 'padseeew_sen_yai') {
             currentItem.value.dishType = 'padseeew';
             currentItem.value.noodle = 'sen_yai';
@@ -1106,6 +1360,9 @@
             if (!currentItem.value.noodle) currentItem.value.noodle = 'sen_yai';
             currentItem.value.includeVeg = true;
           } else if (key.startsWith('meat_')) currentItem.value.meat = key.replace('meat_', '');
+          else if (key.startsWith('pork_')) currentItem.value.addPork = true;
+          else if (key.startsWith('beef_')) currentItem.value.addBeef = true;
+          else if (key.startsWith('liver_')) currentItem.value.addLiver = true;
           else if (key === 'fried_egg') currentItem.value.addFriedEgg = true;
           else if (key.startsWith('shrimp_')) {
             const idx = parseInt(key.split('_')[1], 10);
@@ -1113,7 +1370,7 @@
           } else if (key.startsWith('squid_')) currentItem.value.addSquid = true;
           else if (key.startsWith('crispy_')) currentItem.value.addCrispy = true;
           else if (key.startsWith('quail_')) currentItem.value.addQuail = true;
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const selectAdminTarget = (key) => {
@@ -1123,7 +1380,11 @@
         const toggleAdminMode = () => {
           adminMode.value = !adminMode.value;
           if (adminMode.value) {
-            if (currentItem.value.meat) adminSelectedKey.value = 'meat_' + currentItem.value.meat;
+            if (hasMeeKrobCup(currentItem.value)) adminSelectedKey.value = 'noodle_mee_krob';
+            else if (currentItem.value.addPork) adminSelectedKey.value = 'pork_0';
+            else if (currentItem.value.addBeef) adminSelectedKey.value = 'beef_0';
+            else if (currentItem.value.addLiver) adminSelectedKey.value = 'liver_0';
+            else if (currentItem.value.meat) adminSelectedKey.value = 'meat_' + currentItem.value.meat;
             else if (currentItem.value.includeVeg && currentItem.value.dishType === 'padseeew') adminSelectedKey.value = 'veg_kale_padseeew';
             else if (currentItem.value.dishType === 'padseeew' && (currentItem.value.noodle === 'sen_yai' || currentItem.value.noodle === 'sen_mee')) {
               adminSelectedKey.value = 'padseeew_' + currentItem.value.noodle;
@@ -1189,6 +1450,10 @@
           noodle: null,
           meat: null,
           qty: 1,
+          addPork: false,
+          addBeef: false,
+          addLiver: false,
+          addMeeKrob: false,
           addShrimp: 0,
           addSquid: false,
           addCrispy: false,
@@ -1204,9 +1469,74 @@
         const currentItem = ref(defaultBowlState());
         const billItems = ref([]);
 
-        // =========================================================================
-        // ระบบส่งข้อมูลสด (LIVE SYNC) ไปยังจอลูกค้าหน้าเคาน์เตอร์ (customer.html)
-        // =========================================================================
+        const persistActiveSession = () => {
+          try {
+            const nowStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            const sessionState = {
+              billHeader: JSON.parse(JSON.stringify(billHeader.value)),
+              currentItem: JSON.parse(JSON.stringify(currentItem.value)),
+              billItems: JSON.parse(JSON.stringify(billItems.value)),
+              editingIndex: editingIndex.value,
+              savedAt: nowStr,
+              timestamp: Date.now()
+            };
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionState));
+            lastSavedTime.value = nowStr;
+          } catch (e) {}
+        };
+
+        const restoreActiveSession = () => {
+          try {
+            const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed) return;
+            if (parsed.billHeader) billHeader.value = parsed.billHeader;
+            if (parsed.currentItem) {
+              currentItem.value = { ...defaultBowlState(), ...parsed.currentItem };
+            }
+            if (Array.isArray(parsed.billItems)) {
+              billItems.value = parsed.billItems;
+            }
+            if (parsed.editingIndex !== undefined && parsed.editingIndex !== null) {
+              editingIndex.value = parsed.editingIndex;
+            }
+            if (parsed.savedAt) {
+              lastSavedTime.value = parsed.savedAt;
+            }
+            const hasRestoredWork = (parsed.billItems && parsed.billItems.length > 0) || !isBowlEmpty.value;
+            if (hasRestoredWork) {
+              saveToastMsg.value = `🔄 กู้คืนออเดอร์ค้างล่าสุด (${parsed.billHeader?.location || 'โต๊ะ 1'} คิว #${parsed.billHeader?.queueNo || 1}) เรียบร้อยแล้ว`;
+              setTimeout(() => { saveToastMsg.value = ''; }, 5000);
+            }
+          } catch (e) {}
+        };
+
+        const manualMidDaySave = async () => {
+          persistActiveSession();
+          broadcastCustomerLive();
+
+          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+          if (dbUrl) {
+            try {
+              await fetch(`${dbUrl}/midday_checkpoint.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  billHeader: billHeader.value,
+                  currentItem: currentItem.value,
+                  billItems: billItems.value,
+                  savedAt: lastSavedTime.value,
+                  timestamp: Date.now()
+                })
+              });
+            } catch (e) {}
+          }
+
+          saveToastMsg.value = `✅ บันทึกข้อมูลระหว่างวันเรียบร้อย (${lastSavedTime.value} น.) — แบตหมดหรือรีสตาร์ทกลับมาทำต่อได้ทันที`;
+          setTimeout(() => { saveToastMsg.value = ''; }, 4500);
+        };
+
         let cloudSyncDebounce = null;
         const broadcastCustomerLive = () => {
           const payload = {
@@ -1217,7 +1547,6 @@
             updatedAt: Date.now()
           };
 
-          // 1. บันทึกลง localStorage และ BroadcastChannel (ซิงค์ทันทีในเครื่องเดียวกัน)
           try {
             localStorage.setItem('mah_ocha_live_customer', JSON.stringify(payload));
             const ch = new BroadcastChannel('mah_ocha_customer_sync');
@@ -1225,7 +1554,6 @@
             ch.close();
           } catch (e) {}
 
-          // 2. ส่งขึ้น Firebase Realtime Database (ซิงค์ข้ามเครื่องจากมือถือภรรยา -> จอลูกค้า)
           const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
           if (dbUrl) {
             clearTimeout(cloudSyncDebounce);
@@ -1241,9 +1569,15 @@
           }
         };
 
+        const onStateChanged = () => {
+          persistActiveSession();
+          broadcastCustomerLive();
+        };
+
         const isBowlEmpty = computed(() => {
           const item = currentItem.value;
           return !item.dishType && !item.noodle && !item.meat &&
+                 !item.addPork && !item.addBeef && !item.addLiver && !item.addMeeKrob &&
                  item.addShrimp === 0 && !item.addSquid && !item.addCrispy &&
                  !item.addQuail && !item.addFriedEgg && !item.extraNoodle &&
                  !item.extraVeg && !item.includeVeg;
@@ -1262,12 +1596,13 @@
             currentItem.value.dishType = type;
             autoEnableVegIfNeeded();
           }
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
-        const toggleNoodle = (id) => {
+        const handleNoodleButtonClick = (id) => {
           if (currentItem.value.noodle === id) {
             currentItem.value.noodle = null;
+            activePopupTarget.value = null;
           } else {
             currentItem.value.noodle = id;
             if (adminMode.value) {
@@ -1278,32 +1613,127 @@
               }
             }
             autoEnableVegIfNeeded();
+            activePopupTarget.value = 'noodle_' + id;
           }
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
-        const toggleMeat = (id) => {
+        const togglePopupTarget = (targetKey) => {
+          if (targetKey.startsWith('noodle_')) {
+            const nId = targetKey.replace('noodle_', '');
+            if (currentItem.value.noodle !== nId) {
+              currentItem.value.noodle = nId;
+              autoEnableVegIfNeeded();
+              onStateChanged();
+            }
+          } else if (targetKey.startsWith('meat_')) {
+            const mId = targetKey.replace('meat_', '');
+            if (currentItem.value.meat !== mId) {
+              currentItem.value.meat = mId;
+              autoEnableVegIfNeeded();
+              onStateChanged();
+            }
+          }
+          activePopupTarget.value = (activePopupTarget.value === targetKey) ? null : targetKey;
+        };
+
+        const toggleExtraNoodleFromPopup = (noodleId) => {
+          if (currentItem.value.noodle !== noodleId) {
+            currentItem.value.noodle = noodleId;
+          }
+          currentItem.value.extraNoodle = !currentItem.value.extraNoodle;
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const toggleAddMeeKrobFromPopup = () => {
+          currentItem.value.addMeeKrob = !currentItem.value.addMeeKrob;
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const hasMeatExtraPopup = (id) => ['pork', 'liver', 'beef', 'crispy_pork'].includes(id);
+
+        const isMeatExtraActive = (id) => {
+          if (id === 'pork') return currentItem.value.addPork;
+          if (id === 'liver') return currentItem.value.addLiver;
+          if (id === 'beef') return currentItem.value.addBeef;
+          if (id === 'crispy_pork') return currentItem.value.addCrispy;
+          return false;
+        };
+
+        const handleMeatButtonClick = (id) => {
           if (currentItem.value.meat === id) {
             currentItem.value.meat = null;
+            if (hasMeatExtraPopup(id)) {
+              activePopupTarget.value = null;
+            }
           } else {
             currentItem.value.meat = id;
             if (adminMode.value) adminSelectedKey.value = 'meat_' + id;
             autoEnableVegIfNeeded();
+            if (hasMeatExtraPopup(id)) {
+              activePopupTarget.value = 'meat_' + id;
+            } else {
+              activePopupTarget.value = null;
+            }
           }
-          broadcastCustomerLive();
+          onStateChanged();
+        };
+
+        const toggleExtraPork = () => {
+          currentItem.value.addPork = !currentItem.value.addPork;
+          if (currentItem.value.addPork && !currentItem.value.meat) {
+            currentItem.value.meat = 'pork';
+          }
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const toggleExtraLiver = () => {
+          currentItem.value.addLiver = !currentItem.value.addLiver;
+          if (currentItem.value.addLiver && !currentItem.value.meat) {
+            currentItem.value.meat = 'liver';
+          }
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const toggleExtraBeef = () => {
+          currentItem.value.addBeef = !currentItem.value.addBeef;
+          if (currentItem.value.addBeef && !currentItem.value.meat) {
+            currentItem.value.meat = 'beef';
+          }
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const toggleExtraCrispy = () => {
+          currentItem.value.addCrispy = !currentItem.value.addCrispy;
+          if (currentItem.value.addCrispy && !currentItem.value.meat) {
+            currentItem.value.meat = 'crispy_pork';
+          }
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
         };
 
         const changeShrimpQty = (delta) => {
           const next = (currentItem.value.addShrimp || 0) + delta;
           if (next >= 0 && next <= 6) {
             currentItem.value.addShrimp = next;
-            broadcastCustomerLive();
+            onStateChanged();
           }
         };
 
         const toggleToppingBool = (field) => {
           currentItem.value[field] = !currentItem.value[field];
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const toggleExtraVeg = () => {
@@ -1311,7 +1741,7 @@
           if (currentItem.value.extraVeg && !currentItem.value.includeVeg) {
             currentItem.value.includeVeg = true;
           }
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const toggleVeg = () => {
@@ -1323,14 +1753,14 @@
           if (adminMode.value && currentItem.value.includeVeg) {
             adminSelectedKey.value = currentItem.value.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale';
           }
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const changeCurrentQty = (delta) => {
           const next = (currentItem.value.qty || 1) + delta;
           if (next >= 1) {
             currentItem.value.qty = next;
-            broadcastCustomerLive();
+            onStateChanged();
           }
         };
 
@@ -1338,6 +1768,10 @@
           if (isBowlEmpty.value) return 0;
           const baseMeat = meatOptions.find(m => m.id === currentItem.value.meat);
           let price = baseMeat ? baseMeat.price : ((currentItem.value.dishType || currentItem.value.noodle) ? 50 : 0);
+          if (currentItem.value.addPork) price += 10;
+          if (currentItem.value.addBeef) price += 10;
+          if (currentItem.value.addLiver) price += 10;
+          if (currentItem.value.addMeeKrob) price += 10;
           price += (currentItem.value.addShrimp || 0) * 22;
           if (currentItem.value.addSquid) price += 20;
           if (currentItem.value.addCrispy) price += 20;
@@ -1349,6 +1783,23 @@
         });
 
         const currentItemTotalPrice = computed(() => singleBowlPrice.value * currentItem.value.qty);
+
+        const currentBowlToppingsList = computed(() => {
+          const toppings = [];
+          if (currentItem.value.addPork) toppings.push('เพิ่มหมู (3 ชิ้น)');
+          if (currentItem.value.addLiver) toppings.push('เพิ่มตับ (3 ชิ้น)');
+          if (currentItem.value.addBeef) toppings.push('เพิ่มเนื้อ (2 ชิ้น)');
+          if (currentItem.value.addMeeKrob) toppings.push('เพิ่มหมี่กรอบ (2 ก้อน)');
+          if (currentItem.value.extraNoodle) toppings.push('เพิ่มเส้น');
+          if (currentItem.value.extraVeg) toppings.push('เพิ่มผัก');
+          if (currentItem.value.addShrimp > 0) toppings.push(`เพิ่มกุ้ง ${currentItem.value.addShrimp} ตัว`);
+          if (currentItem.value.addSquid) toppings.push('เพิ่มหมึก 3 ชิ้น');
+          if (currentItem.value.addCrispy) toppings.push('เพิ่มหมูกรอบ 3 ชิ้น');
+          if (currentItem.value.addQuail) toppings.push('เพิ่มไข่นก 4 ฟอง');
+          if (currentItem.value.addFriedEgg) toppings.push('เพิ่มไข่ดาวกรอบ');
+          if (!currentItem.value.includeVeg && !isBowlEmpty.value) toppings.push('ไม่ใส่ผัก');
+          return toppings;
+        });
 
         const currentBowlSummary = computed(() => {
           if (isBowlEmpty.value) return 'ภาชนะเปล่า (กรุณาเลือกรายการ)';
@@ -1401,33 +1852,24 @@
               billItems.value[idx].totalPrice = nextQty * drink.price;
             }
           }
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const resetCurrentItem = () => {
           currentItem.value = defaultBowlState();
           editingIndex.value = null;
-          broadcastCustomerLive();
+          activePopupTarget.value = null;
+          onStateChanged();
         };
 
         const saveBowlToTray = () => {
           if (isBowlEmpty.value) return;
-          const toppings = [];
-          if (currentItem.value.extraNoodle) toppings.push('เพิ่มเส้น');
-          if (currentItem.value.extraVeg) toppings.push('เพิ่มผัก');
-          if (currentItem.value.addShrimp > 0) toppings.push(`เพิ่มกุ้ง ${currentItem.value.addShrimp} ตัว`);
-          if (currentItem.value.addSquid) toppings.push('เพิ่มหมึก 3 ชิ้น');
-          if (currentItem.value.addCrispy) toppings.push('เพิ่มหมูกรอบ 3 ชิ้น');
-          if (currentItem.value.addQuail) toppings.push('เพิ่มไข่นก 4 ฟอง');
-          if (currentItem.value.addFriedEgg) toppings.push('เพิ่มไข่ดาวกรอบ');
-          if (!currentItem.value.includeVeg) toppings.push('ไม่ใส่ผัก');
-
           const bowlPayload = {
             isDrink: false,
             title: currentBowlSummary.value,
             qty: currentItem.value.qty,
             unitPrice: singleBowlPrice.value,
-            toppingsText: toppings.join(', '),
+            toppingsText: currentBowlToppingsList.value.join(', '),
             note: currentItem.value.note,
             totalPrice: currentItemTotalPrice.value,
             config: JSON.parse(JSON.stringify(currentItem.value))
@@ -1441,15 +1883,17 @@
           }
 
           currentItem.value = defaultBowlState();
-          broadcastCustomerLive();
+          activePopupTarget.value = null;
+          onStateChanged();
         };
 
         const loadBowlForEdit = (idx) => {
           const target = billItems.value[idx];
           if (!target || target.isDrink) return;
           editingIndex.value = idx;
-          currentItem.value = JSON.parse(JSON.stringify(target.config));
-          broadcastCustomerLive();
+          currentItem.value = { ...defaultBowlState(), ...JSON.parse(JSON.stringify(target.config)) };
+          activePopupTarget.value = null;
+          onStateChanged();
         };
 
         const cancelEditBowl = () => {
@@ -1464,18 +1908,15 @@
             editingIndex.value--;
           }
           billItems.value.splice(idx, 1);
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
         const saveSyncSettings = () => {
           localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
           showSyncModal.value = false;
-          broadcastCustomerLive();
+          onStateChanged();
         };
 
-        // =========================================================================
-        // ระบบแปลงและบันทึกยอดขายเข้า MPOS.html อัตโนมัติ (radna_pos_history)
-        // =========================================================================
         const syncBillToMPOSHistory = (itemsList) => {
           try {
             const d = new Date();
@@ -1483,11 +1924,10 @@
             const thaiDate = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
             const nowTime = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
-            // ต้นทุนโดยประมาณต่อเมนูเพื่อให้ MPOS แสดงผลทันทีแม้ยังไม่เปิดหน้า MPOS
             const cogsMap = {
               rn_pork: 23.5, rn_liver: 17.5, rn_quail: 21.2, rn_beef: 23.5, rn_crispy: 31.5, rn_seafood: 36.5, rn_mixed: 34.0, rn_shrimp: 55.5,
               se_pork: 25.0, se_liver: 19.0, se_quail: 22.7, se_beef: 25.0, se_crispy: 33.0, se_seafood: 38.0, se_mixed: 35.5, se_shrimp: 57.0,
-              top_veg: 5.0, top_noodle: 4.5, top_pork: 10.0, top_beef: 10.0, top_quail_egg: 4.85, top_crispy_noodle: 3.5, top_liver: 3.0, top_squid: 17.5, top_crispy_pork: 10.0, top_shrimp: 14.65
+              top_veg: 5.0, top_noodle: 4.5, top_pork: 7.425, top_beef: 8.4, top_quail_egg: 4.4, top_crispy_noodle: 3.5, top_liver: 2.97, top_squid: 17.5, top_crispy_pork: 11.9, top_shrimp: 7.5
             };
 
             const meatIdMap = {
@@ -1518,6 +1958,10 @@
                 addRev += item.totalPrice;
                 addCogs += (cogsMap[menuId] || 25) * qty;
 
+                if (cfg.addPork) { salesDelta['top_pork'] = (salesDelta['top_pork'] || 0) + qty; addCogs += cogsMap.top_pork * qty; }
+                if (cfg.addBeef) { salesDelta['top_beef'] = (salesDelta['top_beef'] || 0) + qty; addCogs += cogsMap.top_beef * qty; }
+                if (cfg.addLiver) { salesDelta['top_liver'] = (salesDelta['top_liver'] || 0) + qty; addCogs += cogsMap.top_liver * qty; }
+                if (cfg.addMeeKrob) { salesDelta['top_crispy_noodle'] = (salesDelta['top_crispy_noodle'] || 0) + qty; addCogs += cogsMap.top_crispy_noodle * qty; }
                 if (cfg.extraNoodle) { salesDelta['top_noodle'] = (salesDelta['top_noodle'] || 0) + qty; addCogs += cogsMap.top_noodle * qty; }
                 if (cfg.extraVeg) { salesDelta['top_veg'] = (salesDelta['top_veg'] || 0) + qty; addCogs += cogsMap.top_veg * qty; }
                 if (cfg.addShrimp > 0) {
@@ -1569,7 +2013,10 @@
             });
 
             localStorage.setItem('radna_pos_history', JSON.stringify(history));
-            fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(history) });
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (dbUrl) {
+              fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(history) });
+            }
           } catch (err) {
             console.error('MPOS sync error:', err);
           }
@@ -1587,7 +2034,6 @@
             createdAt: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
           };
 
-          // บันทึกเข้าประวัติยอดขาย MPOS อัตโนมัติ
           syncBillToMPOSHistory(itemsSnapshot);
 
           const existing = JSON.parse(localStorage.getItem('mah_ocha_kitchen_orders') || '[]');
@@ -1653,19 +2099,27 @@
           lucide.createIcons();
           loadJanPlate();
           loadAndSlicePadseeewSprites();
+          prepareSingleMeatPiece('pork', ['Asset/meat_pork_a.png', 'Asset/meat_pork_piece.png'], 'Asset/meat_pork.png');
+          prepareSingleMeatPiece('beef', ['Asset/meat_beef_a.png', 'Asset/meat_beef_piece.png'], 'Asset/meat_beef.png');
+          prepareSingleMeatPiece('liver', ['Asset/meat_liver_a.png', 'Asset/meat_liver_piece.png'], 'Asset/meat_liver.png');
+          restoreActiveSession();
           broadcastCustomerLive();
         });
 
         return {
           billHeader, showSyncModal, firebaseUrl, editingIndex, compactPreview,
-          padseeewSprites, isPadseeewPlateMode, getPadseeewPlateImg,
+          activePopupTarget, lastSavedTime, saveToastMsg, manualMidDaySave, onStateChanged,
+          padseeewSprites, extraMeatSprites, hasMeeKrobCup, isPadseeewPlateMode, getPadseeewPlateImg,
           adminMode, adminSelectedKey, activeAdminObj, toggleAdminMode,
           selectAdminTarget, ensurePreviewHasSelectedItem, getLayerStyle, getAdminInteractiveClass,
           adjustLayoutProp, saveLayoutsToStorage, resetSingleLayout, resetAllLayouts, exportLayoutJson,
           noodleOptions, meatOptions, drinkOptions, getMeatImage, currentItem, billItems, isBowlEmpty,
-          toggleDishType, toggleNoodle, toggleMeat, changeShrimpQty, toggleToppingBool, toggleExtraVeg, toggleVeg, changeCurrentQty,
+          toggleDishType, handleNoodleButtonClick, togglePopupTarget, toggleExtraNoodleFromPopup, toggleAddMeeKrobFromPopup,
+          hasMeatExtraPopup, isMeatExtraActive, handleMeatButtonClick,
+          toggleExtraPork, toggleExtraLiver, toggleExtraBeef, toggleExtraCrispy,
+          changeShrimpQty, toggleToppingBool, toggleExtraVeg, toggleVeg, changeCurrentQty,
           getDrinkQtyInBill, changeDrinkQty, broadcastCustomerLive,
-          singleBowlPrice, currentItemTotalPrice, currentBowlSummary, billGrandTotal, totalSummaryHint,
+          singleBowlPrice, currentItemTotalPrice, currentBowlToppingsList, currentBowlSummary, billGrandTotal, totalSummaryHint,
           resetCurrentItem, saveBowlToTray, loadBowlForEdit, cancelEditBowl, removeBillItem,
           saveSyncSettings, sendToKitchenOnly, printAndSubmitBill
         };

@@ -3,329 +3,283 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จอลูกค้าหน้าเคาน์เตอร์ - เหมาะโอชา The Next⁺</title>
+  <title>เหมาะโอชา The Next⁺ - จอลูกค้าหน้าเคาน์เตอร์</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Kanit', sans-serif; }
     .layer-transition { transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
     @keyframes floatSteam {
       0%, 100% { transform: translateY(0) scale(1); opacity: 0.35; }
-      50% { transform: translateY(-12px) scale(1.15); opacity: 0.7; }
+      50% { transform: translateY(-12px) scale(1.12); opacity: 0.7; }
     }
     .steam-anim { animation: floatSteam 2.5s infinite ease-in-out; }
-    @keyframes gentlePulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.015); }
+    @keyframes pulseBorder {
+      0%, 100% { border-color: rgba(245, 158, 11, 0.5); }
+      50% { border-color: rgba(245, 158, 11, 1); }
     }
-    .promo-pulse { animation: gentlePulse 4s infinite ease-in-out; }
+    .live-ring { animation: pulseBorder 2s infinite ease-in-out; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-orange-50/70 text-stone-800 min-h-screen overflow-x-hidden">
-  <div id="customer-app" class="max-w-7xl mx-auto p-2.5 sm:p-4 flex flex-col min-h-screen lg:h-screen">
+<body class="bg-[#1A0D08] text-stone-800 min-h-screen flex flex-col">
+  <div id="app" class="max-w-7xl w-full mx-auto p-2.5 sm:p-4 flex flex-col min-h-screen lg:h-screen">
 
-    <!-- Header ร้านเหมาะโอชา The Next+ -->
-    <header class="bg-[#2C1810] text-white p-3 sm:p-3.5 rounded-2xl shadow-lg flex flex-wrap justify-between items-center gap-3 mb-3 shrink-0 border-b-4 border-red-600">
-      <div class="flex items-center space-x-3">
-        <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-12 sm:h-14 w-auto object-contain drop-shadow-md">
+    <!-- Header ธีมพรีเมียมน้ำตาลเข้ม-แดงทอง สำหรับฝั่งลูกค้า -->
+    <header class="bg-[#2C1810] text-white px-4 py-2.5 rounded-2xl shadow-lg flex flex-wrap justify-between items-center gap-3 mb-3 shrink-0 border-b-4 border-red-600">
+      <div class="flex items-center gap-3">
+        <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-11 sm:h-12 w-auto object-contain drop-shadow-md">
         <div>
-          <h1 class="text-lg sm:text-2xl font-extrabold text-amber-300 leading-tight flex items-center gap-2">
-            เหมาะโอชา <span class="text-xs sm:text-sm bg-red-600 text-white px-2.5 py-0.5 rounded-lg border border-red-400/50">The Next⁺</span>
-          </h1>
-          <p class="text-xs sm:text-sm text-amber-100/90">ราดหน้า • ผัดซีอิ๊ว คั่วกระทะหอมกรุ่น ปรุงสดใหม่ทุกชาม • โทร: 066 014 6505</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold text-amber-300 tracking-wide">เหมาะโอชา <span class="text-xs bg-red-600 px-2 py-0.5 rounded-full text-white font-bold">The Next⁺</span></h1>
+            <span class="hidden sm:inline-flex items-center gap-1 text-[11px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> LIVE
+            </span>
+          </div>
+          <p class="text-xs text-amber-100/80">ยินดีต้อนรับค่ะ • กรุณาตรวจสอบรายการอาหารและยอดชำระบนหน้าจอ</p>
         </div>
       </div>
 
-      <!-- สถานะโต๊ะ / คิว / การเชื่อมต่อ -->
-      <div class="flex items-center gap-2.5">
-        <div v-if="!isIdleScreen" class="bg-[#1E0F09] border-2 border-amber-500/70 px-3.5 py-1.5 rounded-2xl flex items-center gap-3 shadow-inner">
-          <div class="text-center">
-            <span class="text-[10px] text-amber-200/70 block">บริการ</span>
-            <span class="text-sm sm:text-base font-extrabold text-amber-300">{{ billHeader.location }}</span>
-          </div>
-          <div class="h-7 w-[1px] bg-amber-800/70"></div>
-          <div class="text-center">
-            <span class="text-[10px] text-amber-200/70 block">คิวที่</span>
-            <span class="text-base sm:text-lg font-black text-red-400">#{{ billHeader.queueNo }}</span>
-          </div>
+      <!-- แสดงโต๊ะ / คิวปัจจุบัน + ปุ่มเชื่อมต่อ / Fullscreen -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="bg-[#1E0F09] border border-amber-500/40 px-3.5 py-1.5 rounded-xl text-center">
+          <span class="text-[10px] text-amber-200/70 block">โต๊ะ / ประเภท</span>
+          <span class="text-sm sm:text-base font-extrabold text-amber-300">{{ billHeader.location || 'โต๊ะ 1' }}</span>
         </div>
-
-        <!-- ปุ่มตั้งค่าการเชื่อมต่อ / เต็มจอ -->
+        <div class="bg-red-700 border border-red-400/50 px-3.5 py-1.5 rounded-xl text-center shadow">
+          <span class="text-[10px] text-red-100 block">ลำดับคิวที่</span>
+          <span class="text-sm sm:text-base font-black text-white">#{{ billHeader.queueNo || 1 }}</span>
+        </div>
         <button @click="toggleFullscreen" title="ขยายเต็มหน้าจอ"
-                class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 p-2 rounded-xl transition">
-          <i data-lucide="maximize" class="w-4 h-4"></i>
+                class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 px-2.5 py-2 rounded-xl text-xs font-bold transition">
+          ⛶
         </button>
-        <button @click="showSyncModal = true" title="ตั้งค่าการเชื่อมต่อหน้าร้าน"
-                class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 p-2 rounded-xl transition relative">
-          <i data-lucide="settings" class="w-4 h-4"></i>
-          <span class="w-2.5 h-2.5 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
+        <button @click="showSyncModal = true" title="ตั้งค่าเชื่อมต่อข้ามเครื่อง"
+                class="bg-[#1E0F09] hover:bg-amber-950 border border-amber-800/60 text-amber-200 px-2.5 py-2 rounded-xl text-xs font-bold transition relative">
+          📡
+          <span class="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
         </button>
       </div>
     </header>
 
-    <!-- ============================================================== -->
-    <!-- หน้าจอพัก (IDLE / PROMO SCREEN) เมื่อยังไม่มีการกดรับออเดอร์ -->
-    <!-- ============================================================== -->
-    <div v-if="isIdleScreen"
-         class="flex-1 bg-gradient-to-br from-[#2C1810] via-[#3E2215] to-[#1E0F09] text-white rounded-3xl p-6 sm:p-10 flex flex-col justify-between items-center text-center shadow-2xl border-2 border-amber-500/40 relative overflow-hidden">
-      
-      <div class="z-10 space-y-2 mt-2">
-        <span class="bg-red-600 text-white text-xs sm:text-sm font-bold px-4 py-1 rounded-full tracking-wide shadow">
-          ยินดีต้อนรับสู่ร้าน เหมาะโอชา The Next⁺
-        </span>
-        <h2 class="text-2xl sm:text-4xl font-extrabold text-amber-300 drop-shadow">
-          เมนูแนะนำยอดนิยมประจำร้าน
-        </h2>
-        <p class="text-xs sm:text-base text-amber-100/80">
-          เลือกเส้น เลือกหน้า และท็อปปิ้งได้ตามใจชอบ หน้าจอนี้จะแสดงภาพและราคาให้คุณตรวจสอบทันทีที่สั่งอาหาร
-        </p>
-      </div>
+    <!-- Main Display: 2 คอลัมน์ใหญ่ ชัดเจน สบายตา -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 lg:overflow-hidden min-h-0">
 
-      <!-- การ์ดเมนูแนะนำ 3 เมนูเด่น -->
-      <div class="z-10 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-5xl my-auto py-4">
-        <div class="bg-white/10 backdrop-blur-md border border-amber-400/30 rounded-3xl p-5 flex flex-col items-center promo-pulse">
-          <div class="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center mb-3">
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-xl">
-            <img src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
-            <img src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
-            <img src="Asset/meat_crispy.png" :style="getLayerStyle('meat_crispy_pork')" class="absolute h-auto">
-            <div class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
-          </div>
-          <span class="bg-amber-400 text-[#2C1810] text-xs font-black px-3 py-0.5 rounded-full mb-1">⭐ เมนูขายดี</span>
-          <h3 class="text-lg sm:text-xl font-extrabold text-white">ราดหน้าหมูกรอบ</h3>
-          <p class="text-xs text-amber-100/80 mt-0.5">หมูกรอบหนังฟู คะน้ายอดอ่อน น้ำราดกลมกล่อม</p>
-          <div class="text-2xl font-black text-amber-300 mt-2">฿75</div>
-        </div>
-
-        <div class="bg-white/10 backdrop-blur-md border border-red-400/40 rounded-3xl p-5 flex flex-col items-center promo-pulse">
-          <div class="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center mb-3">
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-xl">
-            <img src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
-            <img src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
-            <img src="Asset/meat_shrimp.png" :style="getLayerStyle('meat_crabstick')" class="absolute h-auto">
-            <div class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
-          </div>
-          <span class="bg-red-600 text-white text-xs font-black px-3 py-0.5 rounded-full mb-1">🔥 แนะนำพรีเมียม</span>
-          <h3 class="text-lg sm:text-xl font-extrabold text-white">ราดหน้ากุ้งใหญ่</h3>
-          <p class="text-xs text-amber-100/80 mt-0.5">กุ้งขาวใหญ่คัดไซส์เนื้อเด้งเต็มคำ</p>
-          <div class="text-2xl font-black text-amber-300 mt-2">฿95</div>
-        </div>
-
-        <div class="bg-white/10 backdrop-blur-md border border-amber-400/30 rounded-3xl p-5 flex flex-col items-center promo-pulse">
-          <div class="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center mb-3">
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-xl">
-            <img src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto">
-            <img src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
-            <img src="Asset/meat_mixed.png" :style="getLayerStyle('meat_mixed')" class="absolute h-auto">
-            <div class="absolute inset-0 bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
-          </div>
-          <span class="bg-emerald-500 text-white text-xs font-black px-3 py-0.5 rounded-full mb-1">👑 ครบเครื่อง</span>
-          <h3 class="text-lg sm:text-xl font-extrabold text-white">ราดหน้ารวมมิตร</h3>
-          <p class="text-xs text-amber-100/80 mt-0.5">จัดเต็มเครื่องรวม 8 อย่างในชามเดียว</p>
-          <div class="text-2xl font-black text-amber-300 mt-2">฿85</div>
-        </div>
-      </div>
-
-      <div class="z-10 text-xs sm:text-sm text-amber-200/80 flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-        <span>พร้อมรับออเดอร์ • หน้าจอจะแสดงภาพชามอาหารของคุณอัตโนมัติ</span>
-      </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- หน้าจอแสดงออเดอร์แบบ REAL-TIME (LIVE ORDER DISPLAY) -->
-    <!-- ============================================================== -->
-    <div v-else class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:overflow-hidden min-h-0">
-
-      <!-- ฝั่งซ้าย (7 คอลัมน์): ภาพชาม/จานขนาดใหญ่เต็มตา -->
-      <div class="lg:col-span-7 bg-white rounded-3xl border-2 border-amber-300 p-4 sm:p-6 flex flex-col justify-between items-center shadow-lg relative overflow-hidden">
+      <!-- ฝั่งซ้าย (7 ส่วน): ภาพจำลองชาม/จานอาหารขนาดใหญ่แบบเรียลไทม์ -->
+      <div class="lg:col-span-7 bg-gradient-to-b from-white via-orange-50/40 to-amber-100/50 rounded-3xl border-2 border-amber-300/80 p-4 sm:p-5 flex flex-col justify-between items-center shadow-xl relative overflow-hidden">
         
-        <!-- ป้ายบอกชื่อเมนูที่กำลังแสดงภาพ -->
+        <!-- แถบสถานะชามที่กำลังสั่ง -->
         <div class="w-full flex flex-wrap justify-between items-center gap-2 z-10">
-          <span class="bg-[#2C1810] text-amber-300 text-xs sm:text-sm font-bold px-3.5 py-1 rounded-full shadow-sm">
-            {{ previewBadgeText }}
+          <span class="bg-[#2C1810] text-amber-300 text-xs sm:text-sm font-bold px-3.5 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+            <span>{{ currentItem.dishType === 'padseeew' ? '🍽️' : '🍲' }}</span>
+            <span>{{ isBowlEmpty && billItems.length === 0 ? 'รอรับรายการอาหาร...' : 'รายการที่กำลังจัดทำ' }}</span>
           </span>
-          <span v-if="displayBowl" class="bg-red-50 text-red-800 border border-red-200 text-xs sm:text-sm font-extrabold px-3.5 py-1 rounded-full">
-            {{ displayBowlSummary }}
+          <span v-if="!isBowlEmpty" class="bg-red-600 text-white text-xs sm:text-sm font-extrabold px-3.5 py-1 rounded-full shadow-sm">
+            {{ currentBowlSummary }} (x{{ currentItem.qty }})
           </span>
         </div>
 
-        <!-- พื้นที่ภาพภาชนะขนาดใหญ่ -->
-        <div v-if="displayBowl" class="relative w-full max-w-[460px] h-64 sm:h-80 lg:h-[360px] my-auto flex items-center justify-center select-none">
+        <!-- พื้นที่ภาพภาชนะขนาดใหญ่ตรงกลาง -->
+        <div class="relative w-full flex-1 flex items-center justify-center my-2 select-none min-h-[250px] sm:min-h-[320px]">
           
-          <!-- ถ้วยแยกหมี่กรอบ -->
-          <div v-if="displayBowl.noodle === 'mee_krob'"
-               class="relative w-[34%] aspect-square mr-2 flex items-center justify-center layer-transition shrink-0">
-            <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-lg" alt="ถ้วยหมี่กรอบ">
-            <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain drop-shadow-xl layer-transition" alt="หมี่กรอบ">
-          </div>
-
-          <!-- ภาชนะหลัก (จานผัดซีอิ๊ว หรือ ชามราดหน้า) -->
-          <div :class="['relative aspect-square flex items-center justify-center shrink-0 max-h-full layer-transition',
-                        displayBowl.noodle === 'mee_krob' ? 'w-[58%]' : 'w-64 sm:w-80 lg:w-[350px]']">
-
-            <!-- กรณีจานผัดซีอิ๊ว -->
-            <template v-if="isPadseeewPlateMode(displayBowl)">
-              <img :src="padseeewSprites.empty_plate" class="w-full h-full object-contain drop-shadow-xl layer-transition" alt="จานผัดซีอิ๊ว">
-              <img v-if="displayBowl.noodle === 'sen_yai' && padseeewSprites.sen_yai" :src="padseeewSprites.sen_yai" :style="getLayerStyle('padseeew_sen_yai')" class="absolute h-auto object-contain layer-transition z-10">
-              <img v-if="displayBowl.noodle === 'sen_mee' && padseeewSprites.sen_mee" :src="padseeewSprites.sen_mee" :style="getLayerStyle('padseeew_sen_mee')" class="absolute h-auto object-contain layer-transition z-10">
-              <img v-if="displayBowl.includeVeg && padseeewSprites.veg" :src="padseeewSprites.veg" :style="getLayerStyle('veg_kale_padseeew')" class="absolute h-auto object-contain layer-transition z-20">
-            </template>
-
-            <!-- กรณีชามราดหน้า -->
-            <template v-else>
-              <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-xl" alt="ชามสเตนเลส">
-              <img v-if="displayBowl.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute h-auto object-contain layer-transition z-10">
-              <img v-if="displayBowl.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" :style="getLayerStyle('noodle_sen_mee')" class="absolute h-auto object-contain layer-transition z-10">
-              <img v-if="displayBowl.includeVeg"
-                   :src="(displayBowl.dishType === 'padseeew' && padseeewSprites.veg) ? padseeewSprites.veg : 'Asset/veg_kale.png'"
-                   :style="getLayerStyle(displayBowl.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale')"
-                   class="absolute h-auto object-contain layer-transition z-20">
-            </template>
-
-            <!-- หน้าหลัก -->
-            <img v-if="displayBowl.meat" :src="getMeatImage(displayBowl.meat)" :style="getLayerStyle('meat_' + displayBowl.meat)" class="absolute h-auto object-contain layer-transition z-30">
-
-            <!-- ท็อปปิ้งเพิ่มเติม -->
-            <div class="absolute inset-0 z-40 pointer-events-none">
-              <img v-for="idx in (displayBowl.addShrimp || 0)" :key="'c_shrimp_'+(idx-1)"
-                   src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_' + (idx-1))"
-                   class="absolute h-auto object-contain layer-transition drop-shadow-md">
-
-              <template v-if="displayBowl.addSquid">
-                <img v-for="idx in 3" :key="'c_squid_'+(idx-1)"
-                     src="Asset/meat_squid_a.png" :style="getLayerStyle('squid_' + (idx-1))"
-                     class="absolute h-auto object-contain layer-transition drop-shadow-md">
-              </template>
-
-              <template v-if="displayBowl.addQuail">
-                <img v-for="idx in 4" :key="'c_quail_'+(idx-1)"
-                     src="Asset/meat_quail_a.png" :style="getLayerStyle('quail_' + (idx-1))"
-                     class="absolute h-auto object-contain layer-transition drop-shadow-md">
-              </template>
-
-              <template v-if="displayBowl.addCrispy">
-                <img v-for="idx in 3" :key="'c_crispy_'+(idx-1)"
-                     src="Asset/meat_crispy_a.png" :style="getLayerStyle('crispy_' + (idx-1))"
-                     class="absolute h-auto object-contain layer-transition drop-shadow-md">
-              </template>
-
-              <img v-if="displayBowl.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')"
-                   class="absolute h-auto object-contain layer-transition drop-shadow-lg">
-            </div>
-
-            <!-- น้ำราดหน้า -->
-            <div v-if="displayBowl.dishType === 'radna'" class="absolute inset-0 w-full h-full z-50 pointer-events-none bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
-
-            <!-- ควันร้อน -->
-            <div class="absolute inset-x-0 top-5 flex justify-center z-[60] pointer-events-none">
-              <svg viewBox="0 0 100 100" class="w-14 h-14 steam-anim opacity-50">
-                <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
-              </svg>
+          <!-- กรณียังไม่มีการกดเลือกอะไรเลย แสดงหน้าต้อนรับสวยงาม -->
+          <div v-if="isBowlEmpty && billItems.length === 0" class="text-center space-y-3 p-6">
+            <img src="Asset/MLOGO.png" alt="เหมาะโอชา" class="h-28 sm:h-36 mx-auto object-contain drop-shadow-xl">
+            <h2 class="text-2xl sm:text-3xl font-black text-[#2C1810]">สวัสดีค่ะ ร้านเหมาะโอชายินดีต้อนรับ</h2>
+            <p class="text-sm sm:text-base text-amber-900/80 font-medium">ราดหน้ายอดผัก • ผัดซีอิ๊วคั่วกระทะหอมกรุ่น ปรุงสดใหม่ทุกชาม</p>
+            <div class="inline-flex flex-wrap justify-center gap-2 pt-2">
+              <span class="bg-amber-100 text-[#3E2215] border border-amber-300 px-3 py-1 rounded-full text-xs font-bold">🐷 หมูหมักนุ่ม 55.-</span>
+              <span class="bg-amber-100 text-[#3E2215] border border-amber-300 px-3 py-1 rounded-full text-xs font-bold">🥩 เนื้อนุ่ม 65.-</span>
+              <span class="bg-amber-100 text-[#3E2215] border border-amber-300 px-3 py-1 rounded-full text-xs font-bold">🥓 หมูกรอบ 75.-</span>
+              <span class="bg-amber-100 text-[#3E2215] border border-amber-300 px-3 py-1 rounded-full text-xs font-bold">🦐 กุ้งสด 95.-</span>
             </div>
           </div>
+
+          <!-- กรณีมีรายการที่จัดเสร็จแล้ว แต่ชามปัจจุบันว่าง (กำลังรอกดชามต่อไปหรือสรุปยอด) -->
+          <div v-else-if="isBowlEmpty && billItems.length > 0" class="text-center space-y-3 p-4">
+            <div class="w-20 h-20 rounded-full bg-emerald-100 border-4 border-emerald-500 text-emerald-700 flex items-center justify-center text-4xl mx-auto shadow-md">
+              ✓
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-[#2C1810]">บันทึกชามก่อนหน้าเรียบร้อยแล้วค่ะ</h2>
+            <p class="text-sm text-stone-600">สามารถตรวจสอบรายการทั้งหมดได้ที่แถบด้านขวา หรือสั่งเมนูเพิ่มเติมได้เลยค่ะ</p>
+          </div>
+
+          <!-- แสดงภาพจำลองชาม/จานที่กำลังสั่งแบบเรียลไทม์ -->
+          <template v-else>
+            <!-- ถ้วยเล็กแยกหมี่กรอบด้านซ้าย (แสดงเมื่อเลือกหมี่กรอบหลัก หรือ กดเพิ่มหมี่กรอบ 2 ก้อน) -->
+            <div v-if="hasMeeKrobCup(currentItem)"
+                 class="relative w-[32%] max-w-[155px] aspect-square mr-2 flex items-center justify-center layer-transition shrink-0">
+              <!-- กรณีสั่งหมี่กรอบหลัก + เพิ่มหมี่กรอบอีก 2 ก้อน แสดงถ้วยซ้อนด้านหลังให้เห็นเป็น 2 ถ้วย -->
+              <div v-if="currentItem.noodle === 'mee_krob' && currentItem.addMeeKrob"
+                   class="absolute -top-3.5 -left-2.5 w-[88%] aspect-square flex items-center justify-center opacity-95 pointer-events-none">
+                <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow" alt="ถ้วยหมี่กรอบเพิ่ม">
+                <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain">
+              </div>
+
+              <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-lg relative z-10" alt="ถ้วยหมี่กรอบ">
+              <img src="Asset/noodle_meekrob.png" :style="getLayerStyle('noodle_mee_krob')" class="absolute max-w-none h-auto object-contain drop-shadow-xl layer-transition z-20" alt="หมี่กรอบ 2 ก้อน">
+              <span v-if="currentItem.addMeeKrob"
+                    class="absolute -bottom-2 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-[#2C1810] text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap shadow border border-white">
+                {{ currentItem.noodle === 'mee_krob' ? '+เพิ่ม 2 ก้อน' : 'หมี่กรอบ 2 ก้อน' }}
+              </span>
+            </div>
+
+            <!-- ภาชนะหลัก (ชามสเตนเลส หรือ จานผัดซีอิ๊ว jan.jpg) -->
+            <div :class="['relative aspect-square flex items-center justify-center shrink-0 layer-transition',
+                          hasMeeKrobCup(currentItem) ? 'w-[58%] max-w-[290px]' : 'w-[74%] max-w-[340px]']">
+              
+              <!-- กรณีผัดซีอิ๊ว (จาน jan.jpg) -->
+              <template v-if="isPadseeewPlateMode(currentItem)">
+                <img :src="getPadseeewPlateImg()" class="w-full h-full object-cover rounded-full drop-shadow-2xl layer-transition" alt="จานผัดซีอิ๊ว">
+                <img v-if="currentItem.noodle === 'sen_yai' && padseeewSprites.sen_yai" :src="padseeewSprites.sen_yai" :style="getLayerStyle('padseeew_sen_yai')" class="absolute object-contain z-10 layer-transition">
+                <img v-if="currentItem.noodle === 'sen_mee' && padseeewSprites.sen_mee" :src="padseeewSprites.sen_mee" :style="getLayerStyle('padseeew_sen_mee')" class="absolute object-contain z-10 layer-transition">
+                <img v-if="currentItem.includeVeg && padseeewSprites.veg" :src="padseeewSprites.veg" :style="getLayerStyle('veg_kale_padseeew')" class="absolute object-contain z-20 layer-transition">
+              </template>
+
+              <!-- กรณีราดหน้า (ชามสเตนเลส) -->
+              <template v-else>
+                <img src="Asset/bowl_empty.png" class="w-full h-full object-contain drop-shadow-2xl" alt="ชามสเตนเลส">
+                <img v-if="currentItem.noodle === 'sen_yai'" src="Asset/noodle_senyai.png" :style="getLayerStyle('noodle_sen_yai')" class="absolute object-contain z-10 layer-transition">
+                <img v-if="currentItem.noodle === 'sen_mee'" src="Asset/noodle_senmee.png" :style="getLayerStyle('noodle_sen_mee')" class="absolute object-contain z-10 layer-transition">
+                <img v-if="currentItem.includeVeg"
+                     :src="(currentItem.dishType === 'padseeew' && padseeewSprites.veg) ? padseeewSprites.veg : 'Asset/veg_kale.png'"
+                     :style="getLayerStyle(currentItem.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale')"
+                     class="absolute object-contain z-20 layer-transition">
+              </template>
+
+              <!-- หน้าหลักทั้ง 9 หน้า -->
+              <img v-if="currentItem.meat" :src="getMeatImage(currentItem.meat)"
+                   :style="getLayerStyle('meat_' + currentItem.meat)"
+                   class="absolute object-contain z-30 layer-transition">
+
+              <!-- ท็อปปิ้งเสริม (เพิ่มหมู 3 ชิ้น, เพิ่มเนื้อ 2 ชิ้น, เพิ่มตับ 3 ชิ้น, กุ้ง, หมึก, ไข่นก, หมูกรอบ, ไข่ดาว) -->
+              <div class="absolute inset-0 z-40 pointer-events-none">
+                <template v-if="currentItem.addPork">
+                  <img v-for="idx in 3" :key="'pork_'+(idx-1)" :src="extraMeatSprites.pork" :style="getLayerStyle('pork_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <template v-if="currentItem.addBeef">
+                  <img v-for="idx in 2" :key="'beef_'+(idx-1)" :src="extraMeatSprites.beef" :style="getLayerStyle('beef_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <template v-if="currentItem.addLiver">
+                  <img v-for="idx in 3" :key="'liver_'+(idx-1)" :src="extraMeatSprites.liver" :style="getLayerStyle('liver_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <img v-for="idx in currentItem.addShrimp" :key="'shrimp_'+(idx-1)" src="Asset/meat_shrimp_a.png" :style="getLayerStyle('shrimp_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                <template v-if="currentItem.addSquid">
+                  <img v-for="idx in 3" :key="'squid_'+(idx-1)" src="Asset/meat_squid_a.png" :style="getLayerStyle('squid_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <template v-if="currentItem.addQuail">
+                  <img v-for="idx in 4" :key="'quail_'+(idx-1)" src="Asset/meat_quail_a.png" :style="getLayerStyle('quail_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <template v-if="currentItem.addCrispy">
+                  <img v-for="idx in 3" :key="'crispy_'+(idx-1)" src="Asset/meat_crispy_a.png" :style="getLayerStyle('crispy_' + (idx-1))" class="absolute object-contain drop-shadow-md layer-transition">
+                </template>
+                <img v-if="currentItem.addFriedEgg" src="Asset/meat_friedegg.png" :style="getLayerStyle('fried_egg')" class="absolute object-contain drop-shadow-lg layer-transition">
+              </div>
+
+              <!-- น้ำราดหน้า -->
+              <div v-if="currentItem.dishType === 'radna'" class="absolute inset-0 w-full h-full z-50 pointer-events-none bg-amber-900/20 rounded-full mix-blend-multiply scale-[0.68]"></div>
+
+              <!-- ควันร้อน -->
+              <div class="absolute inset-x-0 top-4 flex justify-center z-[60] pointer-events-none">
+                <svg viewBox="0 0 100 100" class="w-14 h-14 steam-anim opacity-50">
+                  <path d="M30,80 Q20,50 35,20 M50,75 Q60,45 45,15 M70,80 Q60,50 75,20" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+          </template>
         </div>
 
-        <!-- กรณีมีเฉพาะเครื่องดื่มในบิล -->
-        <div v-else class="my-auto flex flex-col items-center justify-center text-center p-6">
-          <div class="text-7xl mb-3">🥤</div>
-          <div class="text-xl font-extrabold text-[#3E2215]">รายการเครื่องดื่มเย็นชื่นใจ</div>
-          <p class="text-sm text-stone-500 mt-1">ตรวจสอบรายการและราคาทางด้านขวาได้เลยครับ</p>
-        </div>
-
-        <!-- แถบรายละเอียดท็อปปิ้ง & ราคาของจานที่กำลังแสดง -->
-        <div v-if="displayBowl" class="w-full bg-orange-50 border border-amber-200 rounded-2xl p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 z-10">
-          <div>
-            <div class="text-base sm:text-lg font-extrabold text-[#2C1810]">
-              {{ displayBowlSummary }}
-              <span class="text-red-700 ml-1">x {{ displayBowl.qty || 1 }} {{ displayBowl.dishType === 'padseeew' ? 'จาน' : 'ชาม' }}</span>
+        <!-- แถบรายละเอียดท็อปปิ้งและราคาของชามปัจจุบัน -->
+        <div v-if="!isBowlEmpty" class="w-full bg-white/95 border-2 border-amber-300 rounded-2xl p-3 flex flex-wrap justify-between items-center gap-2 shadow-sm z-10">
+          <div class="space-y-0.5">
+            <div class="text-sm sm:text-base font-extrabold text-[#2C1810]">
+              {{ currentBowlSummary }} <span class="text-red-600">(จำนวน {{ currentItem.qty }} {{ currentItem.dishType === 'padseeew' ? 'จาน' : 'ชาม' }})</span>
             </div>
-            <div v-if="displayBowlToppings" class="text-xs sm:text-sm font-bold text-amber-800 mt-0.5">
-              ✨ เพิ่มเติม: {{ displayBowlToppings }}
+            <div v-if="currentBowlToppingsList.length > 0" class="text-xs font-bold text-amber-800">
+              ✨ ท็อปปิ้งเพิ่มเติม: {{ currentBowlToppingsList.join(', ') }}
             </div>
-            <div v-if="displayBowl.note" class="text-xs sm:text-sm font-bold text-red-600 mt-0.5">
-              📝 หมายเหตุ: {{ displayBowl.note }}
+            <div v-if="currentItem.note" class="text-xs font-bold text-red-600">
+              📝 หมายเหตุ: {{ currentItem.note }}
             </div>
           </div>
           <div class="text-right">
-            <span class="text-xs text-stone-500 block">ราคารายการนี้</span>
-            <span class="text-2xl sm:text-3xl font-black text-red-700">฿{{ displayBowlPrice }}</span>
+            <span class="text-[11px] text-stone-500 block">ราคารายการนี้</span>
+            <span class="text-xl sm:text-2xl font-black text-red-700">฿{{ currentItemTotalPrice }}</span>
           </div>
         </div>
       </div>
 
-      <!-- ฝั่งขวา (5 คอลัมน์): รายการสรุปบิลและยอดรวมสุทธิ -->
-      <div class="lg:col-span-5 bg-white rounded-3xl border-2 border-amber-300 shadow-lg flex flex-col lg:h-full lg:overflow-hidden">
+      <!-- ฝั่งขวา (5 ส่วน): สรุปรายการในบิลทั้งหมด + ยอดชำระเงินรวมขนาดใหญ่ -->
+      <div class="lg:col-span-5 bg-white rounded-3xl border-2 border-amber-300/80 shadow-xl flex flex-col lg:h-full lg:overflow-hidden">
         
-        <div class="bg-[#3E2215] text-white px-4 py-3 flex justify-between items-center shrink-0">
-          <span class="font-extrabold text-base sm:text-lg text-amber-300 flex items-center gap-2">
+        <!-- หัวข้อรายการอาหาร -->
+        <div class="bg-amber-100/80 px-4 py-3 border-b border-amber-200 flex justify-between items-center shrink-0">
+          <h2 class="text-base sm:text-lg font-extrabold text-[#2C1810] flex items-center gap-2">
             <span>🧾</span> รายการสั่งซื้อของคุณ
-          </span>
-          <span class="text-xs bg-red-600 text-white font-bold px-2.5 py-1 rounded-full">
-            {{ totalItemsCount }} รายการ
+          </h2>
+          <span class="bg-[#2C1810] text-amber-300 text-xs font-bold px-2.5 py-1 rounded-full">
+            {{ displayOrderList.length }} รายการ
           </span>
         </div>
 
-        <!-- รายการทั้งหมดในบิล -->
-        <div class="flex-1 p-3 sm:p-4 space-y-2.5 overflow-y-auto">
-          
-          <!-- รายการที่บันทึกเข้าบิลแล้ว -->
-          <div v-for="(item, idx) in billItems" :key="'cb_'+idx"
-               class="p-3 rounded-2xl border border-amber-200 bg-orange-50/50 flex justify-between items-start gap-2">
-            <div class="min-w-0">
-              <div class="font-extrabold text-sm sm:text-base text-stone-800">
-                {{ idx + 1 }}. {{ item.title }}
-                <span class="text-red-700 font-black ml-1">x{{ item.qty }}</span>
-              </div>
-              <div v-if="item.toppingsText" class="text-xs font-semibold text-amber-800 mt-0.5">
-                + {{ item.toppingsText }}
-              </div>
-              <div v-if="item.note" class="text-xs font-bold text-red-600 mt-0.5">
-                หมายเหตุ: {{ item.note }}
-              </div>
-            </div>
-            <div class="font-black text-base sm:text-lg text-[#2C1810] shrink-0">
-              ฿{{ item.totalPrice }}
-            </div>
+        <!-- รายการทั้งหมด (รายการที่จัดเสร็จแล้ว + รายการที่กำลังเลือกอยู่) -->
+        <div class="flex-1 p-3.5 space-y-2.5 overflow-y-auto">
+          <div v-if="displayOrderList.length === 0" class="h-full flex flex-col items-center justify-center text-center text-stone-400 py-10">
+            <span class="text-4xl mb-2">🥢</span>
+            <p class="text-sm font-bold text-stone-500">ยังไม่มีรายการอาหารในบิล</p>
+            <p class="text-xs">รายการจะปรากฏที่นี่ทันทีเมื่อพนักงานกดเลือกเมนูค่ะ</p>
           </div>
 
-          <!-- รายการที่พนักงานกำลังกดเลือกอยู่สดๆ (ยังไม่กดจัดเสร็จ) -->
-          <div v-if="hasPendingCurrentBowl"
-               class="p-3 rounded-2xl border-2 border-dashed border-red-500 bg-red-50/60 flex justify-between items-start gap-2">
-            <div class="min-w-0">
-              <span class="text-[10px] font-extrabold bg-red-600 text-white px-2 py-0.5 rounded-full">กำลังเลือกเพิ่มเติม...</span>
-              <div class="font-extrabold text-sm sm:text-base text-stone-900 mt-1">
-                {{ billItems.length + 1 }}. {{ currentBowlSummary }}
-                <span class="text-red-700 font-black ml-1">x{{ currentItem.qty }}</span>
-              </div>
-              <div v-if="currentBowlToppings" class="text-xs font-semibold text-amber-800 mt-0.5">
-                + {{ currentBowlToppings }}
-              </div>
-              <div v-if="currentItem.note" class="text-xs font-bold text-red-600 mt-0.5">
-                หมายเหตุ: {{ currentItem.note }}
-              </div>
+          <div v-for="(item, idx) in displayOrderList" :key="idx"
+               :class="['p-3 rounded-2xl border-2 transition flex items-center gap-3',
+                       item.isPending ? 'bg-amber-50/90 border-amber-400 live-ring shadow-sm' : 'bg-white border-stone-200 shadow-xs']">
+            
+            <!-- ภาพย่อหน้าตาอาหาร/เครื่องดื่ม -->
+            <div class="w-12 h-12 rounded-xl bg-orange-50 border border-amber-200 flex items-center justify-center shrink-0 overflow-hidden relative">
+              <template v-if="item.isDrink">
+                <span class="text-2xl">{{ item.drinkIcon || '🥤' }}</span>
+              </template>
+              <template v-else>
+                <img v-if="isPadseeewPlateMode(item.config)" :src="getPadseeewPlateImg()" class="w-10 h-10 object-cover rounded-full">
+                <img v-else src="Asset/bowl_empty.png" class="w-10 h-10 object-contain">
+                <img v-if="item.config && item.config.meat" :src="getMeatImage(item.config.meat)" class="w-7 h-7 object-contain absolute">
+              </template>
             </div>
-            <div class="font-black text-base sm:text-lg text-red-700 shrink-0">
-              ฿{{ currentItemTotalPrice }}
+
+            <!-- รายละเอียด -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span v-if="item.isPending" class="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">กำลังเลือก</span>
+                <h3 class="text-sm sm:text-base font-extrabold text-[#2C1810] truncate">{{ item.title }}</h3>
+              </div>
+              <p v-if="item.toppingsText" class="text-xs text-amber-800 font-medium truncate">+ {{ item.toppingsText }}</p>
+              <p v-if="item.note" class="text-xs text-red-600 font-bold truncate">หมายเหตุ: {{ item.note }}</p>
+              <p class="text-xs text-stone-500 mt-0.5">฿{{ item.unitPrice }} x {{ item.qty }}</p>
+            </div>
+
+            <!-- ราคารวมรายการ -->
+            <div class="text-right shrink-0">
+              <span class="text-base sm:text-lg font-black text-red-700">฿{{ item.totalPrice }}</span>
             </div>
           </div>
-
         </div>
 
-        <!-- ยอดชำระสุทธิตัวใหญ่ชัดเจน -->
-        <div class="bg-[#2C1810] text-white p-4 sm:p-5 border-t-4 border-red-600 shrink-0">
-          <div class="flex justify-between items-baseline">
+        <!-- กล่องสรุปยอดรวมสุทธิขนาดใหญ่ด้านล่าง -->
+        <div class="bg-[#2C1810] text-white p-4 sm:p-5 border-t-4 border-red-600 shrink-0 space-y-2">
+          <div class="flex justify-between items-center text-xs sm:text-sm text-amber-200/80">
+            <span>จำนวนรายการทั้งหมด</span>
+            <span class="font-bold text-white">{{ totalItemCount }} ชิ้น / ชาม</span>
+          </div>
+          <div class="flex justify-between items-end pt-1 border-t border-amber-800/60">
             <div>
-              <span class="text-xs sm:text-sm text-amber-200/80 block">ยอดชำระรวมทั้งสิ้น</span>
-              <span class="text-[11px] text-amber-100/60">กรุณาตรวจสอบรายการอาหารก่อนชำระเงิน</span>
+              <span class="text-sm sm:text-base font-bold text-amber-300 block">ยอดชำระรวมทั้งสิ้น</span>
+              <span class="text-[11px] text-amber-100/70">กรุณาตรวจสอบความถูกต้องก่อนยืนยันออเดอร์ค่ะ</span>
             </div>
-            <div class="text-3xl sm:text-5xl font-black text-amber-300 tracking-tight">
+            <div class="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">
               ฿{{ grandTotal }}
             </div>
           </div>
@@ -334,18 +288,19 @@
       </div>
     </div>
 
-    <!-- Modal ตั้งค่าการเชื่อมต่อ Firebase -->
+    <!-- Modal ตั้งค่าเชื่อมต่อข้ามเครื่อง (Firebase) -->
     <div v-if="showSyncModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 border-t-4 border-red-600">
         <div class="flex justify-between items-center border-b border-amber-100 pb-2">
-          <h3 class="font-bold text-base text-[#2C1810] flex items-center gap-2">
-            <span>📡</span> ตั้งค่าการเชื่อมต่อจอลูกค้า
-          </h3>
+          <h3 class="font-bold text-base text-[#2C1810]">📡 ตั้งค่าการเชื่อมต่อจอลูกค้า</h3>
           <button @click="showSyncModal = false" class="text-stone-400 hover:text-stone-700 font-bold">✕</button>
         </div>
         <div class="text-xs text-stone-600 space-y-2">
           <p class="bg-orange-50 text-[#3E2215] p-2.5 rounded-xl border border-amber-200">
-            ใส่ <strong>Firebase Realtime Database URL</strong> ให้ตรงกับมือถือหน้าร้าน เพื่อให้ภาพชามอาหารและราคาขึ้นบนหน้าจอนี้ทันทีแบบ Real-time
+            <strong>โหมดเครื่องเดียวกัน:</strong> หากเปิดคู่กับหน้าสั่งอาหาร (<code>index.html</code>) บนเบราว์เซอร์เดียวกัน ภาพจะขึ้นอัตโนมัติทันทีโดยไม่ต้องใส่ลิงก์
+          </p>
+          <p class="bg-red-50 text-red-900 p-2.5 rounded-xl border border-red-200">
+            <strong>โหมดคนละเครื่อง (มือถือภรรยา ➔ แท็บเล็ต/จอลูกค้า):</strong> ใส่ Firebase Realtime Database URL ให้ตรงกับหน้าสั่งอาหาร
           </p>
           <div>
             <label class="font-bold text-stone-700 block mb-1">Firebase Realtime Database URL:</label>
@@ -354,9 +309,7 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">
-            บันทึกการตั้งค่า
-          </button>
+          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกและเชื่อมต่อ</button>
         </div>
       </div>
     </div>
@@ -383,6 +336,14 @@
       meat_crispy_pork: { width: 44, top: 45, left: 28, rot: 0 },
       meat_seafood: { width: 46, top: 43, left: 27, rot: 0 },
       meat_mixed: { width: 75, top: 35, left: 12.5, rot: 0 },
+      pork_0: { width: 22, top: 37, left: 24, rot: -12 },
+      pork_1: { width: 22, top: 36, left: 49, rot: 14 },
+      pork_2: { width: 22, top: 53, left: 39, rot: -6 },
+      beef_0: { width: 24, top: 38, left: 24, rot: -10 },
+      beef_1: { width: 24, top: 40, left: 50, rot: 15 },
+      liver_0: { width: 22, top: 36, left: 26, rot: -15 },
+      liver_1: { width: 22, top: 36, left: 49, rot: 12 },
+      liver_2: { width: 22, top: 54, left: 38, rot: -8 },
       fried_egg: { width: 44, top: 36, left: 15, rot: 0 },
       shrimp_0: { width: 24, top: 48, left: 50, rot: -15 },
       shrimp_1: { width: 24, top: 52, left: 28, rot: 15 },
@@ -404,22 +365,185 @@
 
     createApp({
       setup() {
-        const showSyncModal = ref(false);
-        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
+        const billHeader = ref({ location: 'โต๊ะ 1', queueNo: 1 });
+        const currentItem = ref({
+          dishType: null, noodle: null, meat: null, qty: 1,
+          addPork: false, addBeef: false, addLiver: false, addMeeKrob: false,
+          addShrimp: 0, addSquid: false, addCrispy: false,
+          addQuail: false, addFriedEgg: false, extraNoodle: false,
+          extraVeg: false, includeVeg: false, note: ''
+        });
+        const billItems = ref([]);
         const layoutConfig = ref(JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG)));
 
-        const billHeader = ref({ location: 'โต๊ะ 1', queueNo: 1 });
-        const currentItem = ref(null);
-        const billItems = ref([]);
-        const lastUpdatedAt = ref(0);
-        const nowTick = ref(Date.now());
+        const showSyncModal = ref(false);
+        const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || '');
 
-        const padseeewSprites = ref({
-          empty_plate: '',
-          sen_yai: '',
-          sen_mee: '',
-          veg: ''
+        const padseeewSprites = ref({ empty_plate: 'Asset/jan.jpg', sen_yai: '', sen_mee: '', veg: '' });
+        const extraMeatSprites = ref({
+          pork: 'Asset/meat_pork.png',
+          beef: 'Asset/meat_beef.png',
+          liver: 'Asset/meat_liver.png'
         });
+
+        const prepareSingleMeatPiece = (type, dedicatedCandidates, fallbackSrc) => {
+          let idx = 0;
+          const tryDedicated = () => {
+            if (idx >= dedicatedCandidates.length) {
+              const img = new Image();
+              img.onload = () => {
+                try {
+                  const w = img.naturalWidth, h = img.naturalHeight;
+                  const cropSize = Math.round(Math.min(w, h) * 0.56);
+                  const canvas = document.createElement('canvas');
+                  canvas.width = cropSize; canvas.height = cropSize;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, Math.round(w * 0.08), Math.round(h * 0.14), cropSize, cropSize, 0, 0, cropSize, cropSize);
+                  extraMeatSprites.value[type] = canvas.toDataURL('image/png');
+                } catch (e) {
+                  extraMeatSprites.value[type] = fallbackSrc;
+                }
+              };
+              img.src = fallbackSrc;
+              return;
+            }
+            const candidate = dedicatedCandidates[idx++];
+            const img = new Image();
+            img.onload = () => { extraMeatSprites.value[type] = candidate; };
+            img.onerror = tryDedicated;
+            img.src = candidate;
+          };
+          tryDedicated();
+        };
+
+        const loadJanPlate = () => {
+          const candidates = ['Asset/jan.jpg', 'Asset/jan.png', 'asset/jan.jpg', 'jan.jpg'];
+          let idx = 0;
+          const tryNext = () => {
+            if (idx >= candidates.length) return;
+            const currentSrc = candidates[idx++];
+            const img = new Image();
+            img.onload = () => {
+              padseeewSprites.value.empty_plate = currentSrc;
+              try {
+                const size = Math.min(img.naturalWidth, img.naturalHeight);
+                const canvas = document.createElement('canvas');
+                canvas.width = size; canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, (img.naturalWidth - size) / 2, (img.naturalHeight - size) / 2, size, size, 0, 0, size, size);
+                const imgData = ctx.getImageData(0, 0, size, size);
+                const d = imgData.data;
+                let minX = size, maxX = 0, minY = size, maxY = 0, found = false;
+                for (let y = 2; y < size - 2; y++) {
+                  for (let x = 2; x < size - 2; x++) {
+                    const p = (y * size + x) * 4;
+                    if (d[p + 2] - d[p] > 35 && d[p + 2] - d[p + 1] > 20 && d[p + 2] > 50) {
+                      if (x < minX) minX = x; if (x > maxX) maxX = x;
+                      if (y < minY) minY = y; if (y > maxY) maxY = y;
+                      found = true;
+                    }
+                  }
+                }
+                const cx = found ? (minX + maxX) / 2 : size / 2;
+                const cy = found ? (minY + maxY) / 2 : size / 2;
+                const radius = found ? Math.max(maxX - minX, maxY - minY) / 2 + 2 : size * 0.468;
+                for (let y = 0; y < size; y++) {
+                  for (let x = 0; x < size; x++) {
+                    const dist = Math.hypot(x - cx, y - cy);
+                    const p = (y * size + x) * 4;
+                    if (dist > radius) d[p + 3] = 0;
+                    else if (dist > radius - 2) d[p + 3] = Math.max(0, Math.round(255 * ((radius - dist) / 2)));
+                  }
+                }
+                ctx.putImageData(imgData, 0, 0);
+                padseeewSprites.value.empty_plate = canvas.toDataURL('image/png');
+              } catch (err) { padseeewSprites.value.empty_plate = currentSrc; }
+            };
+            img.onerror = tryNext;
+            img.src = currentSrc;
+          };
+          tryNext();
+        };
+
+        const loadAndSlicePadseeewSprites = () => {
+          const candidates = ['Asset/paseeew.jpg', 'Asset/paseeew.png', 'Asset/padseeew.jpg', 'paseeew.jpg'];
+          let attempt = 0;
+          const applyFallback = () => {
+            if (!padseeewSprites.value.sen_yai) padseeewSprites.value.sen_yai = 'Asset/noodle_senyai.png';
+            if (!padseeewSprites.value.sen_mee) padseeewSprites.value.sen_mee = 'Asset/noodle_senmee.png';
+            if (!padseeewSprites.value.veg) padseeewSprites.value.veg = 'Asset/veg_kale.png';
+          };
+          const tryNext = () => {
+            if (attempt >= candidates.length) { applyFallback(); return; }
+            const srcPath = candidates[attempt++];
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const w = img.naturalWidth, h = img.naturalHeight;
+                const extractMound = (rx, ry, rw, rh) => {
+                  const tCanvas = document.createElement('canvas');
+                  tCanvas.width = rw; tCanvas.height = rh;
+                  const tCtx = tCanvas.getContext('2d');
+                  tCtx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+                  const tData = tCtx.getImageData(0, 0, rw, rh).data;
+                  let minX = rw, maxX = 0, minY = rh, maxY = 0, found = false;
+                  for (let y = 4; y < rh - 4; y++) {
+                    for (let x = 4; x < rw - 4; x++) {
+                      const idx = (y * rw + x) * 4;
+                      if (tData[idx + 2] - tData[idx] > 18 && tData[idx + 2] - tData[idx + 1] > 8 && tData[idx + 2] > 45 && tData[idx + 2] < 170) {
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                        found = true;
+                      }
+                    }
+                  }
+                  const cx = found ? (minX + maxX) / 2 : rw * 0.5;
+                  const cy = found ? (minY + maxY) / 2 : rh * 0.5;
+                  const foodRadius = (found ? Math.max(maxX - minX, maxY - minY) / 2 : Math.min(rw, rh) * 0.45) * 0.72;
+                  const outSize = Math.ceil(foodRadius * 2);
+                  const oCanvas = document.createElement('canvas');
+                  oCanvas.width = outSize; oCanvas.height = outSize;
+                  const oCtx = oCanvas.getContext('2d');
+                  const half = outSize / 2;
+                  oCtx.drawImage(tCanvas, cx - half, cy - half, outSize, outSize, 0, 0, outSize, outSize);
+                  const outImg = oCtx.getImageData(0, 0, outSize, outSize);
+                  const d = outImg.data;
+                  for (let y = 0; y < outSize; y++) {
+                    for (let x = 0; x < outSize; x++) {
+                      const dist = Math.hypot(x - half, y - half);
+                      const p = (y * outSize + x) * 4;
+                      const sat = Math.max(d[p], d[p + 1], d[p + 2]) - Math.min(d[p], d[p + 1], d[p + 2]);
+                      const lum = (d[p] + d[p + 1] + d[p + 2]) / 3;
+                      if (dist > foodRadius || (lum > 188 && sat < 24)) d[p + 3] = 0;
+                    }
+                  }
+                  oCtx.putImageData(outImg, 0, 0);
+                  return oCanvas.toDataURL('image/png');
+                };
+                const extractVeg = (rx, ry, rw, rh) => {
+                  const canvas = document.createElement('canvas');
+                  canvas.width = rw; canvas.height = rh;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+                  const imgData = ctx.getImageData(0, 0, rw, rh);
+                  const d = imgData.data;
+                  for (let i = 0; i < d.length; i += 4) {
+                    const sat = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
+                    if (sat < 22) d[i + 3] = 0;
+                  }
+                  ctx.putImageData(imgData, 0, 0);
+                  return canvas.toDataURL('image/png');
+                };
+                padseeewSprites.value.sen_yai = extractMound(0, 0, Math.round(w * 0.36), h);
+                padseeewSprites.value.sen_mee = extractMound(Math.round(w * 0.37), 0, Math.round(w * 0.39), h);
+                padseeewSprites.value.veg = extractVeg(Math.round(w * 0.785), Math.round(h * 0.015), Math.round(w * 0.210), Math.round(h * 0.545));
+              } catch (e) { applyFallback(); }
+            };
+            img.onerror = tryNext;
+            img.src = srcPath;
+          };
+          tryNext();
+        };
 
         const noodleOptions = [
           { id: 'sen_yai', name: 'เส้นใหญ่' },
@@ -440,6 +564,9 @@
         ];
 
         const getMeatImage = (meatId) => meatOptions.find(m => m.id === meatId)?.img || '';
+        const hasMeeKrobCup = (cfg) => cfg && (cfg.noodle === 'mee_krob' || cfg.addMeeKrob);
+        const isPadseeewPlateMode = (cfg) => cfg && cfg.dishType === 'padseeew' && cfg.noodle !== 'mee_krob';
+        const getPadseeewPlateImg = () => padseeewSprites.value.empty_plate || 'Asset/jan.jpg';
 
         const getLayerStyle = (key) => {
           const cfg = layoutConfig.value[key] || DEFAULT_LAYOUT_CONFIG[key] || { width: 50, top: 25, left: 25, rot: 0 };
@@ -451,256 +578,87 @@
           };
         };
 
-        const loadJanPlate = () => {
-          const candidates = ['Asset/jan.jpg', 'Asset/jan.png', 'jan.jpg', 'jan.png'];
-          let idx = 0;
-          const tryNext = () => {
-            if (idx >= candidates.length) return;
-            const img = new Image();
-            img.onload = () => {
-              const size = Math.min(img.naturalWidth, img.naturalHeight);
-              const canvas = document.createElement('canvas');
-              canvas.width = size;
-              canvas.height = size;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, (img.naturalWidth - size) / 2, (img.naturalHeight - size) / 2, size, size, 0, 0, size, size);
-              const imgData = ctx.getImageData(0, 0, size, size);
-              const d = imgData.data;
-              let minX = size, maxX = 0, minY = size, maxY = 0, found = false;
-              for (let y = 2; y < size - 2; y++) {
-                for (let x = 2; x < size - 2; x++) {
-                  const p = (y * size + x) * 4;
-                  if (d[p + 2] - d[p] > 35 && d[p + 2] - d[p + 1] > 20 && d[p + 2] > 50) {
-                    if (x < minX) minX = x; if (x > maxX) maxX = x;
-                    if (y < minY) minY = y; if (y > maxY) maxY = y;
-                    found = true;
-                  }
-                }
-              }
-              const cx = found ? (minX + maxX) / 2 : size / 2;
-              const cy = found ? (minY + maxY) / 2 : size / 2;
-              const radius = found ? Math.max(maxX - minX, maxY - minY) / 2 + 2 : size * 0.468;
-              for (let y = 0; y < size; y++) {
-                for (let x = 0; x < size; x++) {
-                  const dist = Math.hypot(x - cx, y - cy);
-                  const p = (y * size + x) * 4;
-                  if (dist > radius) d[p + 3] = 0;
-                  else if (dist > radius - 2) d[p + 3] = Math.max(0, Math.round(255 * ((radius - dist) / 2)));
-                }
-              }
-              ctx.putImageData(imgData, 0, 0);
-              padseeewSprites.value.empty_plate = canvas.toDataURL('image/png');
-            };
-            img.onerror = tryNext;
-            img.src = candidates[idx++];
-          };
-          tryNext();
-        };
-
-        const loadAndSlicePadseeewSprites = () => {
-          const candidates = ['Asset/paseeew.jpg', 'Asset/paseeew.png', 'Asset/padseeew.jpg', 'Asset/padseeew.png', 'paseeew.jpg'];
-          let attempt = 0;
-          const tryNextImage = () => {
-            if (attempt >= candidates.length) return;
-            const img = new Image();
-            img.onload = () => {
-              const w = img.naturalWidth, h = img.naturalHeight;
-              const extractNoodleMound = (rx, ry, rw, rh) => {
-                const tCanvas = document.createElement('canvas');
-                tCanvas.width = rw; tCanvas.height = rh;
-                const tCtx = tCanvas.getContext('2d');
-                tCtx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
-                const tData = tCtx.getImageData(0, 0, rw, rh).data;
-                let minX = rw, maxX = 0, minY = rh, maxY = 0, found = false;
-                for (let y = 4; y < rh - 4; y++) {
-                  for (let x = 4; x < rw - 4; x++) {
-                    const idx = (y * rw + x) * 4;
-                    if (tData[idx + 2] - tData[idx] > 18 && tData[idx + 2] - tData[idx + 1] > 8 && tData[idx + 2] > 45 && tData[idx + 2] < 170) {
-                      if (x < minX) minX = x; if (x > maxX) maxX = x;
-                      if (y < minY) minY = y; if (y > maxY) maxY = y;
-                      found = true;
-                    }
-                  }
-                }
-                const cx = found ? (minX + maxX) / 2 : rw * 0.5;
-                const cy = found ? (minY + maxY) / 2 : rh * 0.5;
-                const foodRadius = (found ? Math.max(maxX - minX, maxY - minY) / 2 : Math.min(rw, rh) * 0.45) * 0.72;
-                const outSize = Math.ceil(foodRadius * 2);
-                const oCanvas = document.createElement('canvas');
-                oCanvas.width = outSize; oCanvas.height = outSize;
-                const oCtx = oCanvas.getContext('2d');
-                const half = outSize / 2;
-                oCtx.drawImage(tCanvas, cx - half, cy - half, outSize, outSize, 0, 0, outSize, outSize);
-                const outImg = oCtx.getImageData(0, 0, outSize, outSize);
-                const d = outImg.data;
-                for (let y = 0; y < outSize; y++) {
-                  for (let x = 0; x < outSize; x++) {
-                    const dist = Math.hypot(x - half, y - half);
-                    const p = (y * outSize + x) * 4;
-                    const sat = Math.max(d[p], d[p + 1], d[p + 2]) - Math.min(d[p], d[p + 1], d[p + 2]);
-                    const lum = (d[p] + d[p + 1] + d[p + 2]) / 3;
-                    if (dist > foodRadius || (lum > 188 && sat < 24)) d[p + 3] = 0;
-                    else if (lum > 170 && sat < 28) d[p + 3] = Math.round(((188 - lum) / 18) * 255);
-                  }
-                }
-                oCtx.putImageData(outImg, 0, 0);
-                return oCanvas.toDataURL('image/png');
-              };
-              const extractVeg = (rx, ry, rw, rh) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = rw; canvas.height = rh;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
-                const imgData = ctx.getImageData(0, 0, rw, rh);
-                const d = imgData.data;
-                for (let i = 0; i < d.length; i += 4) {
-                  const sat = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
-                  if (sat < 22) d[i + 3] = 0;
-                  else if (sat < 34) d[i + 3] = Math.round(((sat - 22) / 12) * 255);
-                }
-                ctx.putImageData(imgData, 0, 0);
-                return canvas.toDataURL('image/png');
-              };
-              padseeewSprites.value.sen_yai = extractNoodleMound(0, 0, Math.round(w * 0.36), h);
-              padseeewSprites.value.sen_mee = extractNoodleMound(Math.round(w * 0.37), 0, Math.round(w * 0.39), h);
-              padseeewSprites.value.veg = extractVeg(Math.round(w * 0.785), Math.round(h * 0.015), Math.round(w * 0.210), Math.round(h * 0.545));
-            };
-            img.onerror = tryNextImage;
-            img.src = candidates[attempt++];
-          };
-          tryNextImage();
-        };
-
-        const isPadseeewPlateMode = (cfg) => {
-          return cfg && cfg.dishType === 'padseeew' && cfg.noodle !== 'mee_krob' && padseeewSprites.value.empty_plate;
-        };
-
-        const checkBowlEmpty = (item) => {
-          if (!item) return true;
+        const isBowlEmpty = computed(() => {
+          const item = currentItem.value;
           return !item.dishType && !item.noodle && !item.meat &&
-                 (item.addShrimp || 0) === 0 && !item.addSquid && !item.addCrispy &&
+                 !item.addPork && !item.addBeef && !item.addLiver && !item.addMeeKrob &&
+                 item.addShrimp === 0 && !item.addSquid && !item.addCrispy &&
                  !item.addQuail && !item.addFriedEgg && !item.extraNoodle &&
                  !item.extraVeg && !item.includeVeg;
-        };
+        });
 
-        const calcBowlPrice = (item) => {
-          if (checkBowlEmpty(item)) return 0;
-          const baseMeat = meatOptions.find(m => m.id === item.meat);
-          let price = baseMeat ? baseMeat.price : ((item.dishType || item.noodle) ? 50 : 0);
-          price += (item.addShrimp || 0) * 22;
-          if (item.addSquid) price += 20;
-          if (item.addCrispy) price += 15;
-          if (item.addQuail) price += 10;
-          if (item.addFriedEgg) price += 10;
-          if (item.extraNoodle) price += 10;
-          if (item.extraVeg) price += 10;
-          return price * (item.qty || 1);
-        };
+        const singleBowlPrice = computed(() => {
+          if (isBowlEmpty.value) return 0;
+          const baseMeat = meatOptions.find(m => m.id === currentItem.value.meat);
+          let price = baseMeat ? baseMeat.price : ((currentItem.value.dishType || currentItem.value.noodle) ? 50 : 0);
+          if (currentItem.value.addPork) price += 10;
+          if (currentItem.value.addBeef) price += 10;
+          if (currentItem.value.addLiver) price += 10;
+          if (currentItem.value.addMeeKrob) price += 10;
+          price += (currentItem.value.addShrimp || 0) * 22;
+          if (currentItem.value.addSquid) price += 20;
+          if (currentItem.value.addCrispy) price += 20;
+          if (currentItem.value.addQuail) price += 10;
+          if (currentItem.value.addFriedEgg) price += 10;
+          if (currentItem.value.extraNoodle) price += 10;
+          if (currentItem.value.extraVeg) price += 10;
+          return price;
+        });
 
-        const formatBowlTitle = (item) => {
-          if (checkBowlEmpty(item)) return '';
-          const dish = item.dishType === 'radna' ? 'ราดหน้า' : (item.dishType === 'padseeew' ? 'ผัดซีอิ๊ว' : 'เกาเหลา/ไม่ระบุน้ำ');
-          const noodle = noodleOptions.find(n => n.id === item.noodle)?.name || 'ไม่ใส่เส้น';
-          const meat = meatOptions.find(m => m.id === item.meat)?.name || 'ไม่ใส่เนื้อ';
+        const currentItemTotalPrice = computed(() => singleBowlPrice.value * (currentItem.value.qty || 1));
+
+        const currentBowlToppingsList = computed(() => {
+          const toppings = [];
+          if (currentItem.value.addPork) toppings.push('เพิ่มหมู (3 ชิ้น)');
+          if (currentItem.value.addLiver) toppings.push('เพิ่มตับ (3 ชิ้น)');
+          if (currentItem.value.addBeef) toppings.push('เพิ่มเนื้อ (2 ชิ้น)');
+          if (currentItem.value.addMeeKrob) toppings.push('เพิ่มหมี่กรอบ (2 ก้อน)');
+          if (currentItem.value.extraNoodle) toppings.push('เพิ่มเส้น');
+          if (currentItem.value.extraVeg) toppings.push('เพิ่มผัก');
+          if (currentItem.value.addShrimp > 0) toppings.push(`เพิ่มกุ้ง ${currentItem.value.addShrimp} ตัว`);
+          if (currentItem.value.addSquid) toppings.push('เพิ่มหมึก 3 ชิ้น');
+          if (currentItem.value.addCrispy) toppings.push('เพิ่มหมูกรอบ 3 ชิ้น');
+          if (currentItem.value.addQuail) toppings.push('เพิ่มไข่นก 4 ฟอง');
+          if (currentItem.value.addFriedEgg) toppings.push('เพิ่มไข่ดาวกรอบ');
+          if (!currentItem.value.includeVeg && !isBowlEmpty.value) toppings.push('ไม่ใส่ผัก');
+          return toppings;
+        });
+
+        const currentBowlSummary = computed(() => {
+          if (isBowlEmpty.value) return '';
+          const dish = currentItem.value.dishType === 'radna' ? 'ราดหน้า' : (currentItem.value.dishType === 'padseeew' ? 'ผัดซีอิ๊ว' : 'เกาเหลา/ไม่ระบุน้ำ');
+          const noodle = noodleOptions.find(n => n.id === currentItem.value.noodle)?.name || 'ไม่ใส่เส้น';
+          const meat = meatOptions.find(m => m.id === currentItem.value.meat)?.name || 'ไม่ใส่เนื้อ';
           return `${dish}${noodle} (${meat})`;
-        };
+        });
 
-        const formatBowlToppings = (item) => {
-          if (!item) return '';
-          const t = [];
-          if (item.extraNoodle) t.push('เพิ่มเส้น');
-          if (item.extraVeg) t.push('เพิ่มผัก');
-          if (item.addShrimp > 0) t.push(`เพิ่มกุ้ง ${item.addShrimp} ตัว`);
-          if (item.addSquid) t.push('เพิ่มหมึก 3 ชิ้น');
-          if (item.addCrispy) t.push('เพิ่มหมูกรอบ 3 ชิ้น');
-          if (item.addQuail) t.push('เพิ่มไข่นก 4 ฟอง');
-          if (item.addFriedEgg) t.push('เพิ่มไข่ดาวกรอบ');
-          if (item.includeVeg === false) t.push('ไม่ใส่ผัก');
-          return t.join(', ');
-        };
-
-        const hasPendingCurrentBowl = computed(() => !checkBowlEmpty(currentItem.value));
-        const currentBowlSummary = computed(() => formatBowlTitle(currentItem.value));
-        const currentBowlToppings = computed(() => formatBowlToppings(currentItem.value));
-        const currentItemTotalPrice = computed(() => calcBowlPrice(currentItem.value));
-
-        // เลือกภาชนะที่จะแสดงภาพใหญ่ฝั่งซ้าย (รายการที่กำลังกดอยู่ หรือรายการอาหารล่าสุดในบิล)
-        const displayBowl = computed(() => {
-          if (hasPendingCurrentBowl.value) return currentItem.value;
-          const foodItems = billItems.value.filter(i => !i.isDrink && i.config);
-          if (foodItems.length > 0) {
-            const latest = foodItems[foodItems.length - 1];
-            return { ...latest.config, qty: latest.qty, note: latest.note };
+        const displayOrderList = computed(() => {
+          const list = billItems.value.map(item => ({ ...item, isPending: false }));
+          if (!isBowlEmpty.value) {
+            list.push({
+              isPending: true,
+              isDrink: false,
+              title: currentBowlSummary.value,
+              qty: currentItem.value.qty || 1,
+              unitPrice: singleBowlPrice.value,
+              toppingsText: currentBowlToppingsList.value.join(', '),
+              note: currentItem.value.note,
+              totalPrice: currentItemTotalPrice.value,
+              config: currentItem.value
+            });
           }
-          return null;
+          return list;
         });
 
-        const previewBadgeText = computed(() => {
-          if (hasPendingCurrentBowl.value) return '👁️ ภาพจำลองชามที่คุณกำลังสั่ง';
-          if (displayBowl.value) return '✅ ภาพรายการอาหารล่าสุดในบิล';
-          return '🥤 รายการเครื่องดื่มในบิล';
-        });
+        const grandTotal = computed(() => displayOrderList.value.reduce((sum, item) => sum + item.totalPrice, 0));
+        const totalItemCount = computed(() => displayOrderList.value.reduce((sum, item) => sum + item.qty, 0));
 
-        const displayBowlSummary = computed(() => formatBowlTitle(displayBowl.value));
-        const displayBowlToppings = computed(() => formatBowlToppings(displayBowl.value));
-        const displayBowlPrice = computed(() => calcBowlPrice(displayBowl.value));
-
-        const grandTotal = computed(() => {
-          const savedTotal = billItems.value.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-          return savedTotal + (hasPendingCurrentBowl.value ? currentItemTotalPrice.value : 0);
-        });
-
-        const totalItemsCount = computed(() => {
-          return billItems.value.length + (hasPendingCurrentBowl.value ? 1 : 0);
-        });
-
-        // สลับกลับหน้าโปรโมชั่นอัตโนมัติหากไม่มีออเดอร์ค้าง หรือไม่มีการอัปเดตเกิน 3 นาที
-        const isIdleScreen = computed(() => {
-          const hasAnyOrder = billItems.value.length > 0 || hasPendingCurrentBowl.value;
-          if (!hasAnyOrder) return true;
-          if (lastUpdatedAt.value > 0 && (nowTick.value - lastUpdatedAt.value > 180000)) return true;
-          return false;
-        });
-
-        const applyPayload = (payload) => {
-          if (!payload || typeof payload !== 'object') return;
+        const applyLivePayload = (payload) => {
+          if (!payload) return;
           if (payload.billHeader) billHeader.value = payload.billHeader;
-          currentItem.value = payload.currentItem || null;
-          billItems.value = Array.isArray(payload.billItems) ? payload.billItems : [];
-          if (payload.layoutConfig) {
-            layoutConfig.value = { ...JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG)), ...payload.layoutConfig };
-          }
-          lastUpdatedAt.value = payload.updatedAt || Date.now();
-        };
-
-        const syncFromSources = async () => {
-          // 1. อ่านจาก localStorage (กรณีเปิดบนเบราว์เซอร์เดียวกัน)
-          try {
-            const localSaved = JSON.parse(localStorage.getItem('mah_ocha_live_customer') || 'null');
-            if (localSaved && (localSaved.updatedAt || 0) >= lastUpdatedAt.value) {
-              applyPayload(localSaved);
-            }
-          } catch (e) {}
-
-          // 2. อ่านจาก Firebase (กรณีมือถือภรรยาส่งข้ามเครื่องมา)
-          const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
-          if (dbUrl) {
-            try {
-              const res = await fetch(`${dbUrl}/live_customer_display.json`);
-              if (res.ok) {
-                const cloudData = await res.json();
-                if (cloudData && (cloudData.updatedAt || 0) >= lastUpdatedAt.value) {
-                  applyPayload(cloudData);
-                }
-              }
-            } catch (err) {}
-          }
-        };
-
-        const saveSyncSettings = () => {
-          localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
-          showSyncModal.value = false;
-          syncFromSources();
+          if (payload.currentItem) currentItem.value = payload.currentItem;
+          if (payload.billItems) billItems.value = payload.billItems;
+          if (payload.layoutConfig) layoutConfig.value = { ...DEFAULT_LAYOUT_CONFIG, ...payload.layoutConfig };
         };
 
         const toggleFullscreen = () => {
@@ -712,58 +670,63 @@
         };
 
         let pollTimer = null;
-        let idleTimer = null;
-        let broadcastChannel = null;
-
-        onMounted(() => {
-          lucide.createIcons();
-          loadJanPlate();
-          loadAndSlicePadseeewSprites();
-
+        const startListening = () => {
           try {
-            const savedLayouts = JSON.parse(localStorage.getItem('mah_ocha_admin_layouts') || 'null');
-            if (savedLayouts) {
-              layoutConfig.value = { ...JSON.parse(JSON.stringify(DEFAULT_LAYOUT_CONFIG)), ...savedLayouts };
-            }
+            const initial = JSON.parse(localStorage.getItem('mah_ocha_live_customer') || 'null');
+            if (initial) applyLivePayload(initial);
           } catch (e) {}
 
-          syncFromSources();
-
           try {
-            broadcastChannel = new BroadcastChannel('mah_ocha_customer_sync');
-            broadcastChannel.onmessage = (event) => {
-              if (event.data && event.data.type === 'LIVE_UPDATE') {
-                applyPayload(event.data.payload);
-              }
+            const ch = new BroadcastChannel('mah_ocha_customer_sync');
+            ch.onmessage = (e) => {
+              if (e.data && e.data.type === 'LIVE_UPDATE') applyLivePayload(e.data.payload);
             };
           } catch (e) {}
 
           window.addEventListener('storage', (e) => {
-            if (e.key === 'mah_ocha_live_customer') {
-              syncFromSources();
+            if (e.key === 'mah_ocha_live_customer' && e.newValue) {
+              try { applyLivePayload(JSON.parse(e.newValue)); } catch (err) {}
             }
           });
 
-          pollTimer = setInterval(syncFromSources, 1200);
-          idleTimer = setInterval(() => { nowTick.value = Date.now(); }, 5000);
+          pollTimer = setInterval(async () => {
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (!dbUrl) return;
+            try {
+              const res = await fetch(`${dbUrl}/live_customer_display.json`);
+              const data = await res.json();
+              if (data) applyLivePayload(data);
+            } catch (err) {}
+          }, 1200);
+        };
+
+        const saveSyncSettings = () => {
+          localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
+          showSyncModal.value = false;
+        };
+
+        onMounted(() => {
+          loadJanPlate();
+          loadAndSlicePadseeewSprites();
+          prepareSingleMeatPiece('pork', ['Asset/meat_pork_a.png', 'Asset/meat_pork_piece.png'], 'Asset/meat_pork.png');
+          prepareSingleMeatPiece('beef', ['Asset/meat_beef_a.png', 'Asset/meat_beef_piece.png'], 'Asset/meat_beef.png');
+          prepareSingleMeatPiece('liver', ['Asset/meat_liver_a.png', 'Asset/meat_liver_piece.png'], 'Asset/meat_liver.png');
+          startListening();
         });
 
         onUnmounted(() => {
           if (pollTimer) clearInterval(pollTimer);
-          if (idleTimer) clearInterval(idleTimer);
-          if (broadcastChannel) broadcastChannel.close();
         });
 
         return {
-          showSyncModal, firebaseUrl, billHeader, currentItem, billItems,
-          padseeewSprites, isPadseeewPlateMode, getMeatImage, getLayerStyle,
-          hasPendingCurrentBowl, currentBowlSummary, currentBowlToppings, currentItemTotalPrice,
-          displayBowl, previewBadgeText, displayBowlSummary, displayBowlToppings, displayBowlPrice,
-          grandTotal, totalItemsCount, isIdleScreen,
-          saveSyncSettings, toggleFullscreen
+          billHeader, currentItem, billItems, showSyncModal, firebaseUrl,
+          padseeewSprites, extraMeatSprites, hasMeeKrobCup, isPadseeewPlateMode, getPadseeewPlateImg,
+          getMeatImage, getLayerStyle, isBowlEmpty,
+          singleBowlPrice, currentItemTotalPrice, currentBowlToppingsList, currentBowlSummary,
+          displayOrderList, grandTotal, totalItemCount, toggleFullscreen, saveSyncSettings
         };
       }
-    }).mount('#customer-app');
+    }).mount('#app');
   </script>
 </body>
 </html>
