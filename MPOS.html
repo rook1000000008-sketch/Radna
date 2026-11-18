@@ -19,6 +19,10 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     [v-cloak] { display: none !important; }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 pb-24">
@@ -40,9 +44,14 @@
           <span>🍲</span>
           <span>กลับหน้าสั่งอาหาร</span>
         </a>
-        <div class="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-right">
-          <div class="text-[11px] text-amber-200">วันที่บันทึก</div>
-          <div class="font-bold text-xs sm:text-sm">{{ currentDateDisplay }}</div>
+        <!-- ช่องแก้ไขวันที่บันทึก -->
+        <div class="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-right border border-amber-300/40">
+          <div class="text-[11px] text-amber-200 flex items-center justify-end gap-1">
+            <span>📅 วันที่บันทึก (แก้ไขได้)</span>
+          </div>
+          <input type="date" v-model="selectedDate" @change="onSelectedDateChange"
+                 class="bg-transparent text-white font-bold text-xs sm:text-sm outline-none cursor-pointer">
+          <div class="text-[10px] text-amber-100/90">{{ currentDateDisplay }}</div>
         </div>
         <button @click="showSyncModal = true" title="ตั้งค่าเชื่อมต่อข้ามเครื่อง (Firebase)"
                 class="bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-xl text-xs font-bold transition relative">
@@ -206,7 +215,7 @@
             <span>🖨️ ปริ้นสรุปวันนี้</span>
           </button>
           <button @click="saveDailyRecord" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition flex items-center gap-2">
-            <span>💾 บันทึกยอดประจำวันลงประวัติ</span>
+            <span>💾 บันทึกยอดวันที่ {{ currentDateDisplay }} ลงประวัติ</span>
           </button>
         </div>
       </div>
@@ -219,7 +228,7 @@
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
             <h2 class="text-lg font-bold text-slate-800">📦 ปริมาณวัตถุดิบที่ใช้ไปจริง & ประมาณการจัดซื้อพรุ่งนี้</h2>
-            <p class="text-xs text-slate-500">คำนวณจากยอดขายจริงวันนี้ พร้อมตัวคูณเผื่อสต็อกสำหรับวางแผนสั่งซื้อวัตถุดิบวันถัดไป</p>
+            <p class="text-xs text-slate-500">คำนวณจากยอดขายวันที่ {{ currentDateDisplay }} พร้อมตัวคูณเผื่อสต็อก</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
@@ -328,7 +337,7 @@
         </div>
 
         <div v-if="sortedHistoryLogs.length === 0" class="text-center py-10 text-slate-400">
-          ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดประจำวันลงประวัติ")
+          ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดลงประวัติ")
         </div>
 
         <div v-else class="space-y-3">
@@ -366,7 +375,7 @@
                   🖨️ ปริ้น
                 </button>
                 <button @click="loadHistoryToCurrent(log)" class="text-xs bg-slate-100 hover:bg-red-50 text-red-700 px-2.5 py-1.5 rounded-lg font-semibold">
-                  ดูรายละเอียด
+                  ดู/แก้ไขรายการ
                 </button>
                 <button @click="deleteHistory(log._origIdx)" class="text-xs text-red-400 hover:text-red-600 px-1.5">ลบ</button>
               </div>
@@ -412,15 +421,29 @@
 
       const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
+      const getTodayIso = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      const isoToThaiDate = (isoStr) => {
+        if (!isoStr) return '';
+        const parts = isoStr.split('-');
+        if (parts.length !== 3) return isoStr;
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      };
+
       createApp({
         setup() {
           const activeTab = ref('sales');
           const purchaseBufferPercent = ref(15);
           const historySortBy = ref('date');
           const historySortOrder = ref('desc');
+          const selectedDate = ref(localStorage.getItem('mah_ocha_active_record_date') || getTodayIso());
 
           const tabs = [
-            { id: 'sales', name: 'บันทึกยอดขายวันนี้', icon: '🧾' },
+            { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
             { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
             { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ', icon: '⚙️' },
             { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
@@ -429,10 +452,7 @@
           const showSyncModal = ref(false);
           const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || 'https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app');
 
-          const currentDateDisplay = computed(() => {
-            const d = new Date();
-            return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-          });
+          const currentDateDisplay = computed(() => isoToThaiDate(selectedDate.value));
 
           const defaultUnitCosts = {
             pork: { name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
@@ -440,7 +460,7 @@
             beef: { name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
             crispy_pork: { name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
             squid: { name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
-            shrimp: { name: 'กุ้งสด (ตัวละ ~20g)', cost: 7.5, unit: 'บาท/ตัว' },
+            shrimp: { name: 'กุ้งสด (ตัวละ ~22g)', cost: 15.0, unit: 'บาท/ตัว' },
             quail_egg: { name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
             chicken_egg: { name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
             noodle: { name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
@@ -474,18 +494,18 @@
               { id: 'rn_quail', category: 'radna', name: 'ราดหน้าไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseRadna + (7 * u.quail_egg.cost) },
               { id: 'rn_beef', category: 'radna', name: 'ราดหน้าเนื้อ', price: 65, cogs: baseRadna + (0.055 * u.beef.cost) },
               { id: 'rn_crispy', category: 'radna', name: 'ราดหน้าหมูกรอบ', price: 75, cogs: baseRadna + (0.055 * u.crispy_pork.cost) },
-              { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
               { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
-              { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (5 ตัว)', price: 95, cogs: baseRadna + (5 * u.shrimp.cost) },
+              { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (3 ตัว)', price: 95, cogs: baseRadna + (3 * u.shrimp.cost) },
 
               { id: 'se_pork', category: 'seeew', name: 'ผัดซีอิ๊วหมู', price: 55, cogs: baseSeeew + (0.06 * u.pork.cost) },
               { id: 'se_liver', category: 'seeew', name: 'ผัดซีอิ๊วตับ', price: 55, cogs: baseSeeew + (0.06 * u.liver.cost) },
               { id: 'se_quail', category: 'seeew', name: 'ผัดซีอิ๊วไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseSeeew + (7 * u.quail_egg.cost) },
               { id: 'se_beef', category: 'seeew', name: 'ผัดซีอิ๊วเนื้อ', price: 65, cogs: baseSeeew + (0.055 * u.beef.cost) },
               { id: 'se_crispy', category: 'seeew', name: 'ผัดซีอิ๊วหมูกรอบ', price: 75, cogs: baseSeeew + (0.055 * u.crispy_pork.cost) },
-              { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก3)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
               { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
-              { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (5 ตัว)', price: 95, cogs: baseSeeew + (5 * u.shrimp.cost) },
+              { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (3 ตัว)', price: 95, cogs: baseSeeew + (3 * u.shrimp.cost) },
 
               { id: 'top_pork', category: 'topping', name: 'เพิ่มหมู (3 ชิ้น)', price: 10, cogs: 0.045 * u.pork.cost },
               { id: 'top_beef', category: 'topping', name: 'เพิ่มเนื้อ (2 ชิ้น)', price: 10, cogs: 0.035 * u.beef.cost },
@@ -522,19 +542,27 @@
             });
           });
 
-          const loadTodaySyncedSales = () => {
+          const loadSalesForSelectedDate = () => {
             try {
-              const d = new Date();
-              const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              const thaiDate = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+              const isoDate = selectedDate.value || getTodayIso();
+              const thaiDate = isoToThaiDate(isoDate);
               const logs = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
               historyLogs.value = logs;
-              const todayLog = logs.find(h => h.isoDate === isoDate || h.date === thaiDate);
-              if (todayLog) {
-                sales.value = { ...(todayLog.sales || {}) };
-                customDrinks.value = JSON.parse(JSON.stringify(todayLog.customDrinks || []));
+              const targetLog = logs.find(h => h.isoDate === isoDate || h.date === thaiDate);
+              if (targetLog) {
+                sales.value = { ...(targetLog.sales || {}) };
+                customDrinks.value = JSON.parse(JSON.stringify(targetLog.customDrinks || []));
+              } else {
+                sales.value = {};
+                customDrinks.value = [];
               }
             } catch (e) {}
+          };
+
+          const onSelectedDateChange = () => {
+            if (!selectedDate.value) selectedDate.value = getTodayIso();
+            localStorage.setItem('mah_ocha_active_record_date', selectedDate.value);
+            loadSalesForSelectedDate();
           };
 
           const getMenuByCategory = (cat) => menuCatalog.value.filter(m => m.category === cat);
@@ -685,6 +713,7 @@
 
           const exportCurrentDayTxt = (shouldPrint = false) => {
             const now = new Date();
+            const iso = selectedDate.value || getTodayIso();
             const logObj = {
               date: currentDateDisplay.value,
               time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
@@ -696,7 +725,7 @@
               customDrinks: customDrinks.value
             };
             const txt = buildTxtReport(logObj);
-            triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${now.toISOString().slice(0, 10)}.txt`, shouldPrint);
+            triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${iso}.txt`, shouldPrint);
           };
 
           const exportLogTxt = (log, shouldPrint = false) => {
@@ -708,7 +737,7 @@
           const exportAllHistoryTxt = () => {
             if (sortedHistoryLogs.value.length === 0) return;
             const allText = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
-            triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${new Date().toISOString().slice(0, 10)}.txt`, false);
+            triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, false);
           };
 
           const exportPurchaseListTxt = () => {
@@ -722,7 +751,7 @@
               lines.push(`- ${v.label}: ใช้จริง ${v.amount} ${v.unit}  ==>  สั่งซื้อ ${v.orderAmount} ${v.unit}`);
             });
             lines.push('===================================================');
-            triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${new Date().toISOString().slice(0, 10)}.txt`, false);
+            triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${selectedDate.value || getTodayIso()}.txt`, false);
           };
 
           const resetTodaySales = () => {
@@ -738,9 +767,9 @@
               return;
             }
             const now = new Date();
-            const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const isoDate = selectedDate.value || getTodayIso();
             const record = {
-              date: currentDateDisplay.value,
+              date: isoToThaiDate(isoDate),
               isoDate,
               time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
               totalBowls: totalBowls.value,
@@ -767,11 +796,15 @@
               } catch (err) {}
             }
 
-            alert('✅ บันทึกยอดประจำวันลงประวัติเรียบร้อยแล้วครับ!');
+            alert(`✅ บันทึกยอดวันที่ ${record.date} ลงประวัติเรียบร้อยแล้วครับ!`);
           };
 
           const loadHistoryToCurrent = (log) => {
-            if (confirm(`ต้องการดึงข้อมูลยอดขายของวันที่ ${log.date} ขึ้นมาดูใช่ไหมครับ?`)) {
+            if (confirm(`ต้องการดึงข้อมูลยอดขายของวันที่ ${log.date} ขึ้นมาดู/แก้ไขใช่ไหมครับ?`)) {
+              if (log.isoDate) {
+                selectedDate.value = log.isoDate;
+                localStorage.setItem('mah_ocha_active_record_date', log.isoDate);
+              }
               sales.value = { ...(log.sales || {}) };
               customDrinks.value = JSON.parse(JSON.stringify(log.customDrinks || []));
               activeTab.value = 'sales';
@@ -855,12 +888,15 @@
 
           const handleStorageSync = (e) => {
             if (e.key === 'radna_pos_history') {
-              loadTodaySyncedSales();
+              loadSalesForSelectedDate();
+            } else if (e.key === 'mah_ocha_active_record_date' && e.newValue) {
+              selectedDate.value = e.newValue;
+              loadSalesForSelectedDate();
             }
           };
 
           onMounted(() => {
-            loadTodaySyncedSales();
+            loadSalesForSelectedDate();
             window.addEventListener('storage', handleStorageSync);
           });
 
@@ -870,7 +906,8 @@
 
           return {
             activeTab, purchaseBufferPercent, historySortBy, historySortOrder,
-            tabs, currentDateDisplay, showSyncModal, firebaseUrl, saveSyncSettings,
+            tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
+            showSyncModal, firebaseUrl, saveSyncSettings,
             unitCosts, saveCostsToStorage, resetDefaultCosts,
             sales, customDrinks, newDrink, historyLogs, sortedHistoryLogs,
             getMenuByCategory, categoryCount, updateQty,
