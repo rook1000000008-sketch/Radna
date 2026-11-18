@@ -36,7 +36,7 @@
           <h1 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2 text-amber-300">
             <span>เหมาะโอชา POS & บัญชีต้นทุน</span>
           </h1>
-          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ และประมาณการจัดซื้ออัตโนมัติ</p>
+          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ ค่าสาธารณูปโภค และประมาณการจัดซื้ออัตโนมัติ</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -75,7 +75,7 @@
     <div v-if="activeTab === 'sales'" class="space-y-6">
       
       <!-- Summary KPI Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
           <div class="text-slate-500 text-xs sm:text-sm font-medium">จำนวนขายรวม (ชาม/ชิ้น)</div>
           <div class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">{{ totalBowls }}</div>
@@ -85,19 +85,25 @@
           <div class="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1">฿{{ formatMoney(totalRevenue) }}</div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <div class="text-slate-500 text-xs sm:text-sm font-medium">ต้นทุนวัตถุดิบรวม</div>
+          <div class="text-slate-500 text-xs sm:text-sm font-medium">ต้นทุนวัตถุดิบ + แก๊ส</div>
           <div class="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1">฿{{ formatMoney(totalCOGS) }}</div>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 shadow-xs">
-          <div class="text-emerald-700 text-xs sm:text-sm font-bold">กำไรขั้นต้น (ก่อนหักค่าที่/แรง)</div>
-          <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">฿{{ formatMoney(totalProfit) }}</div>
+        <div class="bg-white p-4 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-xs">
+          <div class="text-rose-700 text-xs sm:text-sm font-medium">ค่าไฟ + น้ำประปา + น้ำมันรถ/วัน</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-1">฿{{ formatMoney(dailyOverheadCost) }}</div>
+          <div class="text-[10px] text-rose-500 mt-0.5">ไฟ ฿{{ (unitCosts.electricity.cost / 30).toFixed(1) }} + น้ำ ฿{{ (unitCosts.water.cost / 30).toFixed(1) }} + รถ ฿{{ unitCosts.fuel.cost }}</div>
+        </div>
+        <div class="col-span-2 lg:col-span-1 bg-emerald-600 text-white p-4 rounded-2xl shadow-sm">
+          <div class="text-emerald-100 text-xs sm:text-sm font-bold">กำไรสุทธิวันนี้ (หักทุกอย่างแล้ว)</div>
+          <div class="text-2xl sm:text-3xl font-extrabold mt-1">฿{{ formatMoney(totalNetProfit) }}</div>
+          <div class="text-[10px] text-emerald-100/90 mt-0.5">กำไรขั้นต้น ฿{{ formatMoney(totalProfit) }}</div>
         </div>
       </div>
 
       <!-- 1. หมวดราดหน้า -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="bg-red-50/70 px-4 py-3 border-b border-red-100 flex justify-between items-center">
-          <h2 class="font-bold text-red-900 flex items-center gap-2">🍲 เมนูราดหน้า (รวมน้ำ+เส้น+ผัก)</h2>
+          <h2 class="font-bold text-red-900 flex items-center gap-2">🍲 เมนูราดหน้า (รวมน้ำ+เส้น+ผัก+แก๊ส)</h2>
           <span class="text-xs text-red-700 font-bold bg-red-100 px-2.5 py-0.5 rounded-full">รวม {{ categoryCount('radna') }} ชาม</span>
         </div>
         <div class="divide-y divide-slate-100">
@@ -121,7 +127,7 @@
       <!-- 2. หมวดผัดซีอิ๊ว -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="bg-amber-50/70 px-4 py-3 border-b border-amber-100 flex justify-between items-center">
-          <h2 class="font-bold text-amber-900 flex items-center gap-2">🍳 เมนูผัดซีอิ๊ว (รวมไข่ไก่ 1 ฟอง+ซีอิ๊ว+เส้น+ผัก)</h2>
+          <h2 class="font-bold text-amber-900 flex items-center gap-2">🍳 เมนูผัดซีอิ๊ว (รวมไข่ไก่+น้ำมันหมู/พืช+เส้น+ผัก+แก๊ส)</h2>
           <span class="text-xs text-amber-800 font-bold bg-amber-100 px-2.5 py-0.5 rounded-full">รวม {{ categoryCount('seeew') }} จาน</span>
         </div>
         <div class="divide-y divide-slate-100">
@@ -271,25 +277,42 @@
       </div>
     </div>
 
-    <!-- ==================== TAB 3: ตั้งค่าต้นทุนวัตถุดิบ ==================== -->
+    <!-- ==================== TAB 3: ตั้งค่าต้นทุนวัตถุดิบ & ค่าใช้จ่าย ==================== -->
     <div v-if="activeTab === 'costs'" class="space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div class="mb-4 pb-3 border-b border-slate-100 flex flex-wrap justify-between items-center gap-2">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">⚙️ ตั้งค่าราคาวัตถุดิบ (ต้นทุนต่อหน่วย)</h2>
-            <p class="text-xs text-slate-500">หากราคาตลาดเปลี่ยนแปลง สามารถแก้ไขตัวเลขด้านล่าง ระบบจะคำนวณต้นทุนทุกเมนูใหม่ทันที</p>
+            <h2 class="text-lg font-bold text-slate-800">⚙️ ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่ายดำเนินงาน (ต้นทุนต่อหน่วย)</h2>
+            <p class="text-xs text-slate-500">แก้ไขตัวเลขด้านล่างได้ทันที ระบบจะคำนวณต้นทุนทุกเมนูและหักค่าใช้จ่ายประจำวันให้อัตโนมัติ</p>
           </div>
           <button @click="resetDefaultCosts" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold">
             คืนค่าเริ่มต้น
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="(item, key) in unitCosts" :key="key" class="p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between">
+        <!-- กลุ่มที่ 1: วัตถุดิบอาหารและเครื่องปรุง -->
+        <h3 class="text-xs font-extrabold text-red-800 uppercase tracking-wider mb-2.5">🥩 1. วัตถุดิบสด เส้น ผัก และน้ำมันปรุงอาหาร</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
+          <div v-for="(item, key) in ingredientUnitCosts" :key="key" class="p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between bg-slate-50/40">
             <label class="text-sm font-bold text-slate-700 mb-1">{{ item.name }}</label>
             <div class="flex items-center gap-2">
-              <input type="number" step="0.1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700">
+              <input type="number" step="0.1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700 bg-white">
               <span class="text-xs text-slate-500 whitespace-nowrap">{{ item.unit }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- กลุ่มที่ 2: ค่าแก๊ส น้ำแข็ง ค่าน้ำ ค่าไฟ ค่าน้ำมันรถ -->
+        <h3 class="text-xs font-extrabold text-amber-900 uppercase tracking-wider mb-2.5">⚡ 2. ค่าแก๊ส น้ำแข็ง ค่าไฟฟ้า ค่าน้ำประปา และค่าน้ำมันรถ</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div v-for="(item, key) in utilityUnitCosts" :key="key" class="p-3.5 rounded-xl border border-amber-200 flex flex-col justify-between bg-amber-50/40">
+            <div>
+              <label class="text-sm font-bold text-slate-800 block">{{ item.name }}</label>
+              <span v-if="item.hint" class="text-[11px] text-amber-800 block mt-0.5">{{ item.hint }}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="number" step="1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-amber-300 rounded-lg font-bold text-amber-900 bg-white">
+              <span class="text-xs text-slate-600 whitespace-nowrap font-semibold">{{ item.unit }}</span>
             </div>
           </div>
         </div>
@@ -336,6 +359,34 @@
           </div>
         </div>
 
+        <!-- การ์ดสรุปยอดรวมสะสมของทุกวัน -->
+        <div v-if="historyLogs.length > 0" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/70 to-emerald-50/60 border border-amber-200/80">
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-slate-500">จำนวนวันที่บันทึก</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-[#2C1810] mt-0.5">{{ historyTotals.daysCount }} <span class="text-xs font-semibold text-slate-500">วัน</span></div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-slate-500">จำนวนขายสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-0.5">{{ historyTotals.totalBowls.toLocaleString('th-TH') }} <span class="text-xs font-semibold text-slate-500">ชาม/ชิ้น</span></div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-blue-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-blue-700">ยอดขายสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-blue-600 mt-0.5">฿{{ formatMoney(historyTotals.totalRevenue) }}</div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-amber-700">ต้นทุนวัตถุดิบรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">฿{{ formatMoney(historyTotals.totalCOGS) }}</div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-rose-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-rose-700">น้ำ/ไฟ/น้ำมันรถสะสม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">฿{{ formatMoney(historyTotals.totalOverhead) }}</div>
+          </div>
+          <div class="bg-emerald-600 text-white p-3 rounded-xl shadow-xs">
+            <div class="text-[11px] font-bold text-emerald-100">กำไรสุทธิสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold mt-0.5">฿{{ formatMoney(historyTotals.totalNetProfit) }}</div>
+          </div>
+        </div>
+
         <div v-if="sortedHistoryLogs.length === 0" class="text-center py-10 text-slate-400">
           ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดลงประวัติ")
         </div>
@@ -363,7 +414,11 @@
               </div>
               <div>
                 <div class="text-xs text-slate-400">กำไรขั้นต้น</div>
-                <div class="font-extrabold text-emerald-600">฿{{ formatMoney(log.totalProfit) }}</div>
+                <div class="font-bold text-emerald-700">฿{{ formatMoney(log.totalProfit) }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">กำไรสุทธิ</div>
+                <div class="font-extrabold text-emerald-600">฿{{ formatMoney(log.totalNetProfit !== undefined ? log.totalNetProfit : (log.totalProfit - (log.overheadCost || 0))) }}</div>
               </div>
               <div class="flex items-center gap-1.5">
                 <button @click="exportLogTxt(log, false)" title="ดาวน์โหลดรายงานวันนี้เป็นไฟล์ .txt"
@@ -378,6 +433,31 @@
                   ดู/แก้ไขรายการ
                 </button>
                 <button @click="deleteHistory(log._origIdx)" class="text-xs text-red-400 hover:text-red-600 px-1.5">ลบ</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถบสรุปยอดรวมท้ายตารางประวัติ -->
+          <div class="p-4 rounded-xl bg-[#2C1810] text-white flex flex-wrap justify-between items-center gap-3 border-t-4 border-amber-400 shadow-sm">
+            <div class="font-extrabold text-amber-300 text-sm sm:text-base">
+              📊 ยอดรวมสะสมทั้งหมด ({{ historyTotals.daysCount }} วัน • {{ historyTotals.totalBowls.toLocaleString('th-TH') }} ชาม/ชิ้น)
+            </div>
+            <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-right">
+              <div>
+                <div class="text-[11px] text-amber-200/80">ยอดขายรวม</div>
+                <div class="font-extrabold text-sky-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalRevenue) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">ต้นทุนวัตถุดิบรวม</div>
+                <div class="font-extrabold text-amber-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalCOGS) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">น้ำ/ไฟ/รถรวม</div>
+                <div class="font-extrabold text-rose-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalOverhead) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">กำไรสุทธิรวม</div>
+                <div class="font-extrabold text-emerald-400 text-base sm:text-lg">฿{{ formatMoney(historyTotals.totalNetProfit) }}</div>
               </div>
             </div>
           </div>
@@ -445,7 +525,7 @@
           const tabs = [
             { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
             { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
-            { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ', icon: '⚙️' },
+            { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่าย', icon: '⚙️' },
             { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
           ];
 
@@ -455,29 +535,71 @@
           const currentDateDisplay = computed(() => isoToThaiDate(selectedDate.value));
 
           const defaultUnitCosts = {
-            pork: { name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
-            liver: { name: 'ตับหมู (กิโลกรัมละ)', cost: 90, unit: 'บาท/กก.' },
-            beef: { name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
-            crispy_pork: { name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
-            squid: { name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
-            shrimp: { name: 'กุ้งสด (ตัวละ ~22g)', cost: 15.0, unit: 'บาท/ตัว' },
-            quail_egg: { name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
-            chicken_egg: { name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
-            noodle: { name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
-            kale: { name: 'ผักคะน้า (กิโลกรัมละ)', cost: 40, unit: 'บาท/กก.' },
-            radna_base: { name: 'น้ำราดหน้า+แป้ง+เครื่องปรุง/ชาม', cost: 4.5, unit: 'บาท/ชาม' },
-            seeew_base: { name: 'ซีอิ๊วดำ+น้ำมัน+กระเทียม/จาน', cost: 3.0, unit: 'บาท/จาน' }
+            pork: { group: 'ingredient', name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
+            liver: { group: 'ingredient', name: 'ตับหมู (กิโลกรัมละ)', cost: 90, unit: 'บาท/กก.' },
+            beef: { group: 'ingredient', name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
+            crispy_pork: { group: 'ingredient', name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
+            squid: { group: 'ingredient', name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
+            shrimp: { group: 'ingredient', name: 'กุ้งสด (ตัวละ ~22g)', cost: 15.0, unit: 'บาท/ตัว' },
+            quail_egg: { group: 'ingredient', name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
+            chicken_egg: { group: 'ingredient', name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
+            noodle: { group: 'ingredient', name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
+            kale: { group: 'ingredient', name: 'ผักคะน้า (กิโลกรัมละ)', cost: 40, unit: 'บาท/กก.' },
+            lard: { group: 'ingredient', name: 'น้ำมันหมู (กิโลกรัมละ)', cost: 95, unit: 'บาท/กก.' },
+            veg_oil: { group: 'ingredient', name: 'น้ำมันพืช (ลิตรละ)', cost: 52, unit: 'บาท/ลิตร' },
+            radna_base: { group: 'ingredient', name: 'น้ำราดหน้า+แป้ง+เครื่องปรุง/ชาม', cost: 4.5, unit: 'บาท/ชาม' },
+            seeew_base: { group: 'ingredient', name: 'ซีอิ๊วดำ+กระเทียม+เครื่องปรุง/จาน', cost: 2.0, unit: 'บาท/จาน' },
+
+            ice: { group: 'utility', name: 'น้ำแข็ง (กระสอบ 20 กก.)', cost: 45, unit: 'บาท/กระสอบ', hint: 'เฉลี่ยใช้ ~150 กรัม/ชามหรือแก้ว (รวมในใบจัดซื้อ)' },
+            gas: { group: 'utility', name: 'ค่าแก๊สหุงต้ม (ถัง 15 กก.)', cost: 430, unit: 'บาท/ถัง', hint: 'เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~' + (430 / 280).toFixed(2) + ' บ./ชาม)' },
+            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 2400, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
+            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 450, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
+            fuel: { group: 'utility', name: 'ค่าน้ำมันรถ / วัน', cost: 100, unit: 'บาท/วัน', hint: 'หักเป็นค่าเดินทางซื้อของ/ขนของรายวัน' }
+          };
+
+          const mergeUnitCosts = (savedObj) => {
+            const base = JSON.parse(JSON.stringify(defaultUnitCosts));
+            if (savedObj) {
+              Object.keys(base).forEach(k => {
+                if (savedObj[k] && typeof savedObj[k].cost === 'number') {
+                  base[k].cost = savedObj[k].cost;
+                }
+              });
+            }
+            return base;
           };
 
           const savedCosts = JSON.parse(localStorage.getItem('radna_unit_costs') || 'null');
-          const unitCosts = ref(savedCosts ? { ...JSON.parse(JSON.stringify(defaultUnitCosts)), ...savedCosts } : JSON.parse(JSON.stringify(defaultUnitCosts)));
+          const unitCosts = ref(mergeUnitCosts(savedCosts));
+
+          const ingredientUnitCosts = computed(() => {
+            const res = {};
+            Object.entries(unitCosts.value).forEach(([k, v]) => {
+              if (v.group === 'ingredient') res[k] = v;
+            });
+            return res;
+          });
+
+          const utilityUnitCosts = computed(() => {
+            const res = {};
+            Object.entries(unitCosts.value).forEach(([k, v]) => {
+              if (v.group === 'utility') {
+                const clone = { ...v };
+                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~${(v.cost / 280).toFixed(2)} บ./ชาม)`;
+                if (k === 'electricity') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
+                if (k === 'water') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
+                res[k] = clone;
+              }
+            });
+            return res;
+          });
 
           const saveCostsToStorage = () => {
             localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
           };
 
           const resetDefaultCosts = () => {
-            if (confirm('ต้องการคืนค่าราคาวัตถุดิบเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
+            if (confirm('ต้องการคืนค่าราคาวัตถุดิบและค่าใช้จ่ายเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
               unitCosts.value = JSON.parse(JSON.stringify(defaultUnitCosts));
               saveCostsToStorage();
             }
@@ -485,8 +607,13 @@
 
           const menuCatalog = computed(() => {
             const u = unitCosts.value;
-            const baseRadna = (0.15 * u.noodle.cost) + (0.10 * u.kale.cost) + u.radna_base.cost;
-            const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost;
+            const gasPerBowl = (u.gas?.cost || 430) / 280;
+            const lardPerSeeew = 0.02 * (u.lard?.cost || 95);
+            const oilPerSeeew = 0.01 * (u.veg_oil?.cost || 52);
+            const oilPerEgg = 0.015 * (u.veg_oil?.cost || 52);
+
+            const baseRadna = (0.15 * u.noodle.cost) + (0.10 * u.kale.cost) + u.radna_base.cost + gasPerBowl;
+            const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost + lardPerSeeew + oilPerSeeew + gasPerBowl;
 
             return [
               { id: 'rn_pork', category: 'radna', name: 'ราดหน้าหมู', price: 55, cogs: baseRadna + (0.06 * u.pork.cost) },
@@ -495,6 +622,7 @@
               { id: 'rn_beef', category: 'radna', name: 'ราดหน้าเนื้อ', price: 65, cogs: baseRadna + (0.055 * u.beef.cost) },
               { id: 'rn_crispy', category: 'radna', name: 'ราดหน้าหมูกรอบ', price: 75, cogs: baseRadna + (0.055 * u.crispy_pork.cost) },
               { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'rn_squid', category: 'radna', name: 'ราดหน้าหมึก', price: 85, cogs: baseRadna + (0.13 * u.squid.cost) },
               { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
               { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (3 ตัว)', price: 95, cogs: baseRadna + (3 * u.shrimp.cost) },
 
@@ -504,6 +632,7 @@
               { id: 'se_beef', category: 'seeew', name: 'ผัดซีอิ๊วเนื้อ', price: 65, cogs: baseSeeew + (0.055 * u.beef.cost) },
               { id: 'se_crispy', category: 'seeew', name: 'ผัดซีอิ๊วหมูกรอบ', price: 75, cogs: baseSeeew + (0.055 * u.crispy_pork.cost) },
               { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'se_squid', category: 'seeew', name: 'ผัดซีอิ๊วหมึก', price: 85, cogs: baseSeeew + (0.13 * u.squid.cost) },
               { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
               { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (3 ตัว)', price: 95, cogs: baseSeeew + (3 * u.shrimp.cost) },
 
@@ -514,7 +643,7 @@
               { id: 'top_noodle', category: 'topping', name: 'เพิ่มเส้น', price: 10, cogs: 0.15 * u.noodle.cost },
               { id: 'top_quail_egg', category: 'topping', name: 'เพิ่มไข่นกกระทา (4 ฟอง)', price: 10, cogs: 4 * u.quail_egg.cost },
               { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (2 ก้อน)', price: 10, cogs: 3.50 },
-              { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + 1.0 },
+              { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + oilPerEgg + 0.5 },
               { id: 'top_squid', category: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', price: 20, cogs: 0.07 * u.squid.cost },
               { id: 'top_crispy_pork', category: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', price: 20, cogs: 0.035 * u.crispy_pork.cost },
               { id: 'top_shrimp', category: 'topping', name: 'เพิ่มกุ้ง (ตัวละ)', price: 22, cogs: u.shrimp.cost }
@@ -525,6 +654,41 @@
           const customDrinks = ref([]);
           const newDrink = ref({ name: '', price: null, qty: 1 });
           const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
+
+          const dailyOverheadCost = computed(() => {
+            const u = unitCosts.value;
+            const elecPerDay = (u.electricity?.cost || 0) / 30;
+            const waterPerDay = (u.water?.cost || 0) / 30;
+            const fuelPerDay = u.fuel?.cost || 0;
+            return Number((elecPerDay + waterPerDay + fuelPerDay).toFixed(2));
+          });
+
+          const historyTotals = computed(() => {
+            return historyLogs.value.reduce((acc, log) => {
+              const rev = Number(log.totalRevenue || 0);
+              const cogs = Number(log.totalCOGS || 0);
+              const grossProfit = Number(log.totalProfit !== undefined ? log.totalProfit : (rev - cogs));
+              const overhead = Number(log.overheadCost !== undefined ? log.overheadCost : dailyOverheadCost.value);
+              const netProfit = Number(log.totalNetProfit !== undefined ? log.totalNetProfit : (grossProfit - overhead));
+
+              acc.daysCount += 1;
+              acc.totalBowls += Number(log.totalBowls || 0);
+              acc.totalRevenue += rev;
+              acc.totalCOGS += cogs;
+              acc.totalProfit += grossProfit;
+              acc.totalOverhead += overhead;
+              acc.totalNetProfit += netProfit;
+              return acc;
+            }, {
+              daysCount: 0,
+              totalBowls: 0,
+              totalRevenue: 0,
+              totalCOGS: 0,
+              totalProfit: 0,
+              totalOverhead: 0,
+              totalNetProfit: 0
+            });
+          });
 
           const sortedHistoryLogs = computed(() => {
             const list = historyLogs.value.map((item, idx) => ({ ...item, _origIdx: idx }));
@@ -594,6 +758,12 @@
             return mainBowls + drinkTotalQty.value;
           });
 
+          const iceCostToday = computed(() => {
+            const iceBagPrice = unitCosts.value.ice?.cost || 45;
+            const totalKgIce = totalBowls.value * 0.15;
+            return (totalKgIce / 20) * iceBagPrice;
+          });
+
           const totalRevenue = computed(() => {
             const menuRev = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.price), 0);
             return menuRev + drinkRevenue.value;
@@ -601,10 +771,11 @@
 
           const totalCOGS = computed(() => {
             const menuCogs = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.cogs), 0);
-            return menuCogs + drinkCOGS.value;
+            return menuCogs + drinkCOGS.value + iceCostToday.value;
           });
 
           const totalProfit = computed(() => totalRevenue.value - totalCOGS.value);
+          const totalNetProfit = computed(() => totalProfit.value - (totalRevenue.value > 0 ? dailyOverheadCost.value : 0));
 
           const rawMaterialUsage = computed(() => {
             const s = sales.value;
@@ -614,6 +785,7 @@
             const beefBowls = (s.rn_beef || 0) + (s.se_beef || 0);
             const crispyBowls = (s.rn_crispy || 0) + (s.se_crispy || 0);
             const seafoodBowls = (s.rn_seafood || 0) + (s.se_seafood || 0);
+            const squidBowls = (s.rn_squid || 0) + (s.se_squid || 0);
             const mixedBowls = (s.rn_mixed || 0) + (s.se_mixed || 0);
             const shrimpBowls = (s.rn_shrimp || 0) + (s.se_shrimp || 0);
             const quailBowls = (s.rn_quail || 0) + (s.se_quail || 0);
@@ -626,34 +798,44 @@
             const beefKg = (beefBowls * 0.055) + ((s.top_beef || 0) * 0.035);
             const liverKg = (liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033);
             const crispyKg = (crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035);
-            const squidKg = (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
+            const squidKg = (squidBowls * 0.13) + (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
             const shrimpPcs = (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0);
             const quailPcs = (quailBowls * 7) + ((s.top_quail_egg || 0) * 4);
             const chickenEggPcs = totalSeeew + (s.top_fried_egg || 0);
             const noodleKg = (totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15);
             const meeKrobPcs = (s.top_crispy_noodle || 0) * 2;
             const kaleKg = (totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125);
+            const lardKg = totalSeeew * 0.02;
+            const vegOilL = (totalSeeew * 0.01) + ((s.top_fried_egg || 0) * 0.015);
+            const iceBags = (totalBowls.value * 0.15) / 20;
 
             return {
               pork: { label: 'หมูหมัก (ชั่งสด)', amount: porkKg.toFixed(2), orderAmount: (porkKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)' },
               beef: { label: 'เนื้อวัวหมัก', amount: beefKg.toFixed(2), orderAmount: (beefKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)' },
               liver: { label: 'ตับหมู', amount: liverKg.toFixed(2), orderAmount: (liverKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูตับ + รวมมิตร + เพิ่มตับ (3 ชิ้น)' },
               crispy_pork: { label: 'หมูกรอบ', amount: crispyKg.toFixed(2), orderAmount: (crispyKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมูกรอบ + เพิ่มหมูกรอบ (3 ชิ้น)' },
-              squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
+              squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมึก + ทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
               shrimp: { label: 'กุ้งสด', amount: shrimpPcs, orderAmount: Math.ceil(shrimpPcs * mult), unit: 'ตัว', note: 'นับเป็นจำนวนตัวที่ใช้จริง' },
               quail_egg: { label: 'ไข่นกกระทาต้ม', amount: quailPcs, orderAmount: Math.ceil(quailPcs * mult), unit: 'ฟอง', note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง' },
               chicken_egg: { label: 'ไข่ไก่ (ผัดซีอิ๊ว + ไข่ดาว)', amount: chickenEggPcs, orderAmount: Math.ceil(chickenEggPcs * mult), unit: 'ฟอง', note: 'ผัดซีอิ๊ว 1 ฟอง + เพิ่มไข่ดาวกรอบ' },
               noodle: { label: 'เส้นก๋วยเตี๋ยว (เส้นใหญ่/เส้นหมี่)', amount: noodleKg.toFixed(2), orderAmount: (noodleKg * mult).toFixed(2), unit: 'กก.', note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น' },
               mee_krob: { label: 'หมี่กรอบ (ถ้วยเสริม)', amount: meeKrobPcs, orderAmount: Math.ceil(meeKrobPcs * mult), unit: 'ก้อน', note: 'นับจากรายการเพิ่มหมี่กรอบ (2 ก้อน)' },
-              kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' }
+              kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' },
+              lard: { label: 'น้ำมันหมู', amount: lardKg.toFixed(2), orderAmount: (lardKg * mult).toFixed(2), unit: 'กก.', note: 'ใช้สำหรับผัดซีอิ๊ว (~20 กรัม/จาน)' },
+              veg_oil: { label: 'น้ำมันพืช', amount: vegOilL.toFixed(2), orderAmount: (vegOilL * mult).toFixed(2), unit: 'ลิตร', note: 'ใช้สำหรับผัดซีอิ๊ว + ทอดไข่ดาวกรอบ' },
+              ice: { label: 'น้ำแข็ง (กระสอบ 20 กก.)', amount: iceBags.toFixed(2), orderAmount: Math.max(1, Math.ceil(iceBags * mult)), unit: 'กระสอบ', note: 'ประเมินจากจำนวนลูกค้าหน้าร้านและเครื่องดื่ม' }
             };
           });
 
           const buildTxtReport = (logObj) => {
             const lines = [];
+            const overhead = Number(logObj.overheadCost !== undefined ? logObj.overheadCost : dailyOverheadCost.value);
+            const grossProfit = Number(logObj.totalProfit !== undefined ? logObj.totalProfit : (logObj.totalRevenue - logObj.totalCOGS));
+            const netProfit = Number(logObj.totalNetProfit !== undefined ? logObj.totalNetProfit : (grossProfit - overhead));
+
             lines.push('===================================================');
             lines.push('           ร้านเหมาะโอชา The Next+');
-            lines.push('     รายงานสรุปยอดขาย ต้นทุน และกำไรขั้นต้น');
+            lines.push('   รายงานสรุปยอดขาย ต้นทุน และกำไรสุทธิประจำวัน');
             lines.push('===================================================');
             lines.push(`วันที่ : ${logObj.date} (เวลา ${logObj.time || '-'})`);
             lines.push('---------------------------------------------------');
@@ -680,10 +862,12 @@
             }
 
             lines.push('---------------------------------------------------');
-            lines.push(`จำนวนขายรวม      : ${logObj.totalBowls} ชาม/ชิ้น`);
-            lines.push(`ยอดขายรวม (รายรับ) : ${formatMoney(logObj.totalRevenue)} บาท`);
-            lines.push(`ต้นทุนวัตถุดิบรวม   : ${formatMoney(logObj.totalCOGS)} บาท`);
-            lines.push(`กำไรขั้นต้น         : ${formatMoney(logObj.totalProfit)} บาท`);
+            lines.push(`จำนวนขายรวม              : ${logObj.totalBowls} ชาม/ชิ้น`);
+            lines.push(`ยอดขายรวม (รายรับ)         : ${formatMoney(logObj.totalRevenue)} บาท`);
+            lines.push(`ต้นทุนวัตถุดิบ + แก๊ส + น้ำแข็ง : ${formatMoney(logObj.totalCOGS)} บาท`);
+            lines.push(`กำไรขั้นต้น                 : ${formatMoney(grossProfit)} บาท`);
+            lines.push(`ค่าไฟ + น้ำประปา + น้ำมันรถ   : ${formatMoney(overhead)} บาท`);
+            lines.push(`กำไรสุทธิคงเหลือ             : ${formatMoney(netProfit)} บาท`);
             lines.push('===================================================');
             return lines.join('\r\n');
           };
@@ -721,6 +905,8 @@
               totalRevenue: totalRevenue.value,
               totalCOGS: totalCOGS.value,
               totalProfit: totalProfit.value,
+              overheadCost: totalRevenue.value > 0 ? dailyOverheadCost.value : 0,
+              totalNetProfit: totalNetProfit.value,
               sales: sales.value,
               customDrinks: customDrinks.value
             };
@@ -736,8 +922,21 @@
 
           const exportAllHistoryTxt = () => {
             if (sortedHistoryLogs.value.length === 0) return;
-            const allText = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
-            triggerTxtOutput(allText, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, false);
+            const dailyBlocks = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
+            const summaryBlock = [
+              '',
+              '***************************************************',
+              '       สรุปยอดรวมสะสมทั้งหมด (ทุกวัน)',
+              '***************************************************',
+              `จำนวนวันที่บันทึกทั้งหมด      : ${historyTotals.value.daysCount} วัน`,
+              `จำนวนขายสะสมรวม           : ${historyTotals.value.totalBowls} ชาม/ชิ้น`,
+              `ยอดขายสะสมรวม (รายรับ)      : ${formatMoney(historyTotals.value.totalRevenue)} บาท`,
+              `ต้นทุนวัตถุดิบรวมทั้งหมด       : ${formatMoney(historyTotals.value.totalCOGS)} บาท`,
+              `ค่าน้ำ/ไฟ/น้ำมันรถสะสมรวม     : ${formatMoney(historyTotals.value.totalOverhead)} บาท`,
+              `กำไรสุทธิสะสมรวมทั้งหมด       : ${formatMoney(historyTotals.value.totalNetProfit)} บาท`,
+              '***************************************************'
+            ].join('\r\n');
+            triggerTxtOutput(dailyBlocks + summaryBlock, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, false);
           };
 
           const exportPurchaseListTxt = () => {
@@ -776,6 +975,8 @@
               totalRevenue: Number(totalRevenue.value.toFixed(2)),
               totalCOGS: Number(totalCOGS.value.toFixed(2)),
               totalProfit: Number(totalProfit.value.toFixed(2)),
+              overheadCost: dailyOverheadCost.value,
+              totalNetProfit: Number(totalNetProfit.value.toFixed(2)),
               sales: { ...sales.value },
               customDrinks: JSON.parse(JSON.stringify(customDrinks.value))
             };
@@ -908,11 +1109,11 @@
             activeTab, purchaseBufferPercent, historySortBy, historySortOrder,
             tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
             showSyncModal, firebaseUrl, saveSyncSettings,
-            unitCosts, saveCostsToStorage, resetDefaultCosts,
-            sales, customDrinks, newDrink, historyLogs, sortedHistoryLogs,
+            unitCosts, ingredientUnitCosts, utilityUnitCosts, saveCostsToStorage, resetDefaultCosts,
+            sales, customDrinks, newDrink, historyLogs, historyTotals, sortedHistoryLogs,
             getMenuByCategory, categoryCount, updateQty,
             addCustomDrink, drinkTotalQty,
-            totalBowls, totalRevenue, totalCOGS, totalProfit,
+            totalBowls, totalRevenue, totalCOGS, totalProfit, dailyOverheadCost, totalNetProfit,
             rawMaterialUsage, resetTodaySales, saveDailyRecord,
             exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
             loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
