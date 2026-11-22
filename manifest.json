@@ -1,0 +1,22 @@
+{
+  "short_name": "The Next+",
+  "name": "เหมาะโอชา The Next+ App",
+  "icons": [
+    {
+      "src": "newlogo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "newlogo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#2A1810",
+  "background_color": "#2A1810"
+}

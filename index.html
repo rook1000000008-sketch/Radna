@@ -32,6 +32,15 @@
       #print-ticket { position: absolute; left: 0; top: 0; width: 100%; }
     }
   </style>
+  <!-- PWA & App Icon Configuration -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#D9381E">
+
+<!-- สำหรับ iOS (iPhone / iPad) -->
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Next⁺ App">
 </head>
 <body class="bg-orange-50/50 text-stone-800 min-h-screen" @click="activePopupTarget = null">
   <div id="app" class="max-w-7xl mx-auto p-2 sm:p-3 flex flex-col min-h-screen lg:h-screen">
@@ -184,6 +193,7 @@
                       <img v-if="item.config.includeVeg" src="Asset/veg_kale.png" :style="getLayerStyle('veg_kale')" class="absolute h-auto">
                     </template>
                     <img v-if="item.config.meat" :src="getMeatImage(item.config.meat)" :style="getLayerStyle('meat_' + item.config.meat)" class="absolute h-auto">
+                    <img v-if="item.config.duoMeat" :src="getMeatImage(item.config.duoMeat)" :style="getDuoSecondMeatStyle(item.config.duoMeat)" class="absolute h-auto">
                     <img v-if="item.config.addPork" :src="extraMeatSprites.pork" :style="getLayerStyle('pork_0')" class="absolute h-auto">
                     <img v-if="item.config.addBeef" :src="extraMeatSprites.beef" :style="getLayerStyle('beef_0')" class="absolute h-auto">
                     <img v-if="item.config.addLiver" :src="extraMeatSprites.liver" :style="getLayerStyle('liver_0')" class="absolute h-auto">
@@ -299,11 +309,14 @@
                    :class="getAdminInteractiveClass(currentItem.dishType === 'padseeew' ? 'veg_kale_padseeew' : 'veg_kale', 'z-20')" alt="ผักคะน้า">
             </template>
 
-            <!-- Layer 3: หน้าหลักทั้ง 9 หน้า -->
+            <!-- Layer 3: หน้าหลักทั้ง 9 หน้า + หน้าคู่ Duo 50/50 -->
             <img v-if="currentItem.meat" :src="getMeatImage(currentItem.meat)"
                  @click="adminMode && selectAdminTarget('meat_' + currentItem.meat)"
-                 :style="getLayerStyle('meat_' + currentItem.meat)"
+                 :style="currentItem.duoMeat ? getDuoFirstMeatStyle(currentItem.meat) : getLayerStyle('meat_' + currentItem.meat)"
                  :class="getAdminInteractiveClass('meat_' + currentItem.meat, 'z-30')" :alt="currentItem.meat">
+            <img v-if="currentItem.duoMeat" :src="getMeatImage(currentItem.duoMeat)"
+                 :style="getDuoSecondMeatStyle(currentItem.duoMeat)"
+                 class="absolute object-contain pointer-events-none layer-transition z-[31] drop-shadow-md" :alt="currentItem.duoMeat">
 
             <!-- Layer 4: ท็อปปิ้งแบบแยกชิ้น (เพิ่มหมู 3 ชิ้น, เพิ่มเนื้อ 2 ชิ้น, เพิ่มตับ 3 ชิ้น, กุ้ง, หมึก, ไข่นก, หมูกรอบ, ไข่ดาว) -->
             <div class="absolute inset-0 z-40 pointer-events-none">
@@ -654,17 +667,73 @@
             </div>
           </div>
 
-          <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า + Popup เพิ่มสำหรับ หมู / ตับ / เนื้อวัว / หมูกรอบ -->
+          <!-- แถวที่ 2: หน้าหลักครบทั้ง 9 หน้า + จับคู่ Duo 50/50 + Popup เพิ่ม -->
           <div class="pb-3 border-b border-amber-100">
-            <label class="text-xs font-bold text-[#5C3420] block mb-1.5">
-              3. เลือกหน้าหลักทั้งหมด
-              <span class="font-normal text-stone-400">(หมู/ตับ/เนื้อ/หมูกรอบ มีตัวเลือกเพิ่มข้างปุ่ม)</span>
-            </label>
+            <div class="flex flex-wrap justify-between items-center gap-1.5 mb-1.5">
+              <label class="text-xs font-bold text-[#5C3420]">
+                3. เลือกหน้าหลักทั้งหมด
+                <span class="font-normal text-stone-400">(แตะปุ่ม Duo เพื่อจับคู่ 50/50)</span>
+              </label>
+              <button @click.stop="togglePopupTarget('duo_selector')"
+                      :class="['px-2.5 py-1 rounded-xl text-[11px] font-extrabold border transition flex items-center gap-1 shadow-2xs',
+                              currentItem.duoMeat ? 'bg-amber-500 border-amber-700 text-[#2C1810]' : 'bg-amber-100 hover:bg-amber-200 border-amber-400 text-[#4A2511]']">
+                <span>🔀</span>
+                <span>{{ currentItem.duoMeat ? 'Duo 50/50: ' + getMeatName(currentItem.meat) + '+' + getMeatName(currentItem.duoMeat) : 'จับคู่ Duo 50/50 (55.- / 65.-)' }}</span>
+              </button>
+            </div>
+
+            <!-- แผงเลือกจับคู่ Duo 50/50 (55.- / 65.-) & คำแนะนำกลุ่มพรีเมี่ยม -->
+            <div v-if="activePopupTarget === 'duo_selector'" @click.stop
+                 class="mb-2.5 bg-[#2C1810] text-white rounded-2xl p-3 shadow-xl border-2 border-amber-400 popup-anim space-y-2.5">
+              <div class="flex justify-between items-center border-b border-amber-800/70 pb-1.5">
+                <div>
+                  <div class="text-xs font-extrabold text-amber-300">🔀 จับคู่ Duo สัดส่วน 50% / 50%</div>
+                  <div class="text-[10px] text-amber-100/80">ราคาเท่ากันคิด 55.- • ต่างกันอิงตัวที่สูงกว่า (65.-)</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button v-if="currentItem.duoMeat" @click="clearDuoSelection" class="text-[11px] bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded-lg font-bold">
+                    ยกเลิก Duo
+                  </button>
+                  <button @click="activePopupTarget = null" class="text-amber-200 hover:text-white text-xs font-bold px-1">✕</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="bg-[#1E0F09] p-2 rounded-xl border border-amber-800/60 space-y-1.5">
+                  <div class="text-[11px] font-bold text-emerald-300">💚 Duo ราคา 55 บาท (50/50)</div>
+                  <div class="grid grid-cols-1 gap-1">
+                    <button v-for="pair in duoPresets55" :key="pair.id" @click="selectDuoPair(pair.m1, pair.m2)"
+                            :class="['px-2.5 py-1.5 rounded-lg text-xs font-bold flex justify-between items-center transition border',
+                                    isDuoSelected(pair.m1, pair.m2) ? 'bg-emerald-600 border-emerald-300 text-white' : 'bg-[#2C1810] hover:bg-amber-950 border-amber-800/50 text-amber-100']">
+                      <span>{{ pair.label }}</span>
+                      <span class="font-extrabold">฿55</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="bg-[#1E0F09] p-2 rounded-xl border border-amber-800/60 space-y-1.5">
+                  <div class="text-[11px] font-bold text-amber-300">🧡 Duo ราคา 65 บาท (อิงราคาเนื้อ)</div>
+                  <div class="grid grid-cols-1 gap-1">
+                    <button v-for="pair in duoPresets65" :key="pair.id" @click="selectDuoPair(pair.m1, pair.m2)"
+                            :class="['px-2.5 py-1.5 rounded-lg text-xs font-bold flex justify-between items-center transition border',
+                                    isDuoSelected(pair.m1, pair.m2) ? 'bg-amber-500 border-amber-200 text-[#2C1810]' : 'bg-[#2C1810] hover:bg-amber-950 border-amber-800/50 text-amber-100']">
+                      <span>{{ pair.label }}</span>
+                      <span class="font-extrabold">฿65</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-[10px] text-amber-200/90 bg-amber-950/70 px-2.5 py-1.5 rounded-lg border border-amber-700/50">
+                💡 <strong>กลุ่มพรีเมี่ยม (หมึก / กุ้ง / หมูกรอบ):</strong> หากลูกค้าสั่งคู่กับเมนูอื่น ให้เลือกหน้าหลัก 1 อย่าง แล้วกดเพิ่มเป็นชิ้นในข้อ <strong>"4. ท็อปปิ้งเพิ่มเติม"</strong> (กุ้งตัวละ 22.- / หมึก 20.- / หมูกรอบ 20.-)
+              </div>
+            </div>
+
             <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
               <div v-for="m in meatOptions" :key="m.id" class="relative" @click.stop>
                 <button @click="handleMeatButtonClick(m.id)"
                         :class="['w-full h-full p-1.5 rounded-xl border-2 text-center transition flex flex-col justify-center items-center relative',
-                                currentItem.meat === m.id ? 'bg-red-50 border-red-600 text-red-950 font-bold shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 font-medium hover:bg-orange-50/70']">
+                                (currentItem.meat === m.id || currentItem.duoMeat === m.id) ? 'bg-red-50 border-red-600 text-red-950 font-bold shadow-sm' : 'bg-stone-50 border-stone-200 text-stone-600 font-medium hover:bg-orange-50/70']">
                   
                   <!-- ป้ายสถานะถ้าเลือกเพิ่มปริมาณแล้ว -->
                   <span v-if="m.id === 'pork' && currentItem.addPork"
@@ -1445,10 +1514,66 @@
           return meatOptions.find(m => m.id === meatId)?.img || '';
         };
 
+        const getMeatName = (meatId) => {
+          return meatOptions.find(m => m.id === meatId)?.name || '';
+        };
+
+        const duoPresets55 = [
+          { id: 'pork_liver', m1: 'pork', m2: 'liver', label: 'หมู + ตับ (50/50)' },
+          { id: 'pork_quail', m1: 'pork', m2: 'quail', label: 'หมู + ไข่นก (50/50)' },
+          { id: 'liver_quail', m1: 'liver', m2: 'quail', label: 'ตับ + ไข่นก (50/50)' }
+        ];
+
+        const duoPresets65 = [
+          { id: 'beef_pork', m1: 'beef', m2: 'pork', label: 'เนื้อ + หมู (50/50)' },
+          { id: 'beef_liver', m1: 'beef', m2: 'liver', label: 'เนื้อ + ตับ (50/50)' },
+          { id: 'beef_quail', m1: 'beef', m2: 'quail', label: 'เนื้อ + ไข่นก (50/50)' }
+        ];
+
+        const getDuoFirstMeatStyle = (meatId) => {
+          const base = layoutConfig.value['meat_' + meatId] || DEFAULT_LAYOUT_CONFIG['meat_' + meatId] || { width: 42, top: 44, left: 29, rot: 0 };
+          return {
+            width: `${(base.width * 0.82).toFixed(1)}%`,
+            top: `${base.top}%`,
+            left: `${Math.max(12, base.left - 11)}%`,
+            transform: `rotate(${(base.rot || 0) - 8}deg)`
+          };
+        };
+
+        const getDuoSecondMeatStyle = (meatId) => {
+          const base = layoutConfig.value['meat_' + meatId] || DEFAULT_LAYOUT_CONFIG['meat_' + meatId] || { width: 42, top: 44, left: 29, rot: 0 };
+          return {
+            width: `${(base.width * 0.82).toFixed(1)}%`,
+            top: `${base.top + 2}%`,
+            left: `${Math.min(54, base.left + 12)}%`,
+            transform: `rotate(${(base.rot || 0) + 10}deg)`
+          };
+        };
+
+        const selectDuoPair = (m1, m2) => {
+          currentItem.value.meat = m1;
+          currentItem.value.duoMeat = m2;
+          autoEnableVegIfNeeded();
+          activePopupTarget.value = null;
+          onStateChanged();
+        };
+
+        const clearDuoSelection = () => {
+          currentItem.value.duoMeat = null;
+          onStateChanged();
+        };
+
+        const isDuoSelected = (m1, m2) => {
+          const a = currentItem.value.meat;
+          const b = currentItem.value.duoMeat;
+          return (a === m1 && b === m2) || (a === m2 && b === m1);
+        };
+
         const defaultBowlState = () => ({
           dishType: null,
           noodle: null,
           meat: null,
+          duoMeat: null,
           qty: 1,
           addPork: false,
           addBeef: false,
@@ -1665,13 +1790,14 @@
         };
 
         const handleMeatButtonClick = (id) => {
-          if (currentItem.value.meat === id) {
+          if (currentItem.value.meat === id && !currentItem.value.duoMeat) {
             currentItem.value.meat = null;
             if (hasMeatExtraPopup(id)) {
               activePopupTarget.value = null;
             }
           } else {
             currentItem.value.meat = id;
+            currentItem.value.duoMeat = null;
             if (adminMode.value) adminSelectedKey.value = 'meat_' + id;
             autoEnableVegIfNeeded();
             if (hasMeatExtraPopup(id)) {
@@ -1767,7 +1893,15 @@
         const singleBowlPrice = computed(() => {
           if (isBowlEmpty.value) return 0;
           const baseMeat = meatOptions.find(m => m.id === currentItem.value.meat);
-          let price = baseMeat ? baseMeat.price : ((currentItem.value.dishType || currentItem.value.noodle) ? 50 : 0);
+          const secondMeat = currentItem.value.duoMeat ? meatOptions.find(m => m.id === currentItem.value.duoMeat) : null;
+          let price = 0;
+          if (baseMeat && secondMeat) {
+            price = Math.max(baseMeat.price, secondMeat.price);
+          } else if (baseMeat) {
+            price = baseMeat.price;
+          } else if (currentItem.value.dishType || currentItem.value.noodle) {
+            price = 50;
+          }
           if (currentItem.value.addPork) price += 10;
           if (currentItem.value.addBeef) price += 10;
           if (currentItem.value.addLiver) price += 10;
@@ -1805,8 +1939,10 @@
           if (isBowlEmpty.value) return 'ภาชนะเปล่า (กรุณาเลือกรายการ)';
           const dish = currentItem.value.dishType === 'radna' ? 'ราดหน้า' : (currentItem.value.dishType === 'padseeew' ? 'ผัดซีอิ๊ว' : 'เกาเหลา/ไม่ระบุน้ำ');
           const noodle = noodleOptions.find(n => n.id === currentItem.value.noodle)?.name || 'ไม่ใส่เส้น';
-          const meat = meatOptions.find(m => m.id === currentItem.value.meat)?.name || 'ไม่ใส่เนื้อ';
-          return `${dish}${noodle} (${meat})`;
+          const m1Name = meatOptions.find(m => m.id === currentItem.value.meat)?.name || 'ไม่ใส่เนื้อ';
+          const m2Name = currentItem.value.duoMeat ? meatOptions.find(m => m.id === currentItem.value.duoMeat)?.name : '';
+          const meatLabel = m2Name ? `Duo ${m1Name}+${m2Name}` : m1Name;
+          return `${dish}${noodle} (${meatLabel})`;
         });
 
         const billGrandTotal = computed(() => {
@@ -1925,14 +2061,31 @@
             const nowTime = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
             const cogsMap = {
-              rn_pork: 23.5, rn_liver: 17.5, rn_quail: 21.2, rn_beef: 23.5, rn_crispy: 31.5, rn_seafood: 36.5, rn_mixed: 34.0, rn_shrimp: 55.5, rn_squid: 45.5,
-              se_pork: 25.0, se_liver: 19.0, se_quail: 22.7, se_beef: 25.0, se_crispy: 33.0, se_seafood: 38.0, se_mixed: 35.5, se_shrimp: 57.0, se_squid: 47.0,
-              top_veg: 5.0, top_noodle: 4.5, top_pork: 7.425, top_beef: 8.4, top_quail_egg: 4.4, top_crispy_noodle: 3.5, top_liver: 2.97, top_squid: 17.5, top_crispy_pork: 11.9, top_shrimp: 7.5
+              rn_pork: 24.44, rn_liver: 19.94, rn_quail: 22.24, rn_beef: 27.74, rn_crispy: 33.24, rn_seafood: 44.54, rn_mixed: 44.69, rn_shrimp: 59.54, rn_squid: 47.04,
+              rn_duo_pork_liver: 22.19, rn_duo_pork_quail: 23.34, rn_duo_liver_quail: 21.09,
+              rn_duo_beef_pork: 26.09, rn_duo_beef_liver: 23.84, rn_duo_beef_quail: 24.99,
+              se_pork: 25.36, se_liver: 20.86, se_quail: 23.16, se_beef: 28.66, se_crispy: 34.16, se_seafood: 45.46, se_mixed: 45.61, se_shrimp: 60.46, se_squid: 47.96,
+              se_duo_pork_liver: 23.11, se_duo_pork_quail: 24.26, se_duo_liver_quail: 22.01,
+              se_duo_beef_pork: 27.01, se_duo_beef_liver: 24.76, se_duo_beef_quail: 25.91,
+              top_veg: 5.0, top_noodle: 4.5, top_pork: 7.425, top_beef: 8.4, top_quail_egg: 4.4, top_crispy_noodle: 3.5, top_liver: 2.97, top_squid: 17.5, top_crispy_pork: 11.9, top_shrimp: 15.0
             };
 
             const meatIdMap = {
               pork: 'pork', liver: 'liver', quail: 'quail', beef: 'beef',
               crispy_pork: 'crispy', seafood: 'seafood', mixed: 'mixed', crabstick: 'shrimp', squid: 'squid'
+            };
+
+            const resolveDuoKey = (m1, m2) => {
+              const pair = [m1, m2].sort().join('_');
+              const map = {
+                'liver_pork': 'duo_pork_liver',
+                'pork_quail': 'duo_pork_quail',
+                'liver_quail': 'duo_liver_quail',
+                'beef_pork': 'duo_beef_pork',
+                'beef_liver': 'duo_beef_liver',
+                'beef_quail': 'duo_beef_quail'
+              };
+              return map[pair] || null;
             };
 
             const salesDelta = {};
@@ -1950,7 +2103,11 @@
               } else if (item.config) {
                 const cfg = item.config;
                 const prefix = cfg.dishType === 'padseeew' ? 'se_' : 'rn_';
-                const mKey = meatIdMap[cfg.meat] || 'pork';
+                let mKey = meatIdMap[cfg.meat] || 'pork';
+                if (cfg.meat && cfg.duoMeat) {
+                  const dKey = resolveDuoKey(cfg.meat, cfg.duoMeat);
+                  if (dKey) mKey = dKey;
+                }
                 const menuId = prefix + mKey;
 
                 salesDelta[menuId] = (salesDelta[menuId] || 0) + qty;
@@ -2113,7 +2270,10 @@
           adminMode, adminSelectedKey, activeAdminObj, toggleAdminMode,
           selectAdminTarget, ensurePreviewHasSelectedItem, getLayerStyle, getAdminInteractiveClass,
           adjustLayoutProp, saveLayoutsToStorage, resetSingleLayout, resetAllLayouts, exportLayoutJson,
-          noodleOptions, meatOptions, drinkOptions, getMeatImage, currentItem, billItems, isBowlEmpty,
+          noodleOptions, meatOptions, drinkOptions, getMeatImage, getMeatName,
+          duoPresets55, duoPresets65, getDuoFirstMeatStyle, getDuoSecondMeatStyle,
+          selectDuoPair, clearDuoSelection, isDuoSelected,
+          currentItem, billItems, isBowlEmpty,
           toggleDishType, handleNoodleButtonClick, togglePopupTarget, toggleExtraNoodleFromPopup, toggleAddMeeKrobFromPopup,
           hasMeatExtraPopup, isMeatExtraActive, handleMeatButtonClick,
           toggleExtraPork, toggleExtraLiver, toggleExtraBeef, toggleExtraCrispy,

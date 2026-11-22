@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เหมาะโอชา The Next+ - ระบบ POS บัญชีต้นทุน & วิเคราะห์การตลาด</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    if (typeof Vue === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"><\/script>');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    [v-cloak] { display: none !important; }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-24">
+  <div id="app" v-cloak class="max-w-[1440px] mx-auto p-3 sm:p-5">
+    
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-[#2C1810] via-[#4A2511] to-red-800 text-white p-4 sm:p-5 rounded-2xl shadow-lg mb-5 flex flex-wrap justify-between items-center gap-3 border-b-4 border-amber-400">
+      <div class="flex items-center gap-3">
+        <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-12 w-auto object-contain drop-shadow">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2 text-amber-300">
+            <span>เหมาะโอชา POS & บัญชีต้นทุน</span>
+          </h1>
+          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ วิเคราะห์การตลาด และประมาณการจัดซื้ออัตโนมัติ</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="index.html" class="bg-amber-400 hover:bg-amber-300 text-[#2C1810] px-3 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center gap-1.5 shadow">
+          <span>🍲</span>
+          <span>กลับหน้าสั่งอาหาร</span>
+        </a>
+        <!-- ช่องแก้ไขวันที่บันทึก -->
+        <div class="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-right border border-amber-300/40">
+          <div class="text-[11px] text-amber-200 flex items-center justify-end gap-1">
+            <span>📅 วันที่ขายจริง (แก้ไขได้)</span>
+          </div>
+          <input type="date" v-model="selectedDate" @change="onSelectedDateChange"
+                 class="bg-transparent text-white font-bold text-xs sm:text-sm outline-none cursor-pointer">
+          <div class="text-[10px] text-amber-100/90">{{ currentDateDisplay }}</div>
+        </div>
+        <button @click="showSyncModal = true" title="ตั้งค่าเชื่อมต่อข้ามเครื่อง (Firebase)"
+                class="bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-xl text-xs font-bold transition relative">
+          <span>⚙️</span>
+          <span class="w-2 h-2 rounded-full absolute -top-0.5 -right-0.5" :class="firebaseUrl ? 'bg-emerald-400' : 'bg-amber-400'"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1">
+      <button v-for="t in tabs" :key="t.id" @click="switchTab(t.id)"
+              :class="['px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition flex items-center gap-2 shadow-xs',
+                      activeTab === t.id ? 'bg-[#2C1810] text-amber-300 border-b-2 border-red-500' : 'bg-white text-slate-600 hover:bg-orange-50 border border-slate-200']">
+        <span>{{ t.icon }}</span>
+        <span>{{ t.name }}</span>
+        <span v-if="t.id === 'daily_costs' && totalDailyExpense > 0"
+              class="text-[11px] px-2 py-0.2 rounded-full font-extrabold"
+              :class="activeTab === t.id ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'">
+          ฿{{ formatMoney(totalDailyExpense) }}
+        </span>
+      </button>
+    </div>
+
+    <!-- ==================== TAB 1: บันทึกยอดขาย ==================== -->
+    <div v-if="activeTab === 'sales'" class="space-y-5">
+      
+      <!-- Summary KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div class="text-slate-500 text-xs sm:text-sm font-medium">จำนวนขายรวม (ชาม/ชิ้น)</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-1">{{ totalBowls }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div class="text-slate-500 text-xs sm:text-sm font-medium">ยอดขายรวม (รายรับ)</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1">฿{{ formatMoney(totalRevenue) }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <div class="text-slate-500 text-xs sm:text-sm font-medium">ต้นทุนวัตถุดิบ + แก๊ส</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1">฿{{ formatMoney(totalCOGS) }}</div>
+        </div>
+        <div @click="switchTab('daily_costs')" title="คลิกเพื่อจัดการรายการต้นทุนวันนี้"
+             class="cursor-pointer bg-white p-4 rounded-2xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 transition shadow-xs">
+          <div class="text-rose-700 text-xs sm:text-sm font-medium flex items-center justify-between">
+            <span>รายการต้นทุนวันนี้</span>
+            <span class="text-[10px] underline">แก้ไข ↗</span>
+          </div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-1">฿{{ formatMoney(totalDailyExpense) }}</div>
+          <div class="text-[10px] text-rose-600/90 mt-0.5 truncate">{{ dailyExpenseSummaryHint }}</div>
+        </div>
+        <div class="col-span-2 lg:col-span-1 bg-emerald-600 text-white p-4 rounded-2xl shadow-sm">
+          <div class="text-emerald-100 text-xs sm:text-sm font-bold">กำไรสุทธิวันนี้ (หักทุกอย่างแล้ว)</div>
+          <div class="text-2xl sm:text-3xl font-extrabold mt-1">฿{{ formatMoney(totalNetProfit) }}</div>
+          <div class="text-[10px] text-emerald-100/90 mt-0.5">กำไรขั้นต้น ฿{{ formatMoney(totalProfit) }}</div>
+        </div>
+      </div>
+
+      <!-- แบ่งเมนูหลักเป็น 3 ส่วนในแถวเดียวกัน: 1. ราดหน้า | 2. ผัดซีอิ๊ว | 3. ท็อปปิ้ง -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        
+        <!-- ส่วนที่ 1: หมวดราดหน้า -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="bg-red-50/80 px-3.5 py-2.5 border-b border-red-100 flex justify-between items-center gap-2">
+            <h2 class="font-bold text-red-900 text-sm flex items-center gap-1.5">🍲 เมนูราดหน้า</h2>
+            <span class="text-[11px] text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded-full shrink-0">รวม {{ categoryCount('radna') }} ชาม</span>
+          </div>
+          <div class="divide-y divide-slate-100">
+            <div v-for="item in getMenuByCategory('radna')" :key="item.id" class="px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50">
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-slate-800 text-xs sm:text-sm truncate">{{ item.name }}</div>
+                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
+                <input type="number" v-model.number="sales[item.id]" min="0" class="w-11 h-7 text-center font-bold text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                <button @click="updateQty(item.id, 1)" class="w-7 h-7 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm flex items-center justify-center active:scale-95">+</button>
+              </div>
+              <div class="w-16 text-right font-bold text-slate-700 text-xs shrink-0">
+                ฿{{ formatMoney((sales[item.id] || 0) * item.price) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 2: หมวดผัดซีอิ๊ว -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="bg-amber-50/80 px-3.5 py-2.5 border-b border-amber-100 flex justify-between items-center gap-2">
+            <h2 class="font-bold text-amber-900 text-sm flex items-center gap-1.5">🍳 เมนูผัดซีอิ๊ว</h2>
+            <span class="text-[11px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full shrink-0">รวม {{ categoryCount('seeew') }} จาน</span>
+          </div>
+          <div class="divide-y divide-slate-100">
+            <div v-for="item in getMenuByCategory('seeew')" :key="item.id" class="px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50">
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-slate-800 text-xs sm:text-sm truncate">{{ item.name }}</div>
+                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
+                <input type="number" v-model.number="sales[item.id]" min="0" class="w-11 h-7 text-center font-bold text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <button @click="updateQty(item.id, 1)" class="w-7 h-7 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm flex items-center justify-center active:scale-95">+</button>
+              </div>
+              <div class="w-16 text-right font-bold text-slate-700 text-xs shrink-0">
+                ฿{{ formatMoney((sales[item.id] || 0) * item.price) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 3: หมวดท็อปปิ้งเพิ่มเติม -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="bg-purple-50/80 px-3.5 py-2.5 border-b border-purple-100 flex justify-between items-center gap-2">
+            <h2 class="font-bold text-purple-900 text-sm flex items-center gap-1.5">✨ ท็อปปิ้ง & เพิ่มปริมาณ</h2>
+            <span class="text-[11px] text-purple-700 font-bold bg-purple-100 px-2 py-0.5 rounded-full shrink-0">รวม {{ categoryCount('topping') }} รายการ</span>
+          </div>
+          <div class="divide-y divide-slate-100">
+            <div v-for="item in getMenuByCategory('topping')" :key="item.id" class="px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50">
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-slate-800 text-xs sm:text-sm truncate">{{ item.name }}</div>
+                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
+                <input type="number" v-model.number="sales[item.id]" min="0" class="w-11 h-7 text-center font-bold text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button @click="updateQty(item.id, 1)" class="w-7 h-7 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm flex items-center justify-center active:scale-95">+</button>
+              </div>
+              <div class="w-16 text-right font-bold text-slate-700 text-xs shrink-0">
+                ฿{{ formatMoney((sales[item.id] || 0) * item.price) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ส่วนที่ 4 (บรรทัดล่าง): หมวดเครื่องดื่ม / ขนม + ตัวเลือกตรึงปุ่มลัดอัตโนมัติ -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="bg-cyan-50/70 px-4 py-3 border-b border-cyan-100 flex justify-between items-center">
+          <h2 class="font-bold text-cyan-900 flex items-center gap-2">🥤 เครื่องดื่ม & ขนม (บันทึกตามรายการที่ขายได้จริง)</h2>
+          <span class="text-xs text-cyan-700 font-bold bg-cyan-100 px-2.5 py-0.5 rounded-full">รวม {{ drinkTotalQty }} ขวด/แก้ว/ชิ้น</span>
+        </div>
+
+        <!-- แถบปุ่มลัดที่ตรึงไว้ (Saved Pinned Options) -->
+        <div v-if="pinnedDrinkOptions.length > 0" class="px-4 py-3 bg-cyan-50/40 border-b border-cyan-100 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-cyan-900">📌 ตัวเลือกที่ตรึงไว้ (แตะเพื่อเพิ่มยอดขายทันที ไม่ต้องพิมพ์ใหม่):</span>
+            <span class="text-[11px] text-slate-500">จำรายการให้อัตโนมัติเมื่อเพิ่มใหม่</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <div v-for="(opt, oIdx) in pinnedDrinkOptions" :key="opt.name + '_' + opt.price"
+                 class="inline-flex items-center bg-white border border-cyan-300 hover:border-cyan-600 rounded-xl shadow-2xs overflow-hidden transition">
+              <button @click="quickAddPinnedDrink(opt)"
+                      class="px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-cyan-50 flex items-center gap-1.5 active:scale-95">
+                <span class="text-cyan-600 font-black">+</span>
+                <span>{{ opt.name }}</span>
+                <span class="text-cyan-700 font-extrabold">(฿{{ opt.price }})</span>
+              </button>
+              <button @click="removePinnedDrinkOption(oIdx)" title="ลบตัวเลือกนี้ออกจากปุ่มลัด"
+                      class="px-2 py-1.5 text-[11px] text-slate-400 hover:text-red-600 hover:bg-red-50 border-l border-slate-200 font-bold">
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="p-4 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 items-center">
+          <input type="text" v-model="newDrink.name" @keyup.enter="addCustomDrink" placeholder="ชื่อเครื่องดื่มหรือขนม (เช่น โค้ก, ชาลิปตัน, นมสด, ขนม)" class="flex-1 min-w-[180px] px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+          <input type="number" v-model.number="newDrink.price" @keyup.enter="addCustomDrink" placeholder="ราคาขาย (บาท)" class="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+          <input type="number" v-model.number="newDrink.qty" @keyup.enter="addCustomDrink" placeholder="จำนวน" class="w-24 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+          <button @click="addCustomDrink" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">+ เพิ่ม & ตรึงตัวเลือก</button>
+        </div>
+
+        <div v-if="customDrinks.length === 0" class="p-5 text-center text-slate-400 text-sm">
+          ยังไม่มีรายการเครื่องดื่มหรือขนมวันนี้ (แตะปุ่มลัดด้านบน หรือเพิ่มรายการใหม่ได้เลยครับ)
+        </div>
+        <div v-else class="divide-y divide-slate-100">
+          <div v-for="(drink, index) in customDrinks" :key="index" class="p-3 sm:px-5 flex items-center justify-between gap-2">
+            <div class="flex-1">
+              <div class="font-bold text-slate-800">{{ drink.name }}</div>
+              <div class="text-xs text-slate-500">ราคาขาย ฿{{ drink.price }} (ประเมินต้นทุน ~40%)</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="drink.qty = Math.max(0, drink.qty - 1)" class="w-8 h-8 rounded-lg bg-slate-100 font-bold">-</button>
+              <span class="w-10 text-center font-bold">{{ drink.qty }}</span>
+              <button @click="drink.qty++" class="w-8 h-8 rounded-lg bg-cyan-600 text-white font-bold">+</button>
+              <button @click="customDrinks.splice(index, 1)" class="ml-2 text-red-500 hover:text-red-700 text-xs underline">ลบ</button>
+            </div>
+            <div class="w-24 text-right font-bold text-slate-700">
+              ฿{{ formatMoney(drink.price * drink.qty) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ปุ่มบันทึกยอดประจำวัน, ปริ้น .txt & รีเซ็ต -->
+      <div class="flex flex-wrap justify-between items-center gap-3 pt-2">
+        <button @click="resetTodaySales" class="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm transition">
+          ล้างตัวเลขหน้าจอ
+        </button>
+        <div class="flex flex-wrap gap-2">
+          <button @click="exportCurrentDayTxt(false)" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-bold text-sm shadow transition flex items-center gap-1.5">
+            <span>📄 โหลดสรุปวันนี้ (.txt)</span>
+          </button>
+          <button @click="exportCurrentDayTxt(true)" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition flex items-center gap-1.5">
+            <span>🖨️ ปริ้นสรุปวันนี้</span>
+          </button>
+          <button @click="saveDailyRecord" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition flex items-center gap-2">
+            <span>💾 บันทึกยอดวันที่ {{ currentDateDisplay }} ลงประวัติ</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TAB 2: รายการต้นทุนวันนี้ ==================== -->
+    <div v-if="activeTab === 'daily_costs'" class="space-y-5">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span>💸</span> รายการต้นทุน & ค่าใช้จ่ายประจำวันที่ {{ currentDateDisplay }}
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              ติ๊กเลือกรายจ่ายดำเนินงานคงที่รายวัน หรือกำหนดรายจ่ายพิเศษเพิ่ม (ระบบหักวัตถุดิบสด+แก๊ส+น้ำแข็งต่อชามให้อัตโนมัติแล้ว)
+            </p>
+          </div>
+          <div class="bg-rose-600 text-white px-4 py-2.5 rounded-xl shadow-xs text-right">
+            <div class="text-[11px] text-rose-100 font-medium">รวมรายการต้นทุนวันนี้</div>
+            <div class="text-xl sm:text-2xl font-extrabold">฿{{ formatMoney(totalDailyExpense) }}</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          <!-- คอลัมน์ซ้าย: ติ๊กเลือกดึงมาจากรายจ่ายต้นทุนที่มีอยู่แล้ว -->
+          <div class="lg:col-span-6 bg-amber-50/50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <h3 class="text-sm font-extrabold text-amber-950">☑️ 1. ดึงจากรายจ่ายค่าสาธารณูปโภค/ค่าเดินทาง</h3>
+                <p class="text-[11px] text-amber-800">ติ๊กเลือกรายการที่มีค่าใช้จ่ายในวันนี้ (ปรับแก้ยอดเงินเฉพาะวันนี้ได้)</p>
+              </div>
+              <button @click="selectDefaultDailyPresets" class="text-xs bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold px-2.5 py-1 rounded-lg transition">
+                เลือกค่าประจำวันมาตรฐาน
+              </button>
+            </div>
+
+            <div class="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+              <div v-for="preset in availablePresetExpenses" :key="preset.key"
+                   :class="['p-3 rounded-xl border transition flex items-center justify-between gap-3',
+                           isPresetSelected(preset.key) ? 'bg-white border-rose-400 shadow-2xs' : 'bg-white/70 border-slate-200 hover:border-amber-300']">
+                <label class="flex items-start gap-2.5 cursor-pointer flex-1 min-w-0">
+                  <input type="checkbox"
+                         :checked="isPresetSelected(preset.key)"
+                         @change="togglePresetExpense(preset)"
+                         class="mt-1 w-4 h-4 accent-rose-600 rounded cursor-pointer">
+                  <div class="min-w-0">
+                    <div class="text-sm font-bold text-slate-800 truncate">{{ preset.name }}</div>
+                    <div class="text-[11px] text-slate-500">{{ preset.desc }}</div>
+                  </div>
+                </label>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-xs text-slate-400">฿</span>
+                  <input v-if="isPresetSelected(preset.key)"
+                         type="number" step="0.5" min="0"
+                         :value="getPresetSelectedAmount(preset.key)"
+                         @input="updatePresetSelectedAmount(preset.key, $event.target.value)"
+                         class="w-24 px-2.5 py-1.5 border border-rose-300 rounded-lg text-right font-extrabold text-sm text-rose-700 bg-rose-50/40 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                  <span v-else class="w-24 text-right font-bold text-sm text-slate-500 px-2.5 py-1.5">
+                    {{ formatMoney(preset.defaultDailyAmount) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- คอลัมน์ขวา: กำหนดรายการต้นทุนขึ้นใหม่ + สรุปรายการที่เลือกทั้งหมดวันนี้ -->
+          <div class="lg:col-span-6 space-y-4">
+            
+            <!-- ฟอร์มกำหนดรายการต้นทุนขึ้นใหม่ -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <h3 class="text-sm font-extrabold text-slate-800">➕ 2. กำหนดรายการต้นทุนใหม่เฉพาะวันนี้</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <input type="text" v-model="newDailyCost.name"
+                       @keyup.enter="addCustomDailyCost"
+                       placeholder="ชื่อรายการ (เช่น ค่าแรงผู้ช่วย, ค่าถุง/กล่อง, ค่าเช่าที่)"
+                       class="sm:col-span-6 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <input type="number" step="0.5" min="0" v-model.number="newDailyCost.amount"
+                       @keyup.enter="addCustomDailyCost"
+                       placeholder="จำนวนเงิน (บาท)"
+                       class="sm:col-span-3 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white font-bold text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <button @click="addCustomDailyCost"
+                        class="sm:col-span-3 bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-2 rounded-xl text-sm transition shadow-xs">
+                  + เพิ่มรายการ
+                </button>
+              </div>
+              <input type="text" v-model="newDailyCost.note"
+                     @keyup.enter="addCustomDailyCost"
+                     placeholder="หมายเหตุเพิ่มเติม (ถ้ามี) เช่น จ่ายเงินสด / โอน"
+                     class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-500">
+            </div>
+
+            <!-- รายการต้นทุนที่บันทึกไว้สำหรับวันนี้ทั้งหมด -->
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+              <div class="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                <span class="text-xs font-extrabold text-slate-700">📋 รายการต้นทุนที่คิดเงินวันนี้ ({{ todayCostItems.length }} รายการ)</span>
+                <button v-if="todayCostItems.length > 0" @click="clearTodayCostItems" class="text-[11px] text-rose-600 hover:underline font-bold">
+                  ล้างรายการวันนี้ทั้งหมด
+                </button>
+              </div>
+
+              <div v-if="todayCostItems.length === 0" class="p-6 text-center text-slate-400 text-sm">
+                ยังไม่มีรายการต้นทุนวันนี้ (ติ๊กเลือกจากฝั่งซ้าย หรือเพิ่มรายการใหม่ด้านบนได้เลยครับ)
+              </div>
+
+              <div v-else class="divide-y divide-slate-100 max-h-[290px] overflow-y-auto">
+                <div v-for="(item, idx) in todayCostItems" :key="item.id" class="p-3 px-4 flex items-center justify-between gap-2 hover:bg-slate-50">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[10px] px-1.5 py-0.2 rounded font-bold shrink-0"
+                            :class="item.source === 'preset' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'">
+                        {{ item.source === 'preset' ? 'ดึงจากระบบ' : 'กำหนดใหม่' }}
+                      </span>
+                      <span class="font-bold text-sm text-slate-800 truncate">{{ item.name }}</span>
+                    </div>
+                    <div v-if="item.note" class="text-[11px] text-slate-500 mt-0.5 truncate">{{ item.note }}</div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <input type="number" step="0.5" min="0" v-model.number="item.amount" @change="persistTodayCostsOnly"
+                           class="w-24 px-2 py-1 border border-slate-300 rounded-lg text-right font-extrabold text-sm text-rose-700">
+                    <span class="text-xs text-slate-500">บ.</span>
+                    <button @click="removeTodayCostItem(idx)" class="text-red-500 hover:text-red-700 text-xs font-bold px-1.5 py-1 rounded hover:bg-red-50">
+                      ลบ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- แถบปุ่มบันทึกด้านล่างแท็บรายการต้นทุนวันนี้ -->
+        <div class="pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3">
+          <div class="text-xs text-slate-500">
+            * เมื่อกดบันทึก ระบบจะอัปเดตรายการต้นทุนวันนี้คู่กับข้อมูลยอดขายของวันที่ <strong>{{ currentDateDisplay }}</strong>
+          </div>
+          <div class="flex gap-2">
+            <button @click="switchTab('sales')" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">
+              ← กลับหน้าบันทึกยอดขาย
+            </button>
+            <button @click="saveDailyRecord" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow transition">
+              💾 บันทึกข้อมูลวันที่ {{ currentDateDisplay }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: วิเคราะห์การตลาด & กราฟ (NEW) ==================== -->
+    <div v-if="activeTab === 'analytics'" class="space-y-5">
+      
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <span>📈</span> ศูนย์วิเคราะห์ข้อมูลการตลาด & ประสิทธิภาพการขาย (Marketing Intelligence)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              วิเคราะห์เชิงลึกจากข้อมูลประวัติการขายจริงทั้งหมด <strong>{{ analyticsData.daysCount }} วัน</strong> (เรียงลำดับตามวันที่ขายจริง)
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="renderAnalyticsCharts" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-3.5 py-2 rounded-xl text-xs transition">
+              🔄 อัปเดตกราฟล่าสุด
+            </button>
+          </div>
+        </div>
+
+        <div v-if="historyLogs.length === 0" class="py-12 text-center text-slate-400">
+          ยังไม่มีข้อมูลประวัติยอดขายเพียงพอสำหรับวิเคราะห์ กรุณาบันทึกยอดขายหรือนำเข้าไฟล์ในแท็บ "ประวัติ & นำเข้าไฟล์" ก่อนครับ
+        </div>
+
+        <template v-else>
+          <!-- KPI การตลาด 5 ใบ -->
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200">
+              <div class="text-[11px] font-bold text-blue-800">ยอดขายเฉลี่ย / วัน</div>
+              <div class="text-xl sm:text-2xl font-extrabold text-blue-700 mt-0.5">฿{{ formatMoney(analyticsData.avgDailyRevenue) }}</div>
+              <div class="text-[10px] text-blue-600 mt-0.5">เฉลี่ย {{ analyticsData.avgDailyBowls.toFixed(1) }} ชาม/วัน</div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <div class="text-[11px] font-bold text-emerald-800">อัตรากำไรสุทธิ (Net Margin)</div>
+              <div class="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-0.5">{{ analyticsData.netMarginPercent.toFixed(1) }}%</div>
+              <div class="text-[10px] text-emerald-600 mt-0.5">กำไรสุทธิเฉลี่ย ฿{{ formatMoney(analyticsData.avgDailyNetProfit) }}/วัน</div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200">
+              <div class="text-[11px] font-bold text-amber-900">ราคาเฉลี่ยต่อหน่วย (AOV/Item)</div>
+              <div class="text-xl sm:text-2xl font-extrabold text-amber-700 mt-0.5">฿{{ formatMoney(analyticsData.avgTicketPerBowl) }}</div>
+              <div class="text-[10px] text-amber-700 mt-0.5">ยอดขายรวม ÷ จำนวนชาม/ชิ้น</div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200">
+              <div class="text-[11px] font-bold text-purple-900">อัตราการสั่งท็อปปิ้ง (Upsell Rate)</div>
+              <div class="text-xl sm:text-2xl font-extrabold text-purple-700 mt-0.5">{{ analyticsData.upsellRate.toFixed(1) }}%</div>
+              <div class="text-[10px] text-purple-600 mt-0.5">ท็อปปิ้ง {{ analyticsData.totalToppingsQty }} ครั้ง / {{ analyticsData.totalMainBowlsQty }} ชามหลัก</div>
+            </div>
+
+            <div class="col-span-2 lg:col-span-1 p-3.5 rounded-2xl bg-[#2C1810] text-white">
+              <div class="text-[11px] font-bold text-amber-300">🏆 วันที่ขายดีที่สุด (Peak Day)</div>
+              <div class="text-lg sm:text-xl font-extrabold text-white mt-0.5 truncate">{{ analyticsData.bestDay?.date || '-' }}</div>
+              <div class="text-[11px] text-emerald-300 font-bold mt-0.5">ยอด ฿{{ formatMoney(analyticsData.bestDay?.totalRevenue || 0) }} ({{ analyticsData.bestDay?.totalBowls || 0 }} ชาม)</div>
+            </div>
+          </div>
+
+          <!-- แถวกราฟที่ 1: แนวโน้มยอดขาย & กำไรสุทธิรายวัน (8 ส่วน) + สัดส่วนหมวดหมู่ (4 ส่วน) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div class="lg:col-span-8 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+              <div class="flex justify-between items-center mb-2">
+                <h3 class="text-sm font-extrabold text-slate-800">📊 1. แนวโน้มยอดขายและกำไรสุทธิรายวัน (เรียงตามวันที่ขายจริง)</h3>
+                <span class="text-[11px] text-slate-500">เปรียบเทียบรายรับ vs กำไรสุทธิ</span>
+              </div>
+              <div class="h-[290px] w-full relative">
+                <canvas id="chartDailyTrend"></canvas>
+              </div>
+            </div>
+
+            <div class="lg:col-span-4 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+              <div class="mb-2">
+                <h3 class="text-sm font-extrabold text-slate-800">🍩 2. สัดส่วนรายได้แยกตามกลุ่มสินค้า</h3>
+                <p class="text-[11px] text-slate-500">ราดหน้า vs ผัดซีอิ๊ว vs ท็อปปิ้ง vs เครื่องดื่ม</p>
+              </div>
+              <div class="h-[290px] w-full relative flex items-center justify-center">
+                <canvas id="chartCategoryMix"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถวกราฟที่ 2: ยอดขายเฉลี่ยตามวันในสัปดาห์ (6 ส่วน) + Top 10 เมนูทำเงิน (6 ส่วน) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+              <div class="mb-2">
+                <h3 class="text-sm font-extrabold text-slate-800">🗓️ 3. พฤติกรรมลูกค้าตามวันในสัปดาห์ (จันทร์ - อาทิตย์)</h3>
+                <p class="text-[11px] text-slate-500">ยอดขายเฉลี่ยต่อวัน แยกตามวันในสัปดาห์ เพื่อวางแผนโปรโมชันวันเงียบ</p>
+              </div>
+              <div class="h-[270px] w-full relative">
+                <canvas id="chartDayOfWeek"></canvas>
+              </div>
+            </div>
+
+            <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
+              <div class="mb-2">
+                <h3 class="text-sm font-extrabold text-slate-800">🏅 4. 10 อันดับเมนูยอดนิยม & ทำรายได้สูงสุด</h3>
+                <p class="text-[11px] text-slate-500">เรียงตามมูลค่ายอดขายสะสมรวม (บาท)</p>
+              </div>
+              <div class="h-[270px] w-full relative">
+                <canvas id="chartTopMenus"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถวที่ 3: ตาราง Menu Engineering & ข้อเสนอแนะเชิงกลยุทธ์การตลาด -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            
+            <!-- ตารางอันดับเมนูทั้งหมด -->
+            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden">
+              <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-xs sm:text-sm font-extrabold text-slate-800">📋 ตารางวิเคราะห์ประสิทธิภาพรายเมนู (Menu Matrix)</h3>
+                <span class="text-[11px] text-slate-500">เรียงจากยอดขายสูงสุด</span>
+              </div>
+              <div class="max-h-[340px] overflow-y-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-slate-600">
+                    <tr>
+                      <th class="py-2 px-3">อันดับ / เมนู</th>
+                      <th class="py-2 px-2 text-right">จำนวนขาย</th>
+                      <th class="py-2 px-2 text-right">ยอดขายรวม</th>
+                      <th class="py-2 px-2 text-right">กำไรขั้นต้น</th>
+                      <th class="py-2 px-3 text-center">สถานะตลาด</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr v-for="(m, idx) in analyticsData.menuRanking" :key="m.id" class="hover:bg-slate-50">
+                      <td class="py-2 px-3 font-bold text-slate-800">
+                        <span class="inline-block w-5 text-slate-400">{{ idx + 1 }}.</span> {{ m.name }}
+                      </td>
+                      <td class="py-2 px-2 text-right font-semibold text-slate-700">{{ m.qty }}</td>
+                      <td class="py-2 px-2 text-right font-bold text-blue-600">฿{{ formatMoney(m.revenue) }}</td>
+                      <td class="py-2 px-2 text-right font-bold text-emerald-600">฿{{ formatMoney(m.grossProfit) }}</td>
+                      <td class="py-2 px-3 text-center">
+                        <span :class="['text-[10px] px-2 py-0.5 rounded-full font-extrabold', m.badgeClass]">
+                          {{ m.badge }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- กล่องคำแนะนำเชิงกลยุทธ์การตลาด -->
+            <div class="lg:col-span-5 bg-gradient-to-br from-amber-50 to-orange-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+              <h3 class="text-sm font-extrabold text-[#2C1810] flex items-center gap-1.5">
+                <span>💡</span> ข้อเสนอแนะเชิงกลยุทธ์การตลาดสำหรับร้านเหมาะโอชา
+              </h3>
+              <div class="space-y-2.5 text-xs text-slate-700">
+                <div v-for="(tip, tIdx) in analyticsData.marketingInsights" :key="tIdx"
+                     class="bg-white/90 p-3 rounded-xl border border-amber-200/80 shadow-2xs">
+                  <div class="font-extrabold text-red-800 mb-0.5">{{ tip.title }}</div>
+                  <p class="leading-relaxed text-slate-600">{{ tip.detail }}</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: ปริมาณวัตถุดิบที่ต้องเตรียม & ประมาณการจัดซื้อ ==================== -->
+    <div v-if="activeTab === 'prep'" class="space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">📦 ปริมาณวัตถุดิบที่ใช้ไปจริง & ประมาณการจัดซื้อพรุ่งนี้</h2>
+            <p class="text-xs text-slate-500">คำนวณจากยอดขายวันที่ {{ currentDateDisplay }} พร้อมตัวคูณเผื่อสต็อก</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+              <span class="text-xs font-bold text-amber-900">เผื่อสต็อกจัดซื้อ:</span>
+              <select v-model.number="purchaseBufferPercent" class="bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-extrabold text-red-700 outline-none">
+                <option :value="0">0% (ตามยอดขายจริง)</option>
+                <option :value="10">+10% (เผื่อเล็กน้อย)</option>
+                <option :value="15">+15% (แนะนำ)</option>
+                <option :value="20">+20% (วันหยุด/ขายดี)</option>
+                <option :value="30">+30% (เทศกาล)</option>
+              </select>
+            </div>
+            <button @click="exportPurchaseListTxt" class="bg-[#2C1810] hover:bg-red-800 text-amber-300 px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
+              📄 โหลดใบสั่งซื้อวัตถุดิบ (.txt)
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div v-for="(val, key) in rawMaterialUsage" :key="key" class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between gap-2">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <div class="text-sm font-bold text-slate-800">{{ val.label }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">{{ val.note }}</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-[10px] text-slate-400">ใช้ไปจริง</div>
+                <span class="text-lg font-extrabold text-slate-700">{{ val.amount }}</span>
+                <span class="text-xs font-medium text-slate-600 ml-1">{{ val.unit }}</span>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-200/80 flex justify-between items-center text-xs">
+              <span class="font-bold text-emerald-800">🛒 แนะนำสั่งซื้อ (+{{ purchaseBufferPercent }}%):</span>
+              <span class="font-extrabold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-lg">
+                {{ val.orderAmount }} {{ val.unit }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 5: ตั้งค่าต้นทุนวัตถุดิบ & ค่าใช้จ่าย ==================== -->
+    <div v-if="activeTab === 'costs'" class="space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="mb-4 pb-3 border-b border-slate-100 flex flex-wrap justify-between items-center gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">⚙️ ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่ายดำเนินงาน (ต้นทุนต่อหน่วย)</h2>
+            <p class="text-xs text-slate-500">แก้ไขตัวเลขด้านล่างได้ทันที ระบบจะคำนวณต้นทุนทุกเมนูและสามารถดึงไปใช้ในหน้า "รายการต้นทุนวันนี้" ได้</p>
+          </div>
+          <button @click="resetDefaultCosts" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold">
+            คืนค่าเริ่มต้น
+          </button>
+        </div>
+
+        <!-- กลุ่มที่ 1: วัตถุดิบอาหารและเครื่องปรุง -->
+        <h3 class="text-xs font-extrabold text-red-800 uppercase tracking-wider mb-2.5">🥩 1. วัตถุดิบสด เส้น ผัก และน้ำมันปรุงอาหาร</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
+          <div v-for="(item, key) in ingredientUnitCosts" :key="key" class="p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between bg-slate-50/40">
+            <label class="text-sm font-bold text-slate-700 mb-1">{{ item.name }}</label>
+            <div class="flex items-center gap-2">
+              <input type="number" step="0.1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700 bg-white">
+              <span class="text-xs text-slate-500 whitespace-nowrap">{{ item.unit }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- กลุ่มที่ 2: ค่าแก๊ส น้ำแข็ง ค่าน้ำ ค่าไฟ ค่าน้ำมันรถ -->
+        <h3 class="text-xs font-extrabold text-amber-900 uppercase tracking-wider mb-2.5">⚡ 2. ค่าแก๊ส น้ำแข็ง ค่าไฟฟ้า ค่าน้ำประปา และค่าน้ำมันรถ</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div v-for="(item, key) in utilityUnitCosts" :key="key" class="p-3.5 rounded-xl border border-amber-200 flex flex-col justify-between bg-amber-50/40">
+            <div>
+              <label class="text-sm font-bold text-slate-800 block">{{ item.name }}</label>
+              <span v-if="item.hint" class="text-[11px] text-amber-800 block mt-0.5">{{ item.hint }}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="number" step="1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-amber-300 rounded-lg font-bold text-amber-900 bg-white">
+              <span class="text-xs text-slate-600 whitespace-nowrap font-semibold">{{ item.unit }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 6: ประวัติ & นำเข้าข้อมูลย้อนหลัง ==================== -->
+    <div v-if="activeTab === 'history'" class="space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">📅 ประวัติยอดขายย้อนหลัง & นำเข้าข้อมูลจากไฟล์</h2>
+            <p class="text-xs text-slate-500">เรียงลำดับตามวันที่ขายจริง นำเข้าไฟล์ย้อนหลัง (JSON / CSV / TXT) และส่งออกรายงาน</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+              <span class="text-xs font-bold text-slate-600 pl-1">เรียงตาม:</span>
+              <select v-model="historySortBy" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 outline-none">
+                <option value="date">วันที่ขายจริง</option>
+                <option value="totalRevenue">ยอดขาย (บาท)</option>
+                <option value="totalNetProfit">กำไรสุทธิ (บาท)</option>
+                <option value="totalBowls">จำนวนขาย (ชาม/ชิ้น)</option>
+              </select>
+              <button @click="historySortOrder = 'desc'"
+                      :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition', historySortOrder === 'desc' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+                ⬇️ มากไปน้อย
+              </button>
+              <button @click="historySortOrder = 'asc'"
+                      :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition', historySortOrder === 'asc' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+                ⬆️ น้อยไปมาก
+              </button>
+            </div>
+
+            <button v-if="historyLogs.length > 0" @click="exportAllHistoryTxt"
+                    class="bg-slate-700 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1">
+              <span>📄 โหลดประวัติทั้งหมด (.txt)</span>
+            </button>
+
+            <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+              <span>📂 นำเข้าไฟล์ย้อนหลัง (JSON / CSV / TXT)</span>
+              <input type="file" accept=".json,.csv,.txt" @change="handleFileImport" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- การ์ดสรุปยอดรวมสะสมของทุกวัน -->
+        <div v-if="historyLogs.length > 0" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50/70 to-emerald-50/60 border border-amber-200/80">
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-slate-500">จำนวนวันที่ขาย</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-[#2C1810] mt-0.5">{{ historyTotals.daysCount }} <span class="text-xs font-semibold text-slate-500">วัน</span></div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-slate-500">จำนวนขายสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-0.5">{{ historyTotals.totalBowls.toLocaleString('th-TH') }} <span class="text-xs font-semibold text-slate-500">ชาม/ชิ้น</span></div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-blue-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-blue-700">ยอดขายสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-blue-600 mt-0.5">฿{{ formatMoney(historyTotals.totalRevenue) }}</div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-amber-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-amber-700">ต้นทุนวัตถุดิบรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">฿{{ formatMoney(historyTotals.totalCOGS) }}</div>
+          </div>
+          <div class="bg-white/90 p-3 rounded-xl border border-rose-100 shadow-2xs">
+            <div class="text-[11px] font-bold text-rose-700">รายการต้นทุนรายวันสะสม</div>
+            <div class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">฿{{ formatMoney(historyTotals.totalOverhead) }}</div>
+          </div>
+          <div class="bg-emerald-600 text-white p-3 rounded-xl shadow-xs">
+            <div class="text-[11px] font-bold text-emerald-100">กำไรสุทธิสะสมรวม</div>
+            <div class="text-xl sm:text-2xl font-extrabold mt-0.5">฿{{ formatMoney(historyTotals.totalNetProfit) }}</div>
+          </div>
+        </div>
+
+        <div v-if="sortedHistoryLogs.length === 0" class="text-center py-10 text-slate-400">
+          ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดลงประวัติ")
+        </div>
+
+        <div v-else class="space-y-3">
+          <div v-for="(log, idx) in sortedHistoryLogs" :key="log._origIdx" class="p-4 rounded-xl border border-slate-200 hover:border-red-300 transition flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <div class="font-bold text-slate-800 flex items-center gap-2">
+                <span>🗓️ {{ log.date }}</span>
+                <span class="text-xs font-normal text-slate-500">({{ log.time }})</span>
+                <span v-if="log.importedFrom" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
+                  {{ log.importedFrom }}
+                </span>
+              </div>
+              <div class="text-xs text-slate-500 mt-1">
+                ขายได้ทั้งหมด {{ log.totalBowls }} ชาม/ชิ้น
+                <span v-if="log.dailyCosts && log.dailyCosts.length > 0" class="text-rose-600 font-semibold ml-2">
+                  • รายการต้นทุนวันนั้น {{ log.dailyCosts.length }} รายการ (฿{{ formatMoney(log.overheadCost || 0) }})
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-right">
+              <div>
+                <div class="text-xs text-slate-400">ยอดขาย</div>
+                <div class="font-bold text-blue-600">฿{{ formatMoney(log.totalRevenue) }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">ต้นทุนวัตถุดิบ</div>
+                <div class="font-bold text-amber-600">฿{{ formatMoney(log.totalCOGS) }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">ต้นทุนรายวัน</div>
+                <div class="font-bold text-rose-600">฿{{ formatMoney(log.overheadCost || 0) }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-slate-400">กำไรสุทธิ</div>
+                <div class="font-extrabold text-emerald-600">฿{{ formatMoney(getLogNetProfit(log)) }}</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button @click="exportLogTxt(log, false)" title="ดาวน์โหลดรายงานวันนี้เป็นไฟล์ .txt"
+                        class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-2.5 py-1.5 rounded-lg font-bold">
+                  📄 .txt
+                </button>
+                <button @click="exportLogTxt(log, true)" title="สั่งพิมพ์รายงานวันนี้"
+                        class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1.5 rounded-lg font-bold">
+                  🖨️ ปริ้น
+                </button>
+                <button @click="loadHistoryToCurrent(log)" class="text-xs bg-slate-100 hover:bg-red-50 text-red-700 px-2.5 py-1.5 rounded-lg font-semibold">
+                  ดู/แก้ไขรายการ
+                </button>
+                <button @click="deleteHistory(log._origIdx)" class="text-xs text-red-400 hover:text-red-600 px-1.5">ลบ</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- แถบสรุปยอดรวมท้ายตารางประวัติ -->
+          <div class="p-4 rounded-xl bg-[#2C1810] text-white flex flex-wrap justify-between items-center gap-3 border-t-4 border-amber-400 shadow-sm">
+            <div class="font-extrabold text-amber-300 text-sm sm:text-base">
+              📊 ยอดรวมสะสมทั้งหมด ({{ historyTotals.daysCount }} วัน • {{ historyTotals.totalBowls.toLocaleString('th-TH') }} ชาม/ชิ้น)
+            </div>
+            <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-right">
+              <div>
+                <div class="text-[11px] text-amber-200/80">ยอดขายรวม</div>
+                <div class="font-extrabold text-sky-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalRevenue) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">ต้นทุนวัตถุดิบรวม</div>
+                <div class="font-extrabold text-amber-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalCOGS) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">ต้นทุนรายวันรวม</div>
+                <div class="font-extrabold text-rose-300 text-sm sm:text-base">฿{{ formatMoney(historyTotals.totalOverhead) }}</div>
+              </div>
+              <div>
+                <div class="text-[11px] text-amber-200/80">กำไรสุทธิรวม</div>
+                <div class="font-extrabold text-emerald-400 text-base sm:text-lg">฿{{ formatMoney(historyTotals.totalNetProfit) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal ตั้งค่าการเชื่อมต่อข้ามเครื่อง (Firebase) -->
+    <div v-if="showSyncModal" style="display: none;" :style="{ display: showSyncModal ? 'flex' : 'none' }" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+            <span>📡</span> ตั้งค่าการเชื่อมต่อบัญชีข้ามเครื่อง
+          </h3>
+          <button @click="showSyncModal = false" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+        </div>
+        <div class="text-xs text-slate-600 space-y-2">
+          <p class="bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200">
+            <strong>โหมดออฟไลน์ในเครื่อง:</strong> ทุกครั้งที่หน้าสั่งอาหารกดส่งออเดอร์ ยอดขายและต้นทุนจะถูกอัปเดตเข้าหน้านี้อัตโนมัติทันที
+          </p>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL (ใช้ลิงก์เดียวกับหน้าสั่งอาหาร):</label>
+            <input type="url" v-model="firebaseUrl" placeholder="https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app"
+                   class="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-red-500 outline-none">
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกการตั้งค่า</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      if (typeof Vue === 'undefined') {
+        alert('ไม่สามารถโหลดไลบรารี Vue.js ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วกด F5 ใหม่อีกครั้งครับ');
+        return;
+      }
+
+      const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
+
+      const THAI_MONTHS = {
+        'มกราคม': 1, 'ม.ค.': 1,
+        'กุมภาพันธ์': 2, 'ก.พ.': 2,
+        'มีนาคม': 3, 'มี.ค.': 3,
+        'เมษายน': 4, 'เม.ย.': 4,
+        'พฤษภาคม': 5, 'พ.ค.': 5,
+        'มิถุนายน': 6, 'มิ.ย.': 6,
+        'กรกฎาคม': 7, 'ก.ค.': 7,
+        'สิงหาคม': 8, 'ส.ค.': 8,
+        'กันยายน': 9, 'ก.ย.': 9,
+        'ตุลาคม': 10, 'ต.ค.': 10,
+        'พฤศจิกายน': 11, 'พ.ย.': 11,
+        'ธันวาคม': 12, 'ธ.ค.': 12
+      };
+
+      const getTodayIso = () => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      const isoToThaiDate = (isoStr) => {
+        if (!isoStr) return '';
+        const parts = isoStr.split('-');
+        if (parts.length !== 3) return isoStr;
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      };
+
+      // แปลงวันที่ทุกรูปแบบให้เป็น YYYY-MM-DD (ค.ศ.) เพื่อเรียงลำดับตามวันที่ขายจริงได้อย่างแม่นยำ
+      const normalizeToIsoDate = (log) => {
+        if (!log) return '0000-00-00';
+        if (log.isoDate && /^\d{4}-\d{2}-\d{2}$/.test(log.isoDate)) {
+          const y = parseInt(log.isoDate.slice(0, 4), 10);
+          if (y > 2400) {
+            return `${y - 543}${log.isoDate.slice(4)}`;
+          }
+          return log.isoDate;
+        }
+        const raw = String(log.date || '').trim();
+        if (!raw) return '0000-00-00';
+
+        // รูปแบบ YYYY-MM-DD
+        const isoMatch = raw.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (isoMatch) {
+          let y = parseInt(isoMatch[1], 10);
+          if (y > 2400) y -= 543;
+          return `${y}-${String(isoMatch[2]).padStart(2, '0')}-${String(isoMatch[3]).padStart(2, '0')}`;
+        }
+
+        // รูปแบบ DD/MM/YYYY หรือ DD-MM-YYYY
+        const slashMatch = raw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (slashMatch) {
+          let y = parseInt(slashMatch[3], 10);
+          if (y > 2400) y -= 543;
+          return `${y}-${String(slashMatch[2]).padStart(2, '0')}-${String(slashMatch[1]).padStart(2, '0')}`;
+        }
+
+        // รูปแบบวันที่ภาษาไทย เช่น "9 พฤศจิกายน 2569"
+        const thaiMatch = raw.match(/(\d{1,2})\s+([^\s\d]+)\s+(\d{4})/);
+        if (thaiMatch) {
+          const day = parseInt(thaiMatch[1], 10);
+          const monthNum = THAI_MONTHS[thaiMatch[2].trim()];
+          let year = parseInt(thaiMatch[3], 10);
+          if (year > 2400) year -= 543;
+          if (monthNum) {
+            return `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          }
+        }
+
+        return '0000-00-00';
+      };
+
+      const getShortThaiDate = (isoStr) => {
+        if (!isoStr || isoStr === '0000-00-00') return '-';
+        const [y, m, d] = isoStr.split('-').map(Number);
+        const shortMonths = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        return `${d} ${shortMonths[m] || ''}`;
+      };
+
+      createApp({
+        setup() {
+          const activeTab = ref('sales');
+          const purchaseBufferPercent = ref(15);
+          const historySortBy = ref('date');
+          const historySortOrder = ref('desc');
+          const selectedDate = ref(localStorage.getItem('mah_ocha_active_record_date') || getTodayIso());
+
+          const tabs = [
+            { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
+            { id: 'daily_costs', name: 'รายการต้นทุนวันนี้', icon: '💸' },
+            { id: 'analytics', name: 'วิเคราะห์การตลาด & กราฟ', icon: '📈' },
+            { id: 'prep', name: 'วัตถุดิบที่ใช้ & ประมาณการจัดซื้อ', icon: '📦' },
+            { id: 'costs', name: 'ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่าย', icon: '⚙️' },
+            { id: 'history', name: 'ประวัติ & นำเข้าไฟล์', icon: '📅' }
+          ];
+
+          const showSyncModal = ref(false);
+          const firebaseUrl = ref(localStorage.getItem('mah_ocha_firebase_url') || 'https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app');
+
+          const currentDateDisplay = computed(() => isoToThaiDate(selectedDate.value));
+
+          const defaultUnitCosts = {
+            pork: { group: 'ingredient', name: 'หมูหมัก (กิโลกรัมละ)', cost: 165, unit: 'บาท/กก.' },
+            liver: { group: 'ingredient', name: 'ตับหมู (กิโลกรัมละ)', cost: 90, unit: 'บาท/กก.' },
+            beef: { group: 'ingredient', name: 'เนื้อวัว (กิโลกรัมละ)', cost: 240, unit: 'บาท/กก.' },
+            crispy_pork: { group: 'ingredient', name: 'หมูกรอบ (กิโลกรัมละ)', cost: 340, unit: 'บาท/กก.' },
+            squid: { group: 'ingredient', name: 'หมึกสด (กิโลกรัมละ)', cost: 250, unit: 'บาท/กก.' },
+            shrimp: { group: 'ingredient', name: 'กุ้งสด (ตัวละ ~22g)', cost: 15.0, unit: 'บาท/ตัว' },
+            quail_egg: { group: 'ingredient', name: 'ไข่นกกระทา (ฟองละ)', cost: 1.1, unit: 'บาท/ฟอง' },
+            chicken_egg: { group: 'ingredient', name: 'ไข่ไก่ (ฟองละ)', cost: 4.5, unit: 'บาท/ฟอง' },
+            noodle: { group: 'ingredient', name: 'เส้นก๋วยเตี๋ยว (กิโลกรัมละ)', cost: 30, unit: 'บาท/กก.' },
+            kale: { group: 'ingredient', name: 'ผักคะน้า (กิโลกรัมละ)', cost: 40, unit: 'บาท/กก.' },
+            lard: { group: 'ingredient', name: 'น้ำมันหมู (กิโลกรัมละ)', cost: 95, unit: 'บาท/กก.' },
+            veg_oil: { group: 'ingredient', name: 'น้ำมันพืช (ลิตรละ)', cost: 52, unit: 'บาท/ลิตร' },
+            radna_base: { group: 'ingredient', name: 'น้ำราดหน้า+แป้ง+เครื่องปรุง/ชาม', cost: 4.5, unit: 'บาท/ชาม' },
+            seeew_base: { group: 'ingredient', name: 'ซีอิ๊วดำ+กระเทียม+เครื่องปรุง/จาน', cost: 2.0, unit: 'บาท/จาน' },
+
+            ice: { group: 'utility', name: 'น้ำแข็ง (กระสอบ 20 กก.)', cost: 45, unit: 'บาท/กระสอบ', hint: 'เฉลี่ยใช้ ~150 กรัม/ชามหรือแก้ว (รวมในใบจัดซื้อ)' },
+            gas: { group: 'utility', name: 'ค่าแก๊สหุงต้ม (ถัง 15 กก.)', cost: 430, unit: 'บาท/ถัง', hint: 'เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~' + (430 / 280).toFixed(2) + ' บ./ชาม)' },
+            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 2400, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
+            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 450, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
+            fuel: { group: 'utility', name: 'ค่าน้ำมันรถ / วัน', cost: 100, unit: 'บาท/วัน', hint: 'หักเป็นค่าเดินทางซื้อของ/ขนของรายวัน' }
+          };
+
+          const mergeUnitCosts = (savedObj) => {
+            const base = JSON.parse(JSON.stringify(defaultUnitCosts));
+            if (savedObj) {
+              Object.keys(base).forEach(k => {
+                if (savedObj[k] && typeof savedObj[k].cost === 'number') {
+                  base[k].cost = savedObj[k].cost;
+                }
+              });
+            }
+            return base;
+          };
+
+          const savedCosts = JSON.parse(localStorage.getItem('radna_unit_costs') || 'null');
+          const unitCosts = ref(mergeUnitCosts(savedCosts));
+
+          const ingredientUnitCosts = computed(() => {
+            const res = {};
+            Object.entries(unitCosts.value).forEach(([k, v]) => {
+              if (v.group === 'ingredient') res[k] = v;
+            });
+            return res;
+          });
+
+          const utilityUnitCosts = computed(() => {
+            const res = {};
+            Object.entries(unitCosts.value).forEach(([k, v]) => {
+              if (v.group === 'utility') {
+                const clone = { ...v };
+                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~${(v.cost / 280).toFixed(2)} บ./ชาม)`;
+                if (k === 'electricity') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
+                if (k === 'water') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
+                res[k] = clone;
+              }
+            });
+            return res;
+          });
+
+          const saveCostsToStorage = () => {
+            localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
+          };
+
+          const resetDefaultCosts = () => {
+            if (confirm('ต้องการคืนค่าราคาวัตถุดิบและค่าใช้จ่ายเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
+              unitCosts.value = JSON.parse(JSON.stringify(defaultUnitCosts));
+              saveCostsToStorage();
+            }
+          };
+
+          const menuCatalog = computed(() => {
+            const u = unitCosts.value;
+            const gasPerBowl = (u.gas?.cost || 430) / 280;
+            const lardPerSeeew = 0.02 * (u.lard?.cost || 95);
+            const oilPerSeeew = 0.01 * (u.veg_oil?.cost || 52);
+            const oilPerEgg = 0.015 * (u.veg_oil?.cost || 52);
+
+            const baseRadna = (0.15 * u.noodle.cost) + (0.10 * u.kale.cost) + u.radna_base.cost + gasPerBowl;
+            const baseSeeew = (0.15 * u.noodle.cost) + (0.08 * u.kale.cost) + u.chicken_egg.cost + u.seeew_base.cost + lardPerSeeew + oilPerSeeew + gasPerBowl;
+
+            return [
+              { id: 'rn_pork', category: 'radna', name: 'ราดหน้าหมู', price: 55, cogs: baseRadna + (0.06 * u.pork.cost) },
+              { id: 'rn_liver', category: 'radna', name: 'ราดหน้าตับ', price: 55, cogs: baseRadna + (0.06 * u.liver.cost) },
+              { id: 'rn_quail', category: 'radna', name: 'ราดหน้าไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseRadna + (7 * u.quail_egg.cost) },
+              { id: 'rn_beef', category: 'radna', name: 'ราดหน้าเนื้อ', price: 65, cogs: baseRadna + (0.055 * u.beef.cost) },
+              { id: 'rn_crispy', category: 'radna', name: 'ราดหน้าหมูกรอบ', price: 75, cogs: baseRadna + (0.055 * u.crispy_pork.cost) },
+              { id: 'rn_seafood', category: 'radna', name: 'ราดหน้าทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseRadna + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'rn_squid', category: 'radna', name: 'ราดหน้าหมึก', price: 85, cogs: baseRadna + (0.13 * u.squid.cost) },
+              { id: 'rn_mixed', category: 'radna', name: 'ราดหน้ารวมมิตร', price: 85, cogs: baseRadna + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
+              { id: 'rn_shrimp', category: 'radna', name: 'ราดหน้ากุ้งล้วน (3 ตัว)', price: 95, cogs: baseRadna + (3 * u.shrimp.cost) },
+
+              { id: 'se_pork', category: 'seeew', name: 'ผัดซีอิ๊วหมู', price: 55, cogs: baseSeeew + (0.06 * u.pork.cost) },
+              { id: 'se_liver', category: 'seeew', name: 'ผัดซีอิ๊วตับ', price: 55, cogs: baseSeeew + (0.06 * u.liver.cost) },
+              { id: 'se_quail', category: 'seeew', name: 'ผัดซีอิ๊วไข่นกกระทา (7 ฟอง)', price: 55, cogs: baseSeeew + (7 * u.quail_egg.cost) },
+              { id: 'se_beef', category: 'seeew', name: 'ผัดซีอิ๊วเนื้อ', price: 65, cogs: baseSeeew + (0.055 * u.beef.cost) },
+              { id: 'se_crispy', category: 'seeew', name: 'ผัดซีอิ๊วหมูกรอบ', price: 75, cogs: baseSeeew + (0.055 * u.crispy_pork.cost) },
+              { id: 'se_seafood', category: 'seeew', name: 'ผัดซีอิ๊วทะเล (กุ้ง1+หมึก2)', price: 75, cogs: baseSeeew + u.shrimp.cost + (0.06 * u.squid.cost) },
+              { id: 'se_squid', category: 'seeew', name: 'ผัดซีอิ๊วหมึก', price: 85, cogs: baseSeeew + (0.13 * u.squid.cost) },
+              { id: 'se_mixed', category: 'seeew', name: 'ผัดซีอิ๊วรวมมิตร', price: 85, cogs: baseSeeew + (0.03 * u.pork.cost) + (0.03 * u.liver.cost) + (0.03 * u.squid.cost) + u.shrimp.cost },
+              { id: 'se_shrimp', category: 'seeew', name: 'ผัดซีอิ๊วกุ้งล้วน (3 ตัว)', price: 95, cogs: baseSeeew + (3 * u.shrimp.cost) },
+
+              { id: 'top_pork', category: 'topping', name: 'เพิ่มหมู (3 ชิ้น)', price: 10, cogs: 0.045 * u.pork.cost },
+              { id: 'top_beef', category: 'topping', name: 'เพิ่มเนื้อ (2 ชิ้น)', price: 10, cogs: 0.035 * u.beef.cost },
+              { id: 'top_liver', category: 'topping', name: 'เพิ่มตับ (3 ชิ้น)', price: 10, cogs: 0.033 * u.liver.cost },
+              { id: 'top_veg', category: 'topping', name: 'เพิ่มผัก', price: 10, cogs: 0.125 * u.kale.cost },
+              { id: 'top_noodle', category: 'topping', name: 'เพิ่มเส้น', price: 10, cogs: 0.15 * u.noodle.cost },
+              { id: 'top_quail_egg', category: 'topping', name: 'เพิ่มไข่นกกระทา (4 ฟอง)', price: 10, cogs: 4 * u.quail_egg.cost },
+              { id: 'top_crispy_noodle', category: 'topping', name: 'เพิ่มหมี่กรอบ (2 ก้อน)', price: 10, cogs: 3.50 },
+              { id: 'top_fried_egg', category: 'topping', name: 'เพิ่มไข่ดาวกรอบ', price: 10, cogs: u.chicken_egg.cost + oilPerEgg + 0.5 },
+              { id: 'top_squid', category: 'topping', name: 'เพิ่มหมึก (3 ชิ้น)', price: 20, cogs: 0.07 * u.squid.cost },
+              { id: 'top_crispy_pork', category: 'topping', name: 'เพิ่มหมูกรอบ (3 ชิ้น)', price: 20, cogs: 0.035 * u.crispy_pork.cost },
+              { id: 'top_shrimp', category: 'topping', name: 'เพิ่มกุ้ง (ตัวละ)', price: 22, cogs: u.shrimp.cost }
+            ];
+          });
+
+          const sales = ref({});
+          const customDrinks = ref([]);
+          const newDrink = ref({ name: '', price: null, qty: 1 });
+          const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
+
+          // ========== ฟีเจอร์ตรึงตัวเลือกเครื่องดื่ม & ขนมสำหรับครั้งต่อๆ ไป ==========
+          const DEFAULT_PINNED_DRINKS = [
+            { name: 'โค้ก', price: 16 },
+            { name: 'ชาลิปตัน', price: 16 },
+            { name: 'นมสด', price: 14 },
+            { name: 'น้ำดื่มสิงห์', price: 10 },
+            { name: 'ขนม', price: 35 }
+          ];
+
+          const loadPinnedDrinkOptions = () => {
+            try {
+              const saved = JSON.parse(localStorage.getItem('mah_ocha_pinned_drinks') || 'null');
+              if (Array.isArray(saved)) return saved;
+            } catch (e) {}
+            return JSON.parse(JSON.stringify(DEFAULT_PINNED_DRINKS));
+          };
+
+          const pinnedDrinkOptions = ref(loadPinnedDrinkOptions());
+
+          const savePinnedDrinkOptions = () => {
+            localStorage.setItem('mah_ocha_pinned_drinks', JSON.stringify(pinnedDrinkOptions.value));
+          };
+
+          const pinDrinkOptionIfNew = (name, price) => {
+            const cleanName = String(name || '').trim();
+            const cleanPrice = Number(price) || 0;
+            if (!cleanName || cleanPrice <= 0) return;
+            const exists = pinnedDrinkOptions.value.some(
+              item => item.name.toLowerCase() === cleanName.toLowerCase() && Number(item.price) === cleanPrice
+            );
+            if (!exists) {
+              pinnedDrinkOptions.value.push({ name: cleanName, price: cleanPrice });
+              savePinnedDrinkOptions();
+            }
+          };
+
+          const quickAddPinnedDrink = (opt) => {
+            const found = customDrinks.value.find(
+              d => d.name.toLowerCase() === opt.name.toLowerCase() && Number(d.price) === Number(opt.price)
+            );
+            if (found) {
+              found.qty += 1;
+            } else {
+              customDrinks.value.push({ name: opt.name, price: Number(opt.price), qty: 1 });
+            }
+          };
+
+          const removePinnedDrinkOption = (idx) => {
+            pinnedDrinkOptions.value.splice(idx, 1);
+            savePinnedDrinkOptions();
+          };
+
+          // ========== ฟีเจอร์: รายการต้นทุนวันนี้ (เฉพาะค่าใช้จ่ายดำเนินงานไม่ให้หักซ้ำกับวัตถุดิบต่อชาม) ==========
+          const todayCostItems = ref([]);
+          const newDailyCost = ref({ name: '', amount: null, note: '' });
+
+          const buildDefaultPresetCosts = () => {
+            const u = unitCosts.value;
+            return [
+              {
+                id: 'preset_fuel_' + Date.now(),
+                presetKey: 'fuel',
+                source: 'preset',
+                name: 'ค่าน้ำมันรถ / วัน',
+                amount: Number((u.fuel?.cost || 100).toFixed(2)),
+                note: 'ดึงจากตั้งค่ารายวัน'
+              },
+              {
+                id: 'preset_electricity_' + (Date.now() + 1),
+                presetKey: 'electricity',
+                source: 'preset',
+                name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
+                amount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.electricity?.cost || 2400}/เดือน ÷ 30 วัน`
+              },
+              {
+                id: 'preset_water_' + (Date.now() + 2),
+                presetKey: 'water',
+                source: 'preset',
+                name: 'ค่าน้ำประปาเฉลี่ย / วัน',
+                amount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.water?.cost || 450}/เดือน ÷ 30 วัน`
+              }
+            ];
+          };
+
+          const availablePresetExpenses = computed(() => {
+            const u = unitCosts.value;
+            return [
+              {
+                key: 'fuel',
+                name: 'ค่าน้ำมันรถ / วัน',
+                defaultDailyAmount: Number((u.fuel?.cost || 100).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.fuel?.cost || 100}/วัน`
+              },
+              {
+                key: 'electricity',
+                name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
+                defaultDailyAmount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.electricity?.cost || 2400}/เดือน (หาร 30 วัน)`
+              },
+              {
+                key: 'water',
+                name: 'ค่าน้ำประปาเฉลี่ย / วัน',
+                defaultDailyAmount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.water?.cost || 450}/เดือน (หาร 30 วัน)`
+              }
+            ];
+          });
+
+          const isPresetSelected = (presetKey) => {
+            return todayCostItems.value.some(item => item.source === 'preset' && item.presetKey === presetKey);
+          };
+
+          const getPresetSelectedAmount = (presetKey) => {
+            const found = todayCostItems.value.find(item => item.source === 'preset' && item.presetKey === presetKey);
+            return found ? found.amount : 0;
+          };
+
+          const updatePresetSelectedAmount = (presetKey, rawVal) => {
+            const found = todayCostItems.value.find(item => item.source === 'preset' && item.presetKey === presetKey);
+            if (found) {
+              found.amount = Math.max(0, Number(rawVal) || 0);
+              persistTodayCostsOnly();
+            }
+          };
+
+          const togglePresetExpense = (preset) => {
+            const idx = todayCostItems.value.findIndex(item => item.source === 'preset' && item.presetKey === preset.key);
+            if (idx !== -1) {
+              todayCostItems.value.splice(idx, 1);
+            } else {
+              todayCostItems.value.push({
+                id: 'preset_' + preset.key + '_' + Date.now(),
+                presetKey: preset.key,
+                source: 'preset',
+                name: preset.name,
+                amount: preset.defaultDailyAmount,
+                note: preset.desc
+              });
+            }
+            persistTodayCostsOnly();
+          };
+
+          const selectDefaultDailyPresets = () => {
+            const existingCustom = todayCostItems.value.filter(i => i.source !== 'preset');
+            todayCostItems.value = [...buildDefaultPresetCosts(), ...existingCustom];
+            persistTodayCostsOnly();
+          };
+
+          const addCustomDailyCost = () => {
+            const name = (newDailyCost.value.name || '').trim();
+            const amount = Number(newDailyCost.value.amount);
+            if (!name || isNaN(amount) || amount <= 0) {
+              alert('กรุณากรอกชื่อรายการและจำนวนเงินให้ถูกต้องครับ');
+              return;
+            }
+            todayCostItems.value.push({
+              id: 'custom_' + Date.now(),
+              source: 'custom',
+              name,
+              amount: Number(amount.toFixed(2)),
+              note: (newDailyCost.value.note || '').trim()
+            });
+            newDailyCost.value = { name: '', amount: null, note: '' };
+            persistTodayCostsOnly();
+          };
+
+          const removeTodayCostItem = (idx) => {
+            todayCostItems.value.splice(idx, 1);
+            persistTodayCostsOnly();
+          };
+
+          const clearTodayCostItems = () => {
+            if (confirm('ต้องการล้างรายการต้นทุนของวันนี้ทั้งหมดใช่ไหมครับ?')) {
+              todayCostItems.value = [];
+              persistTodayCostsOnly();
+            }
+          };
+
+          const persistTodayCostsOnly = () => {
+            try {
+              const isoDate = selectedDate.value || getTodayIso();
+              const map = JSON.parse(localStorage.getItem('mah_ocha_daily_costs_by_date') || '{}');
+              map[isoDate] = JSON.parse(JSON.stringify(todayCostItems.value));
+              localStorage.setItem('mah_ocha_daily_costs_by_date', JSON.stringify(map));
+            } catch (e) {}
+          };
+
+          const totalDailyExpense = computed(() => {
+            return Number(todayCostItems.value.reduce((sum, item) => sum + (Number(item.amount) || 0), 0).toFixed(2));
+          });
+
+          const dailyExpenseSummaryHint = computed(() => {
+            if (todayCostItems.value.length === 0) return 'ยังไม่มีรายการ (คลิกเพื่อเลือก)';
+            return `${todayCostItems.value.length} รายการ: ` + todayCostItems.value.map(i => `${i.name} ฿${i.amount}`).join(' + ');
+          });
+
+          const dailyOverheadCost = computed(() => totalDailyExpense.value);
+
+          const getLogNetProfit = (log) => {
+            if (log.totalNetProfit !== undefined && log.totalNetProfit !== null) return Number(log.totalNetProfit);
+            const rev = Number(log.totalRevenue || 0);
+            const cogs = Number(log.totalCOGS || 0);
+            const gross = log.totalProfit !== undefined ? Number(log.totalProfit) : (rev - cogs);
+            const overhead = Number(log.overheadCost || 0);
+            return gross - overhead;
+          };
+
+          const historyTotals = computed(() => {
+            return historyLogs.value.reduce((acc, log) => {
+              const rev = Number(log.totalRevenue || 0);
+              const cogs = Number(log.totalCOGS || 0);
+              const grossProfit = Number(log.totalProfit !== undefined ? log.totalProfit : (rev - cogs));
+              const overhead = Number(log.overheadCost !== undefined ? log.overheadCost : 0);
+              const netProfit = getLogNetProfit(log);
+
+              acc.daysCount += 1;
+              acc.totalBowls += Number(log.totalBowls || 0);
+              acc.totalRevenue += rev;
+              acc.totalCOGS += cogs;
+              acc.totalProfit += grossProfit;
+              acc.totalOverhead += overhead;
+              acc.totalNetProfit += netProfit;
+              return acc;
+            }, {
+              daysCount: 0,
+              totalBowls: 0,
+              totalRevenue: 0,
+              totalCOGS: 0,
+              totalProfit: 0,
+              totalOverhead: 0,
+              totalNetProfit: 0
+            });
+          });
+
+          // แก้ไขการเรียงลำดับ: เรียงจากวันที่ขายจริง (normalizeToIsoDate) ไม่ใช่วันที่กดบันทึก
+          const sortedHistoryLogs = computed(() => {
+            const list = historyLogs.value.map((item, idx) => ({
+              ...item,
+              _origIdx: idx,
+              _normIso: normalizeToIsoDate(item)
+            }));
+            const dir = historySortOrder.value === 'desc' ? -1 : 1;
+            return list.sort((a, b) => {
+              if (historySortBy.value === 'date') {
+                if (a._normIso !== b._normIso) return a._normIso.localeCompare(b._normIso) * dir;
+                return (a._origIdx - b._origIdx) * dir;
+              }
+              if (historySortBy.value === 'totalNetProfit') {
+                return (getLogNetProfit(a) - getLogNetProfit(b)) * dir;
+              }
+              const valA = Number(a[historySortBy.value] || 0);
+              const valB = Number(b[historySortBy.value] || 0);
+              return (valA - valB) * dir;
+            });
+          });
+
+          // ========== ระบบวิเคราะห์การตลาด & กราฟ (Marketing Analytics) ==========
+          let chartInstances = {};
+
+          const analyticsData = computed(() => {
+            const logsAsc = [...historyLogs.value]
+              .map(l => ({ ...l, _normIso: normalizeToIsoDate(l) }))
+              .sort((a, b) => a._normIso.localeCompare(b._normIso));
+
+            const daysCount = logsAsc.length;
+            const totalRev = historyTotals.value.totalRevenue;
+            const totalNet = historyTotals.value.totalNetProfit;
+            const totalBowlsCount = historyTotals.value.totalBowls;
+
+            const avgDailyRevenue = daysCount > 0 ? totalRev / daysCount : 0;
+            const avgDailyNetProfit = daysCount > 0 ? totalNet / daysCount : 0;
+            const avgDailyBowls = daysCount > 0 ? totalBowlsCount / daysCount : 0;
+            const netMarginPercent = totalRev > 0 ? (totalNet / totalRev) * 100 : 0;
+            const avgTicketPerBowl = totalBowlsCount > 0 ? totalRev / totalBowlsCount : 0;
+
+            let bestDay = null;
+            logsAsc.forEach(l => {
+              if (!bestDay || Number(l.totalRevenue || 0) > Number(bestDay.totalRevenue || 0)) {
+                bestDay = l;
+              }
+            });
+
+            // วิเคราะห์รายหมวดหมู่ & รายเมนู
+            let radnaRev = 0, seeewRev = 0, toppingRev = 0, drinkRev = 0;
+            let totalToppingsQty = 0, totalMainBowlsQty = 0;
+            const menuAgg = {};
+            menuCatalog.value.forEach(m => {
+              menuAgg[m.id] = { id: m.id, name: m.name, category: m.category, qty: 0, revenue: 0, grossProfit: 0 };
+            });
+
+            // วิเคราะห์ตามวันในสัปดาห์ (0=อาทิตย์ ... 6=เสาร์)
+            const dowStats = Array.from({ length: 7 }, (_, i) => ({
+              dayIdx: i,
+              label: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'][i],
+              days: 0,
+              totalRev: 0,
+              totalNet: 0,
+              totalBowls: 0
+            }));
+
+            logsAsc.forEach(log => {
+              const s = log.sales || {};
+              menuCatalog.value.forEach(m => {
+                const q = Number(s[m.id] || 0);
+                if (q > 0) {
+                  const r = q * m.price;
+                  const gp = q * (m.price - m.cogs);
+                  menuAgg[m.id].qty += q;
+                  menuAgg[m.id].revenue += r;
+                  menuAgg[m.id].grossProfit += gp;
+
+                  if (m.category === 'radna') { radnaRev += r; totalMainBowlsQty += q; }
+                  else if (m.category === 'seeew') { seeewRev += r; totalMainBowlsQty += q; }
+                  else if (m.category === 'topping') { toppingRev += r; totalToppingsQty += q; }
+                }
+              });
+
+              (log.customDrinks || []).forEach(d => {
+                const q = Number(d.qty || 0);
+                const r = q * Number(d.price || 0);
+                drinkRev += r;
+              });
+
+              if (log._normIso && log._normIso !== '0000-00-00') {
+                const [y, mo, da] = log._normIso.split('-').map(Number);
+                const dt = new Date(y, mo - 1, da);
+                const dow = dt.getDay();
+                dowStats[dow].days += 1;
+                dowStats[dow].totalRev += Number(log.totalRevenue || 0);
+                dowStats[dow].totalNet += getLogNetProfit(log);
+                dowStats[dow].totalBowls += Number(log.totalBowls || 0);
+              }
+            });
+
+            const upsellRate = totalMainBowlsQty > 0 ? (totalToppingsQty / totalMainBowlsQty) * 100 : 0;
+
+            const menuRanking = Object.values(menuAgg)
+              .filter(m => m.qty > 0)
+              .sort((a, b) => b.revenue - a.revenue)
+              .map((m, idx) => {
+                let badge = 'มาตรฐาน';
+                let badgeClass = 'bg-slate-100 text-slate-600';
+                if (idx < 3) {
+                  badge = '⭐ เมนูทำเงินหลัก';
+                  badgeClass = 'bg-amber-100 text-amber-900';
+                } else if (m.grossProfit / (m.revenue || 1) >= 0.55) {
+                  badge = '💎 กำไรต่อจานสูง';
+                  badgeClass = 'bg-emerald-100 text-emerald-800';
+                } else if (m.qty <= 2) {
+                  badge = '📣 ควรกระตุ้นยอด';
+                  badgeClass = 'bg-rose-100 text-rose-700';
+                }
+                return { ...m, badge, badgeClass };
+              });
+
+            // สร้างข้อเสนอแนะทางการตลาดจากข้อมูลจริง
+            const marketingInsights = [];
+            const totalCatRev = radnaRev + seeewRev + toppingRev + drinkRev;
+            if (totalCatRev > 0) {
+              const radnaPct = ((radnaRev / totalCatRev) * 100).toFixed(1);
+              const seeewPct = ((seeewRev / totalCatRev) * 100).toFixed(1);
+              marketingInsights.push({
+                title: `1. โครงสร้างรายได้หลัก: ราดหน้า ${radnaPct}% vs ผัดซีอิ๊ว ${seeewPct}%`,
+                detail: Number(radnaPct) > Number(seeewPct)
+                  ? `ราดหน้าเป็นสินค้าเรือธงหลักของร้าน ควรจัด "ชุดเซ็ตคู่เครื่องดื่ม" กับราดหน้าหมู/รวมมิตร เพื่อดันยอดต่อบิล (AOV) ให้สูงขึ้น`
+                  : `ผัดซีอิ๊วทำสัดส่วนได้ดีมาก สามารถชูจุดขาย "ผัดซีอิ๊วคั่วกระทะหอมกรุ่น" คู่ท็อปปิ้งไข่ดาวกรอบ`
+              });
+            }
+
+            marketingInsights.push({
+              title: `2. กลยุทธ์เพิ่มยอดต่อบิล (Upsell Rate ปัจจุบัน ${upsellRate.toFixed(1)}%)`,
+              detail: upsellRate < 35
+                ? `ลูกค้าสั่งท็อปปิ้งเพิ่มเฉลี่ย ${upsellRate.toFixed(1)}% ของชามหลัก แนะนำให้พนักงานแนะนำ "เพิ่มไข่ดาวกรอบ / หมี่กรอบ / กุ้งตัวละ 22.-" ตอนรับออเดอร์ จะเพิ่มกำไรสุทธิได้ทันทีโดยไม่เพิ่มค่าไฟ/ค่าน้ำ`
+                : `อัตราการสั่งท็อปปิ้งเพิ่มอยู่ในเกณฑ์ดีมาก (${upsellRate.toFixed(1)}%) ควรจัดป้ายภาพท็อปปิ้งเด่นๆ ที่หน้าเคาน์เตอร์และจอลูกค้าต่อเนื่อง`
+            });
+
+            const activeDows = dowStats.filter(d => d.days > 0).map(d => ({
+              ...d,
+              avgRev: d.totalRev / d.days
+            })).sort((a, b) => b.avgRev - a.avgRev);
+
+            if (activeDows.length >= 2) {
+              const topDow = activeDows[0];
+              const lowDow = activeDows[activeDows.length - 1];
+              marketingInsights.push({
+                title: `3. วันพีคที่สุดคือ "วัน${topDow.label}" (เฉลี่ย ฿${formatMoney(topDow.avgRev)}/วัน)`,
+                detail: `วัน${topDow.label}มียอดขายสูงสุด ควรเตรียมสต็อกหมูหมักและทะเลเผื่อ +20% ส่วนวัน${lowDow.label} (เฉลี่ย ฿${formatMoney(lowDow.avgRev)}/วัน) เหมาะสำหรับจัดโปรโมชันพิเศษ เช่น แถมเครื่องดื่มหรือเพิ่มผัก/เส้นฟรี`
+              });
+            }
+
+            if (drinkRev < totalCatRev * 0.05) {
+              marketingInsights.push({
+                title: `4. โอกาสเติบโตสูงในหมวด "เครื่องดื่ม & ขนม" (ปัจจุบัน ${((drinkRev / (totalCatRev || 1)) * 100).toFixed(1)}%)`,
+                detail: `รายได้จากเครื่องดื่มยังน้อยกว่า 5% ของยอดรวม หากตั้งป้ายแนะนำเครื่องดื่มเย็นๆ หรือจัดโปร "สั่งเมนูทะเล/รวมมิตร แลกซื้อเครื่องดื่มลดราคา" จะช่วยเพิ่มกำไรขั้นต้นได้อีกทาง`
+              });
+            }
+
+            return {
+              daysCount,
+              logsAsc,
+              avgDailyRevenue,
+              avgDailyNetProfit,
+              avgDailyBowls,
+              netMarginPercent,
+              avgTicketPerBowl,
+              upsellRate,
+              totalToppingsQty,
+              totalMainBowlsQty,
+              bestDay,
+              categoryRev: { radnaRev, seeewRev, toppingRev, drinkRev },
+              dowStats,
+              menuRanking,
+              marketingInsights
+            };
+          });
+
+          const renderAnalyticsCharts = () => {
+            if (typeof Chart === 'undefined' || historyLogs.value.length === 0) return;
+
+            Object.values(chartInstances).forEach(inst => {
+              if (inst && typeof inst.destroy === 'function') inst.destroy();
+            });
+            chartInstances = {};
+
+            const data = analyticsData.value;
+
+            // 1. กราฟแนวโน้มยอดขาย & กำไรสุทธิรายวัน
+            const ctxTrend = document.getElementById('chartDailyTrend');
+            if (ctxTrend) {
+              chartInstances.trend = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                  labels: data.logsAsc.map(l => getShortThaiDate(l._normIso)),
+                  datasets: [
+                    {
+                      type: 'line',
+                      label: 'กำไรสุทธิ (บาท)',
+                      data: data.logsAsc.map(l => Number(getLogNetProfit(l).toFixed(2))),
+                      borderColor: '#059669',
+                      backgroundColor: '#10b981',
+                      borderWidth: 3,
+                      tension: 0.3,
+                      pointRadius: 4,
+                      yAxisID: 'y'
+                    },
+                    {
+                      type: 'bar',
+                      label: 'ยอดขายรวม (บาท)',
+                      data: data.logsAsc.map(l => Number(l.totalRevenue || 0)),
+                      backgroundColor: 'rgba(37, 99, 235, 0.78)',
+                      borderRadius: 6,
+                      yAxisID: 'y'
+                    }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Kanit', weight: 'bold' } } }
+                  },
+                  scales: {
+                    y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
+                    x: { ticks: { font: { family: 'Kanit' } } }
+                  }
+                }
+              });
+            }
+
+            // 2. กราฟโดนัทสัดส่วนหมวดหมู่
+            const ctxCat = document.getElementById('chartCategoryMix');
+            if (ctxCat) {
+              const c = data.categoryRev;
+              chartInstances.cat = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                  labels: ['ราดหน้า', 'ผัดซีอิ๊ว', 'ท็อปปิ้งเสริม', 'เครื่องดื่ม & ขนม'],
+                  datasets: [{
+                    data: [c.radnaRev, c.seeewRev, c.toppingRev, c.drinkRev],
+                    backgroundColor: ['#dc2626', '#d97706', '#7c3aed', '#0891b2'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 11 } } }
+                  }
+                }
+              });
+            }
+
+            // 3. กราฟตามวันในสัปดาห์ (จันทร์ - อาทิตย์)
+            const ctxDow = document.getElementById('chartDayOfWeek');
+            if (ctxDow) {
+              const orderedIdx = [1, 2, 3, 4, 5, 6, 0]; // จันทร์ -> อาทิตย์
+              const dowOrdered = orderedIdx.map(i => data.dowStats[i]);
+              chartInstances.dow = new Chart(ctxDow, {
+                type: 'bar',
+                data: {
+                  labels: dowOrdered.map(d => 'วัน' + d.label),
+                  datasets: [
+                    {
+                      label: 'ยอดขายเฉลี่ย/วัน (บาท)',
+                      data: dowOrdered.map(d => d.days > 0 ? Number((d.totalRev / d.days).toFixed(2)) : 0),
+                      backgroundColor: '#b45309',
+                      borderRadius: 6
+                    },
+                    {
+                      label: 'กำไรสุทธิเฉลี่ย/วัน (บาท)',
+                      data: dowOrdered.map(d => d.days > 0 ? Number((d.totalNet / d.days).toFixed(2)) : 0),
+                      backgroundColor: '#10b981',
+                      borderRadius: 6
+                    }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Kanit', size: 11 } } }
+                  },
+                  scales: {
+                    y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
+                    x: { ticks: { font: { family: 'Kanit' } } }
+                  }
+                }
+              });
+            }
+
+            // 4. กราฟแท่งแนวนอน Top 10 เมนูทำรายได้สูงสุด
+            const ctxTop = document.getElementById('chartTopMenus');
+            if (ctxTop) {
+              const top10 = data.menuRanking.slice(0, 10);
+              chartInstances.top = new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                  labels: top10.map(m => m.name),
+                  datasets: [{
+                    label: 'ยอดขายสะสม (บาท)',
+                    data: top10.map(m => m.revenue),
+                    backgroundColor: '#991b1b',
+                    borderRadius: 5
+                  }]
+                },
+                options: {
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false }
+                  },
+                  scales: {
+                    x: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
+                    y: { ticks: { font: { family: 'Kanit', size: 11 } } }
+                  }
+                }
+              });
+            }
+          };
+
+          const switchTab = async (tabId) => {
+            activeTab.value = tabId;
+            if (tabId === 'analytics') {
+              await nextTick();
+              renderAnalyticsCharts();
+            }
+          };
+
+          const loadSalesForSelectedDate = () => {
+            try {
+              const isoDate = selectedDate.value || getTodayIso();
+              const thaiDate = isoToThaiDate(isoDate);
+              const logs = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
+              // อัปเกรด isoDate ให้รายการเก่าทั้งหมดเพื่อการเรียงลำดับที่แม่นยำ
+              logs.forEach(item => {
+                const norm = normalizeToIsoDate(item);
+                if (norm !== '0000-00-00') item.isoDate = norm;
+              });
+              historyLogs.value = logs;
+              const targetLog = logs.find(h => normalizeToIsoDate(h) === isoDate || h.date === thaiDate);
+
+              const dailyCostMap = JSON.parse(localStorage.getItem('mah_ocha_daily_costs_by_date') || '{}');
+
+              if (targetLog) {
+                sales.value = { ...(targetLog.sales || {}) };
+                customDrinks.value = JSON.parse(JSON.stringify(targetLog.customDrinks || []));
+                if (Array.isArray(targetLog.dailyCosts)) {
+                  todayCostItems.value = JSON.parse(JSON.stringify(targetLog.dailyCosts));
+                } else if (Array.isArray(dailyCostMap[isoDate])) {
+                  todayCostItems.value = JSON.parse(JSON.stringify(dailyCostMap[isoDate]));
+                } else {
+                  todayCostItems.value = buildDefaultPresetCosts();
+                }
+              } else {
+                sales.value = {};
+                customDrinks.value = [];
+                if (Array.isArray(dailyCostMap[isoDate])) {
+                  todayCostItems.value = JSON.parse(JSON.stringify(dailyCostMap[isoDate]));
+                } else {
+                  todayCostItems.value = buildDefaultPresetCosts();
+                }
+              }
+            } catch (e) {}
+          };
+
+          const onSelectedDateChange = () => {
+            if (!selectedDate.value) selectedDate.value = getTodayIso();
+            localStorage.setItem('mah_ocha_active_record_date', selectedDate.value);
+            loadSalesForSelectedDate();
+          };
+
+          const getMenuByCategory = (cat) => menuCatalog.value.filter(m => m.category === cat);
+          const categoryCount = (cat) => getMenuByCategory(cat).reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
+
+          const updateQty = (id, delta) => {
+            const current = sales.value[id] || 0;
+            sales.value[id] = Math.max(0, current + delta);
+          };
+
+          const addCustomDrink = () => {
+            const cleanName = String(newDrink.value.name || '').trim();
+            const priceVal = Number(newDrink.value.price);
+            const qtyVal = Number(newDrink.value.qty) || 1;
+            if (!cleanName || !priceVal || priceVal <= 0) return;
+
+            // ตรึงเป็น option สำหรับครั้งต่อๆ ไปอัตโนมัติ
+            pinDrinkOptionIfNew(cleanName, priceVal);
+
+            // ถ้ามีรายการชื่อและราคาเดียวกันอยู่แล้วในวันนี้ ให้บวกจำนวนเพิ่ม
+            const existing = customDrinks.value.find(
+              d => d.name.toLowerCase() === cleanName.toLowerCase() && Number(d.price) === priceVal
+            );
+            if (existing) {
+              existing.qty += qtyVal;
+            } else {
+              customDrinks.value.push({
+                name: cleanName,
+                price: priceVal,
+                qty: qtyVal
+              });
+            }
+
+            newDrink.value = { name: '', price: null, qty: 1 };
+          };
+
+          const drinkTotalQty = computed(() => customDrinks.value.reduce((sum, d) => sum + d.qty, 0));
+          const drinkRevenue = computed(() => customDrinks.value.reduce((sum, d) => sum + (d.price * d.qty), 0));
+          const drinkCOGS = computed(() => drinkRevenue.value * 0.40);
+
+          const totalBowls = computed(() => {
+            const mainBowls = menuCatalog.value
+              .filter(m => m.category === 'radna' || m.category === 'seeew')
+              .reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
+            return mainBowls + drinkTotalQty.value;
+          });
+
+          const iceCostToday = computed(() => {
+            const iceBagPrice = unitCosts.value.ice?.cost || 45;
+            const totalKgIce = totalBowls.value * 0.15;
+            return (totalKgIce / 20) * iceBagPrice;
+          });
+
+          const totalRevenue = computed(() => {
+            const menuRev = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.price), 0);
+            return menuRev + drinkRevenue.value;
+          });
+
+          const totalCOGS = computed(() => {
+            const menuCogs = menuCatalog.value.reduce((sum, item) => sum + ((sales.value[item.id] || 0) * item.cogs), 0);
+            return menuCogs + drinkCOGS.value + iceCostToday.value;
+          });
+
+          const totalProfit = computed(() => totalRevenue.value - totalCOGS.value);
+          const totalNetProfit = computed(() => totalProfit.value - totalDailyExpense.value);
+
+          const rawMaterialUsage = computed(() => {
+            const s = sales.value;
+            const mult = 1 + ((purchaseBufferPercent.value || 0) / 100);
+            const porkBowls = (s.rn_pork || 0) + (s.se_pork || 0);
+            const liverBowls = (s.rn_liver || 0) + (s.se_liver || 0);
+            const beefBowls = (s.rn_beef || 0) + (s.se_beef || 0);
+            const crispyBowls = (s.rn_crispy || 0) + (s.se_crispy || 0);
+            const seafoodBowls = (s.rn_seafood || 0) + (s.se_seafood || 0);
+            const squidBowls = (s.rn_squid || 0) + (s.se_squid || 0);
+            const mixedBowls = (s.rn_mixed || 0) + (s.se_mixed || 0);
+            const shrimpBowls = (s.rn_shrimp || 0) + (s.se_shrimp || 0);
+            const quailBowls = (s.rn_quail || 0) + (s.se_quail || 0);
+
+            const totalRadna = categoryCount('radna');
+            const totalSeeew = categoryCount('seeew');
+            const totalMainBowls = totalRadna + totalSeeew;
+
+            const porkKg = (porkBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_pork || 0) * 0.045);
+            const beefKg = (beefBowls * 0.055) + ((s.top_beef || 0) * 0.035);
+            const liverKg = (liverBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_liver || 0) * 0.033);
+            const crispyKg = (crispyBowls * 0.055) + ((s.top_crispy_pork || 0) * 0.035);
+            const squidKg = (squidBowls * 0.13) + (seafoodBowls * 0.06) + (mixedBowls * 0.03) + ((s.top_squid || 0) * 0.07);
+            const shrimpPcs = (seafoodBowls * 1) + (mixedBowls * 1) + (shrimpBowls * 5) + (s.top_shrimp || 0);
+            const quailPcs = (quailBowls * 7) + ((s.top_quail_egg || 0) * 4);
+            const chickenEggPcs = totalSeeew + (s.top_fried_egg || 0);
+            const noodleKg = (totalMainBowls * 0.15) + ((s.top_noodle || 0) * 0.15);
+            const meeKrobPcs = (s.top_crispy_noodle || 0) * 2;
+            const kaleKg = (totalRadna * 0.10) + (totalSeeew * 0.08) + ((s.top_veg || 0) * 0.125);
+            const lardKg = totalSeeew * 0.02;
+            const vegOilL = (totalSeeew * 0.01) + ((s.top_fried_egg || 0) * 0.015);
+            const iceBags = (totalBowls.value * 0.15) / 20;
+
+            return {
+              pork: { label: 'หมูหมัก (ชั่งสด)', amount: porkKg.toFixed(2), orderAmount: (porkKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมู + รวมมิตร + เพิ่มหมู (3 ชิ้น)' },
+              beef: { label: 'เนื้อวัวหมัก', amount: beefKg.toFixed(2), orderAmount: (beefKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูเนื้อ + เพิ่มเนื้อ (2 ชิ้น)' },
+              liver: { label: 'ตับหมู', amount: liverKg.toFixed(2), orderAmount: (liverKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูตับ + รวมมิตร + เพิ่มตับ (3 ชิ้น)' },
+              crispy_pork: { label: 'หมูกรอบ', amount: crispyKg.toFixed(2), orderAmount: (crispyKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมูกรอบ + เพิ่มหมูกรอบ (3 ชิ้น)' },
+              squid: { label: 'หมึกสด', amount: squidKg.toFixed(2), orderAmount: (squidKg * mult).toFixed(2), unit: 'กก.', note: 'รวมเมนูหมึก + ทะเล + รวมมิตร + เพิ่มหมึก (3 ชิ้น)' },
+              shrimp: { label: 'กุ้งสด', amount: shrimpPcs, orderAmount: Math.ceil(shrimpPcs * mult), unit: 'ตัว', note: 'นับเป็นจำนวนตัวที่ใช้จริง' },
+              quail_egg: { label: 'ไข่นกกระทาต้ม', amount: quailPcs, orderAmount: Math.ceil(quailPcs * mult), unit: 'ฟอง', note: 'เมนูหลัก 7 ฟอง + ท็อปปิ้ง 4 ฟอง' },
+              chicken_egg: { label: 'ไข่ไก่ (ผัดซีอิ๊ว + ไข่ดาว)', amount: chickenEggPcs, orderAmount: Math.ceil(chickenEggPcs * mult), unit: 'ฟอง', note: 'ผัดซีอิ๊ว 1 ฟอง + เพิ่มไข่ดาวกรอบ' },
+              noodle: { label: 'เส้นก๋วยเตี๋ยว (เส้นใหญ่/เส้นหมี่)', amount: noodleKg.toFixed(2), orderAmount: (noodleKg * mult).toFixed(2), unit: 'กก.', note: 'เฉลี่ย 150 กรัม/ชาม + เพิ่มเส้น' },
+              mee_krob: { label: 'หมี่กรอบ (ถ้วยเสริม)', amount: meeKrobPcs, orderAmount: Math.ceil(meeKrobPcs * mult), unit: 'ก้อน', note: 'นับจากรายการเพิ่มหมี่กรอบ (2 ก้อน)' },
+              kale: { label: 'ผักคะน้า (ตัดแต่งแล้ว)', amount: kaleKg.toFixed(2), orderAmount: (kaleKg * mult).toFixed(2), unit: 'กก.', note: 'ราดหน้า 100g / ผัดซีอิ๊ว 80g + เพิ่มผัก' },
+              lard: { label: 'น้ำมันหมู', amount: lardKg.toFixed(2), orderAmount: (lardKg * mult).toFixed(2), unit: 'กก.', note: 'ใช้สำหรับผัดซีอิ๊ว (~20 กรัม/จาน)' },
+              veg_oil: { label: 'น้ำมันพืช', amount: vegOilL.toFixed(2), orderAmount: (vegOilL * mult).toFixed(2), unit: 'ลิตร', note: 'ใช้สำหรับผัดซีอิ๊ว + ทอดไข่ดาวกรอบ' },
+              ice: { label: 'น้ำแข็ง (กระสอบ 20 กก.)', amount: iceBags.toFixed(2), orderAmount: Math.max(1, Math.ceil(iceBags * mult)), unit: 'กระสอบ', note: 'ประเมินจากจำนวนลูกค้าหน้าร้านและเครื่องดื่ม' }
+            };
+          });
+
+          const buildTxtReport = (logObj) => {
+            const lines = [];
+            const overhead = Number(logObj.overheadCost !== undefined ? logObj.overheadCost : totalDailyExpense.value);
+            const grossProfit = Number(logObj.totalProfit !== undefined ? logObj.totalProfit : (logObj.totalRevenue - logObj.totalCOGS));
+            const netProfit = getLogNetProfit(logObj);
+
+            lines.push('===================================================');
+            lines.push('           ร้านเหมาะโอชา The Next+');
+            lines.push('   รายงานสรุปยอดขาย ต้นทุน และกำไรสุทธิประจำวัน');
+            lines.push('===================================================');
+            lines.push(`วันที่ : ${logObj.date} (เวลา ${logObj.time || '-'})`);
+            lines.push('---------------------------------------------------');
+
+            const s = logObj.sales || {};
+            const soldItems = menuCatalog.value.filter(m => (s[m.id] || 0) > 0);
+            if (soldItems.length > 0) {
+              lines.push('[ รายการอาหาร & ท็อปปิ้ง ]');
+              soldItems.forEach(item => {
+                const q = s[item.id];
+                const subRev = q * item.price;
+                lines.push(`- ${item.name} x${q}  =  ${formatMoney(subRev)} บาท`);
+              });
+              lines.push('');
+            }
+
+            const drinks = logObj.customDrinks || [];
+            if (drinks.length > 0) {
+              lines.push('[ รายการเครื่องดื่ม & ขนม ]');
+              drinks.forEach(d => {
+                lines.push(`- ${d.name} x${d.qty}  =  ${formatMoney(d.price * d.qty)} บาท`);
+              });
+              lines.push('');
+            }
+
+            const dCosts = logObj.dailyCosts || [];
+            if (dCosts.length > 0) {
+              lines.push('[ รายการต้นทุนวันนี้ ]');
+              dCosts.forEach(c => {
+                lines.push(`- ${c.name}  =  ${formatMoney(c.amount)} บาท`);
+              });
+              lines.push('');
+            }
+
+            lines.push('---------------------------------------------------');
+            lines.push(`จำนวนขายรวม              : ${logObj.totalBowls} ชาม/ชิ้น`);
+            lines.push(`ยอดขายรวม (รายรับ)         : ${formatMoney(logObj.totalRevenue)} บาท`);
+            lines.push(`ต้นทุนวัตถุดิบ + แก๊ส + น้ำแข็ง : ${formatMoney(logObj.totalCOGS)} บาท`);
+            lines.push(`กำไรขั้นต้น                 : ${formatMoney(grossProfit)} บาท`);
+            lines.push(`รายการต้นทุนวันนี้ (หักเพิ่ม)   : ${formatMoney(overhead)} บาท`);
+            lines.push(`กำไรสุทธิคงเหลือ             : ${formatMoney(netProfit)} บาท`);
+            lines.push('===================================================');
+            return lines.join('\r\n');
+          };
+
+          const triggerTxtOutput = (textContent, filename, shouldPrint) => {
+            if (shouldPrint) {
+              const win = window.open('', '_blank', 'width=520,height=700');
+              if (!win) { alert('กรุณาอนุญาต Pop-up เพื่อสั่งพิมพ์ครับ'); return; }
+              const safeText = textContent.replace(/</g, '&lt;');
+              win.document.open();
+              win.document.write('<html><head><title>' + filename + '<\/title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:14px;line-height:1.5;}<\/style><\/head><body>' + safeText + '<\/body><\/html>');
+              win.document.close();
+              win.focus();
+              setTimeout(() => { win.print(); }, 250);
+            } else {
+              const blob = new Blob(['\uFEFF' + textContent], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+          };
+
+          const exportCurrentDayTxt = (shouldPrint = false) => {
+            const now = new Date();
+            const iso = selectedDate.value || getTodayIso();
+            const logObj = {
+              date: currentDateDisplay.value,
+              time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+              totalBowls: totalBowls.value,
+              totalRevenue: totalRevenue.value,
+              totalCOGS: totalCOGS.value,
+              totalProfit: totalProfit.value,
+              overheadCost: totalDailyExpense.value,
+              totalNetProfit: totalNetProfit.value,
+              sales: sales.value,
+              customDrinks: customDrinks.value,
+              dailyCosts: todayCostItems.value
+            };
+            const txt = buildTxtReport(logObj);
+            triggerTxtOutput(txt, `สรุปยอดขาย_เหมาะโอชา_${iso}.txt`, shouldPrint);
+          };
+
+          const exportLogTxt = (log, shouldPrint = false) => {
+            const txt = buildTxtReport(log);
+            const safeDate = (normalizeToIsoDate(log) || log.date || 'report').replace(/[^\wก-๙-]/g, '_');
+            triggerTxtOutput(txt, `สรุปยอดขาย_${safeDate}.txt`, shouldPrint);
+          };
+
+          const exportAllHistoryTxt = () => {
+            if (sortedHistoryLogs.value.length === 0) return;
+            const dailyBlocks = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
+            const summaryBlock = [
+              '',
+              '***************************************************',
+              '       สรุปยอดรวมสะสมทั้งหมด (ทุกวัน)',
+              '***************************************************',
+              `จำนวนวันที่บันทึกทั้งหมด      : ${historyTotals.value.daysCount} วัน`,
+              `จำนวนขายสะสมรวม           : ${historyTotals.value.totalBowls} ชาม/ชิ้น`,
+              `ยอดขายสะสมรวม (รายรับ)      : ${formatMoney(historyTotals.value.totalRevenue)} บาท`,
+              `ต้นทุนวัตถุดิบรวมทั้งหมด       : ${formatMoney(historyTotals.value.totalCOGS)} บาท`,
+              `รายการต้นทุนรายวันสะสมรวม    : ${formatMoney(historyTotals.value.totalOverhead)} บาท`,
+              `กำไรสุทธิสะสมรวมทั้งหมด       : ${formatMoney(historyTotals.value.totalNetProfit)} บาท`,
+              '***************************************************'
+            ].join('\r\n');
+            triggerTxtOutput(dailyBlocks + summaryBlock, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, false);
+          };
+
+          const exportPurchaseListTxt = () => {
+            const lines = [];
+            lines.push('===================================================');
+            lines.push('    ใบประมาณการจัดซื้อวัตถุดิบ - ร้านเหมาะโอชา');
+            lines.push(`    คำนวณจากยอดขายวันที่: ${currentDateDisplay.value}`);
+            lines.push(`    เผื่อสต็อกจัดซื้อ: +${purchaseBufferPercent.value}%`);
+            lines.push('===================================================');
+            Object.values(rawMaterialUsage.value).forEach(v => {
+              lines.push(`- ${v.label}: ใช้จริง ${v.amount} ${v.unit}  ==>  สั่งซื้อ ${v.orderAmount} ${v.unit}`);
+            });
+            lines.push('===================================================');
+            triggerTxtOutput(lines.join('\r\n'), `ใบสั่งซื้อวัตถุดิบ_${selectedDate.value || getTodayIso()}.txt`, false);
+          };
+
+          const resetTodaySales = () => {
+            if (confirm('ต้องการล้างตัวเลขยอดขายบนหน้าจอทั้งหมดเป็น 0 ใช่ไหมครับ?')) {
+              sales.value = {};
+              customDrinks.value = [];
+            }
+          };
+
+          const saveDailyRecord = async () => {
+            if (totalRevenue.value === 0 && totalDailyExpense.value === 0) {
+              alert('กรุณากรอกยอดขายหรือรายการต้นทุนอย่างน้อย 1 รายการก่อนบันทึกครับ');
+              return;
+            }
+            const now = new Date();
+            const isoDate = selectedDate.value || getTodayIso();
+            persistTodayCostsOnly();
+
+            // ตรึงรายการเครื่องดื่มทั้งหมดของวันนี้เข้าปุ่มลัดอัตโนมัติ
+            customDrinks.value.forEach(d => pinDrinkOptionIfNew(d.name, d.price));
+
+            const record = {
+              date: isoToThaiDate(isoDate),
+              isoDate,
+              time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+              totalBowls: totalBowls.value,
+              totalRevenue: Number(totalRevenue.value.toFixed(2)),
+              totalCOGS: Number(totalCOGS.value.toFixed(2)),
+              totalProfit: Number(totalProfit.value.toFixed(2)),
+              overheadCost: totalDailyExpense.value,
+              totalNetProfit: Number(totalNetProfit.value.toFixed(2)),
+              sales: { ...sales.value },
+              customDrinks: JSON.parse(JSON.stringify(customDrinks.value)),
+              dailyCosts: JSON.parse(JSON.stringify(todayCostItems.value))
+            };
+
+            const existingIdx = historyLogs.value.findIndex(h => normalizeToIsoDate(h) === isoDate || h.date === record.date);
+            if (existingIdx !== -1) {
+              historyLogs.value[existingIdx] = record;
+            } else {
+              historyLogs.value.unshift(record);
+            }
+
+            localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (dbUrl) {
+              try {
+                await fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(historyLogs.value) });
+              } catch (err) {}
+            }
+
+            alert(`✅ บันทึกยอดขายและรายการต้นทุนวันที่ ${record.date} ลงประวัติเรียบร้อยแล้วครับ!`);
+          };
+
+          const loadHistoryToCurrent = (log) => {
+            if (confirm(`ต้องการดึงข้อมูลยอดขายและรายการต้นทุนของวันที่ ${log.date} ขึ้นมาดู/แก้ไขใช่ไหมครับ?`)) {
+              const normIso = normalizeToIsoDate(log);
+              if (normIso && normIso !== '0000-00-00') {
+                selectedDate.value = normIso;
+                localStorage.setItem('mah_ocha_active_record_date', normIso);
+              }
+              sales.value = { ...(log.sales || {}) };
+              customDrinks.value = JSON.parse(JSON.stringify(log.customDrinks || []));
+              todayCostItems.value = Array.isArray(log.dailyCosts)
+                ? JSON.parse(JSON.stringify(log.dailyCosts))
+                : buildDefaultPresetCosts();
+              activeTab.value = 'sales';
+            }
+          };
+
+          const deleteHistory = (idx) => {
+            if (confirm('ต้องการลบประวัติวันนี้ออกจากระบบใช่ไหมครับ?')) {
+              historyLogs.value.splice(idx, 1);
+              localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+            }
+          };
+
+          // รองรับการนำเข้าไฟล์ JSON, CSV และไฟล์สรุปรายงาน .txt ของร้านเหมาะโอชาโดยตรง
+          const parseTxtHistoryReport = (content, fileName) => {
+            const blocks = content.split(/===================================================/g);
+            const parsedList = [];
+            let currentRec = null;
+
+            const nameToIdMap = {};
+            menuCatalog.value.forEach(m => { nameToIdMap[m.name.trim()] = m.id; });
+
+            blocks.forEach(block => {
+              const dateMatch = block.match(/วันที่\s*:\s*([^\(\r\n]+)(?:\(เวลา\s*([^\)]+)\))?/);
+              if (dateMatch) {
+                if (currentRec && currentRec.totalRevenue > 0) parsedList.push(currentRec);
+                const dateStr = dateMatch[1].trim();
+                const timeStr = (dateMatch[2] || 'นำเข้าจากไฟล์').trim();
+                currentRec = {
+                  date: dateStr,
+                  isoDate: normalizeToIsoDate({ date: dateStr }),
+                  time: timeStr,
+                  totalBowls: 0,
+                  totalRevenue: 0,
+                  totalCOGS: 0,
+                  totalProfit: 0,
+                  overheadCost: 0,
+                  totalNetProfit: 0,
+                  sales: {},
+                  customDrinks: [],
+                  dailyCosts: [],
+                  importedFrom: fileName
+                };
+              }
+
+              if (!currentRec) return;
+
+              let section = '';
+              block.split(/\r?\n/).forEach(line => {
+                const l = line.trim();
+                if (!l) return;
+                if (l.startsWith('[ รายการอาหาร')) { section = 'food'; return; }
+                if (l.startsWith('[ รายการเครื่องดื่ม')) { section = 'drink'; return; }
+                if (l.startsWith('[ รายการต้นทุน')) { section = 'cost'; return; }
+                if (l.startsWith('---')) { section = ''; return; }
+
+                if (section === 'food' && l.startsWith('- ')) {
+                  const m = l.match(/^-\s+(.+?)\s+x(\d+)\s*=\s*([\d,\.]+)\s*บาท/);
+                  if (m) {
+                    const itemName = m[1].trim();
+                    const qty = parseInt(m[2], 10);
+                    const id = nameToIdMap[itemName];
+                    if (id) currentRec.sales[id] = (currentRec.sales[id] || 0) + qty;
+                  }
+                } else if (section === 'drink' && l.startsWith('- ')) {
+                  const m = l.match(/^-\s+(.+?)\s+x(\d+)\s*=\s*([\d,\.]+)\s*บาท/);
+                  if (m) {
+                    const dName = m[1].trim();
+                    const qty = parseInt(m[2], 10);
+                    const tot = parseFloat(m[3].replace(/,/g, '')) || 0;
+                    const unitP = qty > 0 ? Number((tot / qty).toFixed(2)) : 0;
+                    currentRec.customDrinks.push({ name: dName, price: unitP, qty });
+                    pinDrinkOptionIfNew(dName, unitP);
+                  }
+                } else if (section === 'cost' && l.startsWith('- ')) {
+                  const m = l.match(/^-\s+(.+?)\s*=\s*([\d,\.]+)\s*บาท/);
+                  if (m) {
+                    currentRec.dailyCosts.push({
+                      id: 'imp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                      source: 'preset',
+                      name: m[1].trim(),
+                      amount: parseFloat(m[2].replace(/,/g, '')) || 0,
+                      note: 'นำเข้าจากไฟล์'
+                    });
+                  }
+                }
+
+                const numVal = (regex) => {
+                  const mm = l.match(regex);
+                  return mm ? parseFloat(mm[1].replace(/,/g, '')) : null;
+                };
+
+                const bowls = numVal(/จำนวนขายรวม\s*:\s*([\d,]+)/);
+                if (bowls !== null) currentRec.totalBowls = bowls;
+
+                const rev = numVal(/ยอดขายรวม\s*\(รายรับ\)\s*:\s*([\d,\.]+)/);
+                if (rev !== null) currentRec.totalRevenue = rev;
+
+                const cogs = numVal(/ต้นทุนวัตถุดิบ[^\:]*:\s*([\d,\.]+)/);
+                if (cogs !== null) currentRec.totalCOGS = cogs;
+
+                const gp = numVal(/กำไรขั้นต้น\s*:\s*([\d,\.]+)/);
+                if (gp !== null) currentRec.totalProfit = gp;
+
+                const ovh = numVal(/รายการต้นทุนวันนี้[^\:]*:\s*([\d,\.]+)/);
+                if (ovh !== null) currentRec.overheadCost = ovh;
+
+                const net = numVal(/กำไรสุทธิคงเหลือ\s*:\s*([\d,\.]+)/);
+                if (net !== null) currentRec.totalNetProfit = net;
+              });
+            });
+
+            if (currentRec && currentRec.totalRevenue > 0) parsedList.push(currentRec);
+            return parsedList;
+          };
+
+          const handleFileImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const content = e.target.result;
+                let importedRecords = [];
+
+                if (file.name.endsWith('.json')) {
+                  const parsed = JSON.parse(content);
+                  if (Array.isArray(parsed)) {
+                    importedRecords = parsed;
+                  } else if (parsed.historyLogs && Array.isArray(parsed.historyLogs)) {
+                    importedRecords = parsed.historyLogs;
+                  } else if (parsed.totalRevenue !== undefined) {
+                    importedRecords = [parsed];
+                  }
+                } else if (content.includes('รายงานสรุปยอดขาย ต้นทุน และกำไรสุทธิประจำวัน')) {
+                  importedRecords = parseTxtHistoryReport(content, file.name);
+                } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+                  const lines = content.split(/\r?\n/).filter(l => l.trim());
+                  for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',');
+                    if (cols.length >= 4) {
+                      const rev = parseFloat(cols[2]) || 0;
+                      const cogs = parseFloat(cols[3]) || 0;
+                      const dStr = cols[0].trim();
+                      importedRecords.push({
+                        date: dStr,
+                        isoDate: normalizeToIsoDate({ date: dStr }),
+                        time: 'นำเข้าจาก CSV',
+                        totalBowls: parseInt(cols[1]) || 0,
+                        totalRevenue: rev,
+                        totalCOGS: cogs,
+                        totalProfit: rev - cogs,
+                        sales: {},
+                        customDrinks: [],
+                        importedFrom: file.name
+                      });
+                    }
+                  }
+                }
+
+                if (importedRecords.length > 0) {
+                  importedRecords.forEach(rec => {
+                    rec.importedFrom = rec.importedFrom || file.name;
+                    const normIso = normalizeToIsoDate(rec);
+                    if (normIso !== '0000-00-00') rec.isoDate = normIso;
+
+                    const exIdx = historyLogs.value.findIndex(
+                      h => (normIso !== '0000-00-00' && normalizeToIsoDate(h) === normIso) || h.date === rec.date
+                    );
+                    if (exIdx !== -1) {
+                      historyLogs.value[exIdx] = rec;
+                    } else {
+                      historyLogs.value.unshift(rec);
+                    }
+                  });
+                  localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+                  loadSalesForSelectedDate();
+                  if (activeTab.value === 'analytics') renderAnalyticsCharts();
+                  alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedRecords.length} วัน!`);
+                } else {
+                  alert('ไม่พบข้อมูลรูปแบบยอดขายในไฟล์ที่เลือกครับ');
+                }
+              } catch (err) {
+                alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message);
+              }
+              event.target.value = '';
+            };
+            reader.readAsText(file);
+          };
+
+          const saveSyncSettings = () => {
+            localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
+            showSyncModal.value = false;
+          };
+
+          const formatMoney = (num) => {
+            return Number(num || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          };
+
+          const handleStorageSync = (e) => {
+            if (e.key === 'radna_pos_history') {
+              loadSalesForSelectedDate();
+              if (activeTab.value === 'analytics') renderAnalyticsCharts();
+            } else if (e.key === 'mah_ocha_active_record_date' && e.newValue) {
+              selectedDate.value = e.newValue;
+              loadSalesForSelectedDate();
+            }
+          };
+
+          onMounted(() => {
+            loadSalesForSelectedDate();
+            window.addEventListener('storage', handleStorageSync);
+          });
+
+          onUnmounted(() => {
+            window.removeEventListener('storage', handleStorageSync);
+          });
+
+          return {
+            activeTab, switchTab, purchaseBufferPercent, historySortBy, historySortOrder,
+            tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
+            showSyncModal, firebaseUrl, saveSyncSettings,
+            unitCosts, ingredientUnitCosts, utilityUnitCosts, saveCostsToStorage, resetDefaultCosts,
+            todayCostItems, newDailyCost, availablePresetExpenses,
+            isPresetSelected, getPresetSelectedAmount, updatePresetSelectedAmount,
+            togglePresetExpense, selectDefaultDailyPresets, addCustomDailyCost,
+            removeTodayCostItem, clearTodayCostItems, persistTodayCostsOnly,
+            totalDailyExpense, dailyExpenseSummaryHint,
+            sales, customDrinks, newDrink, pinnedDrinkOptions, quickAddPinnedDrink, removePinnedDrinkOption,
+            historyLogs, historyTotals, sortedHistoryLogs, getLogNetProfit,
+            analyticsData, renderAnalyticsCharts,
+            getMenuByCategory, categoryCount, updateQty,
+            addCustomDrink, drinkTotalQty,
+            totalBowls, totalRevenue, totalCOGS, totalProfit, dailyOverheadCost, totalNetProfit,
+            rawMaterialUsage, resetTodaySales, saveDailyRecord,
+            exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
+            loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
+          };
+        }
+      }).mount('#app');
+    })();
+  </script>
+</body>
+</html>
