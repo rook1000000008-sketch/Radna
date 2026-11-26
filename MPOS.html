@@ -37,7 +37,7 @@
           <h1 class="text-xl sm:text-2xl font-extrabold flex items-center gap-2 text-amber-300">
             <span>เหมาะโอชา POS & บัญชีต้นทุน</span>
           </h1>
-          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ วิเคราะห์การตลาด และประมาณการจัดซื้ออัตโนมัติ</p>
+          <p class="text-amber-100/90 text-xs sm:text-sm mt-0.5">บันทึกยอดขาย คำนวณต้นทุนวัตถุดิบ วิเคราะห์การตลาด และซิงค์ข้อมูลข้ามเครื่องอัตโนมัติ</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -45,6 +45,14 @@
           <span>🍲</span>
           <span>กลับหน้าสั่งอาหาร</span>
         </a>
+
+        <!-- ปุ่มซิงค์ข้อมูลจาก Cloud ทันที (สำหรับมือถือดูยอดล่าสุด) -->
+        <button @click="syncFromFirebase(true)" :disabled="isSyncing"
+                class="bg-emerald-500/90 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shadow">
+          <span :class="isSyncing ? 'animate-spin' : ''">🔄</span>
+          <span>{{ isSyncing ? 'กำลังซิงค์...' : 'ซิงค์ยอดล่าสุด' }}</span>
+        </button>
+
         <!-- ช่องแก้ไขวันที่บันทึก -->
         <div class="bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-xl text-right border border-amber-300/40">
           <div class="text-[11px] text-amber-200 flex items-center justify-end gap-1">
@@ -61,6 +69,12 @@
         </button>
       </div>
     </header>
+
+    <!-- แถบแจ้งสถานะการซิงค์ข้ามเครื่อง -->
+    <div v-if="lastSyncMessage" class="mb-4 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex justify-between items-center">
+      <span>☁️ {{ lastSyncMessage }}</span>
+      <button @click="lastSyncMessage = ''" class="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
+    </div>
 
     <!-- Navigation Tabs -->
     <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1">
@@ -417,7 +431,7 @@
       </div>
     </div>
 
-    <!-- ==================== TAB 3: วิเคราะห์การตลาด & กราฟ (NEW) ==================== -->
+    <!-- ==================== TAB 3: วิเคราะห์การตลาด & กราฟ ==================== -->
     <div v-if="activeTab === 'analytics'" class="space-y-5">
       
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-5">
@@ -475,7 +489,7 @@
             </div>
           </div>
 
-          <!-- แถวกราฟที่ 1: แนวโน้มยอดขาย & กำไรสุทธิรายวัน (8 ส่วน) + สัดส่วนหมวดหมู่ (4 ส่วน) -->
+          <!-- แถวกราฟที่ 1 -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div class="lg:col-span-8 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
               <div class="flex justify-between items-center mb-2">
@@ -498,7 +512,7 @@
             </div>
           </div>
 
-          <!-- แถวกราฟที่ 2: ยอดขายเฉลี่ยตามวันในสัปดาห์ (6 ส่วน) + Top 10 เมนูทำเงิน (6 ส่วน) -->
+          <!-- แถวกราฟที่ 2 -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
               <div class="mb-2">
@@ -523,8 +537,6 @@
 
           <!-- แถวที่ 3: ตาราง Menu Engineering & ข้อเสนอแนะเชิงกลยุทธ์การตลาด -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            
-            <!-- ตารางอันดับเมนูทั้งหมด -->
             <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden">
               <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="text-xs sm:text-sm font-extrabold text-slate-800">📋 ตารางวิเคราะห์ประสิทธิภาพรายเมนู (Menu Matrix)</h3>
@@ -560,7 +572,6 @@
               </div>
             </div>
 
-            <!-- กล่องคำแนะนำเชิงกลยุทธ์การตลาด -->
             <div class="lg:col-span-5 bg-gradient-to-br from-amber-50 to-orange-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
               <h3 class="text-sm font-extrabold text-[#2C1810] flex items-center gap-1.5">
                 <span>💡</span> ข้อเสนอแนะเชิงกลยุทธ์การตลาดสำหรับร้านเหมาะโอชา
@@ -573,7 +584,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </template>
       </div>
@@ -641,7 +651,6 @@
           </button>
         </div>
 
-        <!-- กลุ่มที่ 1: วัตถุดิบอาหารและเครื่องปรุง -->
         <h3 class="text-xs font-extrabold text-red-800 uppercase tracking-wider mb-2.5">🥩 1. วัตถุดิบสด เส้น ผัก และน้ำมันปรุงอาหาร</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
           <div v-for="(item, key) in ingredientUnitCosts" :key="key" class="p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between bg-slate-50/40">
@@ -653,7 +662,6 @@
           </div>
         </div>
 
-        <!-- กลุ่มที่ 2: ค่าแก๊ส น้ำแข็ง ค่าน้ำ ค่าไฟ ค่าน้ำมันรถ -->
         <h3 class="text-xs font-extrabold text-amber-900 uppercase tracking-wider mb-2.5">⚡ 2. ค่าแก๊ส น้ำแข็ง ค่าไฟฟ้า ค่าน้ำประปา และค่าน้ำมันรถ</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           <div v-for="(item, key) in utilityUnitCosts" :key="key" class="p-3.5 rounded-xl border border-amber-200 flex flex-col justify-between bg-amber-50/40">
@@ -676,7 +684,7 @@
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4 pb-3 border-b border-slate-100">
           <div>
             <h2 class="text-lg font-bold text-slate-800">📅 ประวัติยอดขายย้อนหลัง & นำเข้าข้อมูลจากไฟล์</h2>
-            <p class="text-xs text-slate-500">เรียงลำดับตามวันที่ขายจริง นำเข้าไฟล์ย้อนหลัง (JSON / CSV / TXT) และส่งออกรายงาน</p>
+            <p class="text-xs text-slate-500">สั่งปริ้นประวัติย้อนหลัง โหลดไฟล์สรุปรวม หรือนำเข้าไฟล์ของทุกวันได้พร้อมกัน</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -698,16 +706,33 @@
               </button>
             </div>
 
-            <button v-if="historyLogs.length > 0" @click="exportAllHistoryTxt"
+            <!-- ปุ่มปริ้นประวัติย้อนหลังทั้งหมด -->
+            <button v-if="historyLogs.length > 0" @click="exportAllHistoryTxt(true)"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+              <span>🖨️ ปริ้นประวัติย้อนหลังทั้งหมด</span>
+            </button>
+
+            <button v-if="historyLogs.length > 0" @click="exportAllHistoryTxt(false)"
                     class="bg-slate-700 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1">
               <span>📄 โหลดประวัติทั้งหมด (.txt)</span>
             </button>
 
+            <!-- ปุ่มนำเข้าข้อมูลจากไฟล์ (เลือกได้ทีละหลายไฟล์พร้อมกัน) -->
             <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
-              <span>📂 นำเข้าไฟล์ย้อนหลัง (JSON / CSV / TXT)</span>
-              <input type="file" accept=".json,.csv,.txt" @change="handleFileImport" class="hidden">
+              <span>📂 นำเข้าไฟล์ย้อนหลัง (เลือกได้หลายไฟล์)</span>
+              <input type="file" accept=".json,.csv,.txt" multiple @change="handleFileImport" class="hidden">
             </label>
           </div>
+        </div>
+
+        <!-- คำแนะนำการนำเข้าไฟล์ -->
+        <div class="mb-4 p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex flex-wrap justify-between items-center gap-2">
+          <span>
+            💡 <strong>รองรับการนำเข้าทุกวัน:</strong> สามารถเลือกไฟล์ <code>.txt</code> (ใบสรุปรายวัน หรือไฟล์รวมทุกวัน), <code>.json</code> หรือ <code>.csv</code> ทีละหลายไฟล์พร้อมกันได้ ระบบจะรวมเข้าประวัติและซิงค์ขึ้น Cloud ให้อัตโนมัติ
+          </span>
+          <button @click="downloadSampleCsvTemplate" class="bg-white hover:bg-blue-100 text-blue-800 border border-blue-300 px-2.5 py-1 rounded-lg font-bold text-[11px] shrink-0">
+            ⬇️ โหลดไฟล์ตัวอย่าง (.csv)
+          </button>
         </div>
 
         <!-- การ์ดสรุปยอดรวมสะสมของทุกวัน -->
@@ -739,7 +764,7 @@
         </div>
 
         <div v-if="sortedHistoryLogs.length === 0" class="text-center py-10 text-slate-400">
-          ยังไม่มีประวัติการบันทึกยอดขาย (ระบบจะบันทึกอัตโนมัติเมื่อกดส่งครัว หรือกดปุ่ม "บันทึกยอดลงประวัติ")
+          ยังไม่มีประวัติการบันทึกยอดขาย (กดปุ่ม "🔄 ซิงค์ยอดล่าสุด" ด้านบน หรือนำเข้าไฟล์ย้อนหลังได้เลยครับ)
         </div>
 
         <div v-else class="space-y-3">
@@ -826,22 +851,22 @@
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
         <div class="flex justify-between items-center border-b pb-2">
           <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-            <span>📡</span> ตั้งค่าการเชื่อมต่อบัญชีข้ามเครื่อง
+            <span>📡</span> ตั้งค่าการเชื่อมต่อบัญชีข้ามเครื่อง (PC ↔ มือถือ)
           </h3>
           <button @click="showSyncModal = false" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
         </div>
         <div class="text-xs text-slate-600 space-y-2">
           <p class="bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200">
-            <strong>โหมดออฟไลน์ในเครื่อง:</strong> ทุกครั้งที่หน้าสั่งอาหารกดส่งออเดอร์ ยอดขายและต้นทุนจะถูกอัปเดตเข้าหน้านี้อัตโนมัติทันที
+            <strong>วิธีซิงค์ PC กับมือถือ:</strong> ตรวจสอบให้แน่ใจว่าทั้ง PC และมือถือใช้ URL ด้านล่างตรงกัน เมื่อเปิดเว็บหรือกด "🔄 ซิงค์ยอดล่าสุด" ข้อมูลทุกวันจะดึงมาตรงกันอัตโนมัติครับ
           </p>
           <div>
-            <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL (ใช้ลิงก์เดียวกับหน้าสั่งอาหาร):</label>
+            <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL:</label>
             <input type="url" v-model="firebaseUrl" placeholder="https://mase-architect-pro-default-rtdb.asia-southeast1.firebasedatabase.app"
                    class="w-full p-2.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-red-500 outline-none">
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึกการตั้งค่า</button>
+          <button @click="saveSyncSettings" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึก & ซิงค์ทันที</button>
         </div>
       </div>
     </div>
@@ -885,7 +910,6 @@
         return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
       };
 
-      // แปลงวันที่ทุกรูปแบบให้เป็น YYYY-MM-DD (ค.ศ.) เพื่อเรียงลำดับตามวันที่ขายจริงได้อย่างแม่นยำ
       const normalizeToIsoDate = (log) => {
         if (!log) return '0000-00-00';
         if (log.isoDate && /^\d{4}-\d{2}-\d{2}$/.test(log.isoDate)) {
@@ -898,7 +922,6 @@
         const raw = String(log.date || '').trim();
         if (!raw) return '0000-00-00';
 
-        // รูปแบบ YYYY-MM-DD
         const isoMatch = raw.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
         if (isoMatch) {
           let y = parseInt(isoMatch[1], 10);
@@ -906,7 +929,6 @@
           return `${y}-${String(isoMatch[2]).padStart(2, '0')}-${String(isoMatch[3]).padStart(2, '0')}`;
         }
 
-        // รูปแบบ DD/MM/YYYY หรือ DD-MM-YYYY
         const slashMatch = raw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
         if (slashMatch) {
           let y = parseInt(slashMatch[3], 10);
@@ -914,7 +936,6 @@
           return `${y}-${String(slashMatch[2]).padStart(2, '0')}-${String(slashMatch[1]).padStart(2, '0')}`;
         }
 
-        // รูปแบบวันที่ภาษาไทย เช่น "9 พฤศจิกายน 2569"
         const thaiMatch = raw.match(/(\d{1,2})\s+([^\s\d]+)\s+(\d{4})/);
         if (thaiMatch) {
           const day = parseInt(thaiMatch[1], 10);
@@ -942,7 +963,9 @@
           const purchaseBufferPercent = ref(15);
           const historySortBy = ref('date');
           const historySortOrder = ref('desc');
-          const selectedDate = ref(localStorage.getItem('mah_ocha_active_record_date') || getTodayIso());
+          const selectedDate = ref(getTodayIso());
+          const isSyncing = ref(false);
+          const lastSyncMessage = ref('');
 
           const tabs = [
             { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
@@ -1091,7 +1114,81 @@
           const newDrink = ref({ name: '', price: null, qty: 1 });
           const historyLogs = ref(JSON.parse(localStorage.getItem('radna_pos_history') || '[]'));
 
-          // ========== ฟีเจอร์ตรึงตัวเลือกเครื่องดื่ม & ขนมสำหรับครั้งต่อๆ ไป ==========
+          // ========== ซิงค์ข้อมูลข้ามเครื่อง (Firebase Cloud Sync) ==========
+          const pushHistoryToFirebase = async () => {
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (!dbUrl) return;
+            try {
+              await fetch(`${dbUrl}/mpos_history.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(historyLogs.value)
+              });
+            } catch (err) {}
+          };
+
+          const syncFromFirebase = async (showAlert = false) => {
+            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+            if (!dbUrl) {
+              if (showAlert) alert('กรุณาตั้งค่า Firebase URL ในปุ่มเฟือง (⚙️) ก่อนครับ');
+              return;
+            }
+            isSyncing.value = true;
+            try {
+              const res = await fetch(`${dbUrl}/mpos_history.json?t=${Date.now()}`);
+              if (!res.ok) throw new Error('เชื่อมต่อ Firebase ไม่สำเร็จ');
+              const cloudData = await res.json();
+
+              if (cloudData) {
+                const cloudList = Array.isArray(cloudData) ? cloudData : Object.values(cloudData);
+                const validCloud = cloudList.filter(item => item && typeof item === 'object' && (item.date || item.isoDate));
+
+                if (validCloud.length > 0) {
+                  // รวมข้อมูลจาก Cloud เข้ากับข้อมูลในเครื่อง โดยยึดข้อมูลจาก Cloud เป็นหลักสำหรับวันที่ตรงกัน
+                  const mergedMap = new Map();
+                  historyLogs.value.forEach(localItem => {
+                    const k = normalizeToIsoDate(localItem);
+                    if (k !== '0000-00-00') mergedMap.set(k, localItem);
+                  });
+                  validCloud.forEach(cItem => {
+                    const k = normalizeToIsoDate(cItem);
+                    if (k !== '0000-00-00') {
+                      cItem.isoDate = k;
+                      mergedMap.set(k, cItem);
+                    }
+                  });
+
+                  const mergedArr = Array.from(mergedMap.values()).sort((a, b) => normalizeToIsoDate(b).localeCompare(normalizeToIsoDate(a)));
+                  historyLogs.value = mergedArr;
+                  localStorage.setItem('radna_pos_history', JSON.stringify(mergedArr));
+
+                  // อัปเดตวันที่แสดงผลให้ตรงกับวันล่าสุดที่มีข้อมูล (เพื่อให้มือถือภรรยาเห็นยอดปัจจุบันทันที)
+                  const latestIso = normalizeToIsoDate(mergedArr[0]);
+                  if (latestIso && latestIso !== '0000-00-00') {
+                    selectedDate.value = latestIso;
+                    localStorage.setItem('mah_ocha_active_record_date', latestIso);
+                  }
+
+                  loadSalesForSelectedDate();
+                  if (activeTab.value === 'analytics') {
+                    await nextTick();
+                    renderAnalyticsCharts();
+                  }
+                  const nowStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                  lastSyncMessage.value = `ซิงค์ข้อมูลล่าสุดสำเร็จ (${mergedArr.length} วัน • อัปเดตเมื่อ ${nowStr} น.)`;
+                  if (showAlert) alert(`✅ ซิงค์ข้อมูลล่าสุดสำเร็จ! พบประวัติยอดขายทั้งหมด ${mergedArr.length} วัน (ล่าสุดวันที่ ${mergedArr[0].date})`);
+                } else if (showAlert) {
+                  alert('ยังไม่พบข้อมูลประวัติบน Cloud ครับ (กรุณากดบันทึกยอดขายบนเครื่องหลักก่อน 1 ครั้ง)');
+                }
+              }
+            } catch (err) {
+              if (showAlert) alert('ไม่สามารถดึงข้อมูลจาก Cloud ได้: ' + err.message);
+            } finally {
+              isSyncing.value = false;
+            }
+          };
+
+          // ========== ฟีเจอร์ตรึงตัวเลือกเครื่องดื่ม & ขนม ==========
           const DEFAULT_PINNED_DRINKS = [
             { name: 'โค้ก', price: 16 },
             { name: 'ชาลิปตัน', price: 16 },
@@ -1143,7 +1240,7 @@
             savePinnedDrinkOptions();
           };
 
-          // ========== ฟีเจอร์: รายการต้นทุนวันนี้ (เฉพาะค่าใช้จ่ายดำเนินงานไม่ให้หักซ้ำกับวัตถุดิบต่อชาม) ==========
+          // ========== รายการต้นทุนวันนี้ ==========
           const todayCostItems = ref([]);
           const newDailyCost = ref({ name: '', amount: null, note: '' });
 
@@ -1327,7 +1424,6 @@
             });
           });
 
-          // แก้ไขการเรียงลำดับ: เรียงจากวันที่ขายจริง (normalizeToIsoDate) ไม่ใช่วันที่กดบันทึก
           const sortedHistoryLogs = computed(() => {
             const list = historyLogs.value.map((item, idx) => ({
               ...item,
@@ -1349,7 +1445,7 @@
             });
           });
 
-          // ========== ระบบวิเคราะห์การตลาด & กราฟ (Marketing Analytics) ==========
+          // ========== ระบบวิเคราะห์การตลาด & กราฟ ==========
           let chartInstances = {};
 
           const analyticsData = computed(() => {
@@ -1375,7 +1471,6 @@
               }
             });
 
-            // วิเคราะห์รายหมวดหมู่ & รายเมนู
             let radnaRev = 0, seeewRev = 0, toppingRev = 0, drinkRev = 0;
             let totalToppingsQty = 0, totalMainBowlsQty = 0;
             const menuAgg = {};
@@ -1383,7 +1478,6 @@
               menuAgg[m.id] = { id: m.id, name: m.name, category: m.category, qty: 0, revenue: 0, grossProfit: 0 };
             });
 
-            // วิเคราะห์ตามวันในสัปดาห์ (0=อาทิตย์ ... 6=เสาร์)
             const dowStats = Array.from({ length: 7 }, (_, i) => ({
               dayIdx: i,
               label: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'][i],
@@ -1448,7 +1542,6 @@
                 return { ...m, badge, badgeClass };
               });
 
-            // สร้างข้อเสนอแนะทางการตลาดจากข้อมูลจริง
             const marketingInsights = [];
             const totalCatRev = radnaRev + seeewRev + toppingRev + drinkRev;
             if (totalCatRev > 0) {
@@ -1519,7 +1612,6 @@
 
             const data = analyticsData.value;
 
-            // 1. กราฟแนวโน้มยอดขาย & กำไรสุทธิรายวัน
             const ctxTrend = document.getElementById('chartDailyTrend');
             if (ctxTrend) {
               chartInstances.trend = new Chart(ctxTrend, {
@@ -1551,9 +1643,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: {
-                    legend: { position: 'top', labels: { font: { family: 'Kanit', weight: 'bold' } } }
-                  },
+                  plugins: { legend: { position: 'top', labels: { font: { family: 'Kanit', weight: 'bold' } } } },
                   scales: {
                     y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
                     x: { ticks: { font: { family: 'Kanit' } } }
@@ -1562,7 +1652,6 @@
               });
             }
 
-            // 2. กราฟโดนัทสัดส่วนหมวดหมู่
             const ctxCat = document.getElementById('chartCategoryMix');
             if (ctxCat) {
               const c = data.categoryRev;
@@ -1580,17 +1669,14 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: {
-                    legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 11 } } }
-                  }
+                  plugins: { legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 11 } } } }
                 }
               });
             }
 
-            // 3. กราฟตามวันในสัปดาห์ (จันทร์ - อาทิตย์)
             const ctxDow = document.getElementById('chartDayOfWeek');
             if (ctxDow) {
-              const orderedIdx = [1, 2, 3, 4, 5, 6, 0]; // จันทร์ -> อาทิตย์
+              const orderedIdx = [1, 2, 3, 4, 5, 6, 0];
               const dowOrdered = orderedIdx.map(i => data.dowStats[i]);
               chartInstances.dow = new Chart(ctxDow, {
                 type: 'bar',
@@ -1614,9 +1700,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: {
-                    legend: { position: 'top', labels: { font: { family: 'Kanit', size: 11 } } }
-                  },
+                  plugins: { legend: { position: 'top', labels: { font: { family: 'Kanit', size: 11 } } } },
                   scales: {
                     y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
                     x: { ticks: { font: { family: 'Kanit' } } }
@@ -1625,7 +1709,6 @@
               });
             }
 
-            // 4. กราฟแท่งแนวนอน Top 10 เมนูทำรายได้สูงสุด
             const ctxTop = document.getElementById('chartTopMenus');
             if (ctxTop) {
               const top10 = data.menuRanking.slice(0, 10);
@@ -1644,9 +1727,7 @@
                   indexAxis: 'y',
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false }
-                  },
+                  plugins: { legend: { display: false } },
                   scales: {
                     x: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
                     y: { ticks: { font: { family: 'Kanit', size: 11 } } }
@@ -1669,7 +1750,6 @@
               const isoDate = selectedDate.value || getTodayIso();
               const thaiDate = isoToThaiDate(isoDate);
               const logs = JSON.parse(localStorage.getItem('radna_pos_history') || '[]');
-              // อัปเกรด isoDate ให้รายการเก่าทั้งหมดเพื่อการเรียงลำดับที่แม่นยำ
               logs.forEach(item => {
                 const norm = normalizeToIsoDate(item);
                 if (norm !== '0000-00-00') item.isoDate = norm;
@@ -1721,10 +1801,8 @@
             const qtyVal = Number(newDrink.value.qty) || 1;
             if (!cleanName || !priceVal || priceVal <= 0) return;
 
-            // ตรึงเป็น option สำหรับครั้งต่อๆ ไปอัตโนมัติ
             pinDrinkOptionIfNew(cleanName, priceVal);
 
-            // ถ้ามีรายการชื่อและราคาเดียวกันอยู่แล้วในวันนี้ ให้บวกจำนวนเพิ่ม
             const existing = customDrinks.value.find(
               d => d.name.toLowerCase() === cleanName.toLowerCase() && Number(d.price) === priceVal
             );
@@ -1784,7 +1862,6 @@
             const shrimpBowls = (s.rn_shrimp || 0) + (s.se_shrimp || 0);
             const quailBowls = (s.rn_quail || 0) + (s.se_quail || 0);
 
-            // นับชาม Duo 50/50 แยกตามคู่จับคู่
             const duoPorkLiver = (s.rn_duo_pork_liver || 0) + (s.se_duo_pork_liver || 0);
             const duoPorkQuail = (s.rn_duo_pork_quail || 0) + (s.se_duo_pork_quail || 0);
             const duoLiverQuail = (s.rn_duo_liver_quail || 0) + (s.se_duo_liver_quail || 0);
@@ -1890,11 +1967,11 @@
 
           const triggerTxtOutput = (textContent, filename, shouldPrint) => {
             if (shouldPrint) {
-              const win = window.open('', '_blank', 'width=520,height=700');
+              const win = window.open('', '_blank', 'width=680,height=800');
               if (!win) { alert('กรุณาอนุญาต Pop-up เพื่อสั่งพิมพ์ครับ'); return; }
               const safeText = textContent.replace(/</g, '&lt;');
               win.document.open();
-              win.document.write('<html><head><title>' + filename + '<\/title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:14px;line-height:1.5;}<\/style><\/head><body>' + safeText + '<\/body><\/html>');
+              win.document.write('<html><head><title>' + filename + '<\/title><style>body{font-family:monospace;white-space:pre-wrap;padding:20px;font-size:13px;line-height:1.45;}@media print{body{padding:0;}}<\/style><\/head><body>' + safeText + '<\/body><\/html>');
               win.document.close();
               win.focus();
               setTimeout(() => { win.print(); }, 250);
@@ -1937,7 +2014,7 @@
             triggerTxtOutput(txt, `สรุปยอดขาย_${safeDate}.txt`, shouldPrint);
           };
 
-          const exportAllHistoryTxt = () => {
+          const exportAllHistoryTxt = (shouldPrint = false) => {
             if (sortedHistoryLogs.value.length === 0) return;
             const dailyBlocks = sortedHistoryLogs.value.map(log => buildTxtReport(log)).join('\r\n\r\n');
             const summaryBlock = [
@@ -1953,7 +2030,16 @@
               `กำไรสุทธิสะสมรวมทั้งหมด       : ${formatMoney(historyTotals.value.totalNetProfit)} บาท`,
               '***************************************************'
             ].join('\r\n');
-            triggerTxtOutput(dailyBlocks + summaryBlock, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, false);
+            triggerTxtOutput(dailyBlocks + summaryBlock, `ประวัติยอดขายทั้งหมด_เหมาะโอชา_${getTodayIso()}.txt`, shouldPrint);
+          };
+
+          const downloadSampleCsvTemplate = () => {
+            const csvLines = [
+              'วันที่,จำนวนขายรวม,ยอดขายรวม,ต้นทุนวัตถุดิบ,ต้นทุนรายวัน',
+              '2026-11-26,50,3000,1450,195',
+              '2026-11-27,55,3350,1600,195'
+            ].join('\r\n');
+            triggerTxtOutput(csvLines, 'ตัวอย่างไฟล์นำเข้ายอดขาย_เหมาะโอชา.csv', false);
           };
 
           const exportPurchaseListTxt = () => {
@@ -1986,7 +2072,6 @@
             const isoDate = selectedDate.value || getTodayIso();
             persistTodayCostsOnly();
 
-            // ตรึงรายการเครื่องดื่มทั้งหมดของวันนี้เข้าปุ่มลัดอัตโนมัติ
             customDrinks.value.forEach(d => pinDrinkOptionIfNew(d.name, d.price));
 
             const record = {
@@ -2012,15 +2097,9 @@
             }
 
             localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+            await pushHistoryToFirebase();
 
-            const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
-            if (dbUrl) {
-              try {
-                await fetch(`${dbUrl}/mpos_history.json`, { method: 'PUT', body: JSON.stringify(historyLogs.value) });
-              } catch (err) {}
-            }
-
-            alert(`✅ บันทึกยอดขายและรายการต้นทุนวันที่ ${record.date} ลงประวัติเรียบร้อยแล้วครับ!`);
+            alert(`✅ บันทึกยอดขายวันที่ ${record.date} และอัปเดตขึ้น Cloud เรียบร้อยแล้วครับ!`);
           };
 
           const loadHistoryToCurrent = (log) => {
@@ -2039,14 +2118,14 @@
             }
           };
 
-          const deleteHistory = (idx) => {
+          const deleteHistory = async (idx) => {
             if (confirm('ต้องการลบประวัติวันนี้ออกจากระบบใช่ไหมครับ?')) {
               historyLogs.value.splice(idx, 1);
               localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+              await pushHistoryToFirebase();
             }
           };
 
-          // รองรับการนำเข้าไฟล์ JSON, CSV และไฟล์สรุปรายงาน .txt ของร้านเหมาะโอชาโดยตรง
           const parseTxtHistoryReport = (content, fileName) => {
             const blocks = content.split(/===================================================/g);
             const parsedList = [];
@@ -2149,14 +2228,16 @@
             return parsedList;
           };
 
-          const handleFileImport = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+          // รองรับการนำเข้าพร้อมกันหลายไฟล์ (Multi-file Import)
+          const handleFileImport = async (event) => {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
+            let totalImportedCount = 0;
+
+            for (const file of files) {
               try {
-                const content = e.target.result;
+                const content = await file.text();
                 let importedRecords = [];
 
                 if (file.name.endsWith('.json')) {
@@ -2177,15 +2258,19 @@
                     if (cols.length >= 4) {
                       const rev = parseFloat(cols[2]) || 0;
                       const cogs = parseFloat(cols[3]) || 0;
+                      const ovh = parseFloat(cols[4]) || 0;
                       const dStr = cols[0].trim();
+                      const normIso = normalizeToIsoDate({ date: dStr });
                       importedRecords.push({
-                        date: dStr,
-                        isoDate: normalizeToIsoDate({ date: dStr }),
+                        date: normIso !== '0000-00-00' ? isoToThaiDate(normIso) : dStr,
+                        isoDate: normIso,
                         time: 'นำเข้าจาก CSV',
                         totalBowls: parseInt(cols[1]) || 0,
                         totalRevenue: rev,
                         totalCOGS: cogs,
                         totalProfit: rev - cogs,
+                        overheadCost: ovh,
+                        totalNetProfit: (rev - cogs) - ovh,
                         sales: {},
                         customDrinks: [],
                         importedFrom: file.name
@@ -2194,39 +2279,42 @@
                   }
                 }
 
-                if (importedRecords.length > 0) {
-                  importedRecords.forEach(rec => {
-                    rec.importedFrom = rec.importedFrom || file.name;
-                    const normIso = normalizeToIsoDate(rec);
-                    if (normIso !== '0000-00-00') rec.isoDate = normIso;
+                importedRecords.forEach(rec => {
+                  rec.importedFrom = rec.importedFrom || file.name;
+                  const normIso = normalizeToIsoDate(rec);
+                  if (normIso !== '0000-00-00') rec.isoDate = normIso;
 
-                    const exIdx = historyLogs.value.findIndex(
-                      h => (normIso !== '0000-00-00' && normalizeToIsoDate(h) === normIso) || h.date === rec.date
-                    );
-                    if (exIdx !== -1) {
-                      historyLogs.value[exIdx] = rec;
-                    } else {
-                      historyLogs.value.unshift(rec);
-                    }
-                  });
-                  localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
-                  loadSalesForSelectedDate();
-                  if (activeTab.value === 'analytics') renderAnalyticsCharts();
-                  alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedRecords.length} วัน!`);
-                } else {
-                  alert('ไม่พบข้อมูลรูปแบบยอดขายในไฟล์ที่เลือกครับ');
-                }
+                  const exIdx = historyLogs.value.findIndex(
+                    h => (normIso !== '0000-00-00' && normalizeToIsoDate(h) === normIso) || h.date === rec.date
+                  );
+                  if (exIdx !== -1) {
+                    historyLogs.value[exIdx] = rec;
+                  } else {
+                    historyLogs.value.unshift(rec);
+                  }
+                  totalImportedCount += 1;
+                });
               } catch (err) {
-                alert('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message);
+                alert(`เกิดข้อผิดพลาดในการอ่านไฟล์ ${file.name}: ` + err.message);
               }
-              event.target.value = '';
-            };
-            reader.readAsText(file);
+            }
+
+            if (totalImportedCount > 0) {
+              localStorage.setItem('radna_pos_history', JSON.stringify(historyLogs.value));
+              await pushHistoryToFirebase();
+              loadSalesForSelectedDate();
+              if (activeTab.value === 'analytics') renderAnalyticsCharts();
+              alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${totalImportedCount} วัน (จาก ${files.length} ไฟล์) และอัปเดตขึ้น Cloud เรียบร้อยครับ!`);
+            } else {
+              alert('ไม่พบข้อมูลรูปแบบยอดขายในไฟล์ที่เลือกครับ');
+            }
+            event.target.value = '';
           };
 
-          const saveSyncSettings = () => {
+          const saveSyncSettings = async () => {
             localStorage.setItem('mah_ocha_firebase_url', firebaseUrl.value.trim());
             showSyncModal.value = false;
+            await syncFromFirebase(true);
           };
 
           const formatMoney = (num) => {
@@ -2243,9 +2331,11 @@
             }
           };
 
-          onMounted(() => {
+          onMounted(async () => {
             loadSalesForSelectedDate();
             window.addEventListener('storage', handleStorageSync);
+            // ดึงข้อมูลล่าสุดจาก Firebase อัตโนมัติทุกครั้งที่เปิดหน้าเว็บ
+            await syncFromFirebase(false);
           });
 
           onUnmounted(() => {
@@ -2255,7 +2345,7 @@
           return {
             activeTab, switchTab, purchaseBufferPercent, historySortBy, historySortOrder,
             tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
-            showSyncModal, firebaseUrl, saveSyncSettings,
+            showSyncModal, firebaseUrl, saveSyncSettings, isSyncing, lastSyncMessage, syncFromFirebase,
             unitCosts, ingredientUnitCosts, utilityUnitCosts, saveCostsToStorage, resetDefaultCosts,
             todayCostItems, newDailyCost, availablePresetExpenses,
             isPresetSelected, getPresetSelectedAmount, updatePresetSelectedAmount,
@@ -2269,7 +2359,7 @@
             addCustomDrink, drinkTotalQty,
             totalBowls, totalRevenue, totalCOGS, totalProfit, dailyOverheadCost, totalNetProfit,
             rawMaterialUsage, resetTodaySales, saveDailyRecord,
-            exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, exportPurchaseListTxt,
+            exportCurrentDayTxt, exportLogTxt, exportAllHistoryTxt, downloadSampleCsvTemplate, exportPurchaseListTxt,
             loadHistoryToCurrent, deleteHistory, handleFileImport, formatMoney
           };
         }
