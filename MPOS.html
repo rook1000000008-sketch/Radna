@@ -1037,8 +1037,8 @@
 
             ice: { group: 'utility', name: 'น้ำแข็ง (กระสอบ 20 กก.)', cost: 45, unit: 'บาท/กระสอบ', hint: 'เฉลี่ยใช้ ~150 กรัม/ชามหรือแก้ว (รวมในใบจัดซื้อ)' },
             gas: { group: 'utility', name: 'ค่าแก๊สหุงต้ม (ถัง 48 กก.)', cost: 1600, unit: 'บาท/ถัง', hint: 'เฉลี่ย 1 ถัง ทำได้ ~600 ชาม (~' + (1600 / 600).toFixed(2) + ' บ./ชาม)' },
-            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 2400, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
-            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 450, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
+            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 3600, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
+            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 750, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
             fuel: { group: 'utility', name: 'ค่าน้ำมันรถ / วัน', cost: 100, unit: 'บาท/วัน', hint: 'หักเป็นค่าเดินทางซื้อของ/ขนของรายวัน' }
           };
 
@@ -1070,7 +1070,7 @@
             Object.entries(unitCosts.value).forEach(([k, v]) => {
               if (v.group === 'utility') {
                 const clone = { ...v };
-                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~${(v.cost / 280).toFixed(2)} บ./ชาม)`;
+                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~600 ชาม (~${(v.cost / 600).toFixed(2)} บ./ชาม)`;
                 if (k === 'electricity') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
                 if (k === 'water') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
                 res[k] = clone;
@@ -1123,7 +1123,7 @@
 
           const menuCatalog = computed(() => {
             const u = unitCosts.value;
-            const gasPerBowl = (u.gas?.cost || 430) / 280;
+            const gasPerBowl = (u.gas?.cost || 1600) / 600;
             const lardPerSeeew = 0.02 * (u.lard?.cost || 95);
             const oilPerSeeew = 0.01 * (u.veg_oil?.cost || 52);
             const oilPerEgg = 0.015 * (u.veg_oil?.cost || 52);
