@@ -165,6 +165,26 @@
         </div>
       </div>
 
+      <!-- แถบควบคุมการเรียงลำดับเมนูในหน้าบันทึกยอดขาย -->
+      <div class="bg-white px-4 py-2.5 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap justify-between items-center gap-2">
+        <div class="text-xs text-slate-600 flex items-center gap-1.5">
+          <span class="font-bold text-[#2C1810]">⚡ โหมดเรียงลำดับรายการอาหาร:</span>
+          <span class="hidden sm:inline text-slate-500">เมนูที่ขายได้บ่อยที่สุดจะอยู่ด้านบนสุดของแต่ละหมวดหมู่เพื่อความรวดเร็วในการบันทึก</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button @click="setMenuSortMode('popular')"
+                  :class="['px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1',
+                          menuSortMode === 'popular' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+            <span>🔥 ขายดีมากไปน้อย</span>
+          </button>
+          <button @click="setMenuSortMode('default')"
+                  :class="['px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1',
+                          menuSortMode === 'default' ? 'bg-[#2C1810] text-amber-300 shadow-xs' : 'text-slate-600 hover:bg-white']">
+            <span>📋 ลำดับเมนูมาตรฐาน</span>
+          </button>
+        </div>
+      </div>
+
       <!-- แบ่งเมนูหลักเป็น 3 ส่วนในแถวเดียวกัน: 1. ราดหน้า | 2. ผัดซีอิ๊ว | 3. ท็อปปิ้ง -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         
@@ -178,10 +198,16 @@
             <div v-for="item in getMenuByCategory('radna')" :key="item.id" :class="['px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50', item.isDuo ? 'bg-amber-50/40' : '']">
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-slate-800 text-xs sm:text-sm truncate flex items-center gap-1">
-                  <span>{{ item.name }}</span>
+                  <span class="truncate">{{ item.name }}</span>
                   <span v-if="item.isDuo" class="text-[9px] bg-amber-200/80 text-amber-950 px-1.5 py-0.2 rounded font-extrabold shrink-0">50/50</span>
                 </div>
-                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                  <span>฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></span>
+                  <span v-if="menuSortMode === 'popular' && getMenuHistoricalPopularity(item.id) > 0"
+                        class="text-[10px] text-red-600/90 bg-red-50 px-1.5 py-0.2 rounded font-semibold">
+                    สถิติ {{ getMenuHistoricalPopularity(item.id) }}
+                  </span>
+                </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
@@ -205,10 +231,16 @@
             <div v-for="item in getMenuByCategory('seeew')" :key="item.id" :class="['px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50', item.isDuo ? 'bg-amber-50/40' : '']">
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-slate-800 text-xs sm:text-sm truncate flex items-center gap-1">
-                  <span>{{ item.name }}</span>
+                  <span class="truncate">{{ item.name }}</span>
                   <span v-if="item.isDuo" class="text-[9px] bg-amber-200/80 text-amber-950 px-1.5 py-0.2 rounded font-extrabold shrink-0">50/50</span>
                 </div>
-                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                  <span>฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></span>
+                  <span v-if="menuSortMode === 'popular' && getMenuHistoricalPopularity(item.id) > 0"
+                        class="text-[10px] text-amber-800 bg-amber-100/80 px-1.5 py-0.2 rounded font-semibold">
+                    สถิติ {{ getMenuHistoricalPopularity(item.id) }}
+                  </span>
+                </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
@@ -232,7 +264,13 @@
             <div v-for="item in getMenuByCategory('topping')" :key="item.id" class="px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-50">
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-slate-800 text-xs sm:text-sm truncate">{{ item.name }}</div>
-                <div class="text-[11px] text-slate-500">฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                  <span>฿{{ item.price }} <span class="text-slate-400">(ทุน ฿{{ item.cogs.toFixed(1) }})</span></span>
+                  <span v-if="menuSortMode === 'popular' && getMenuHistoricalPopularity(item.id) > 0"
+                        class="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-semibold">
+                    สถิติ {{ getMenuHistoricalPopularity(item.id) }}
+                  </span>
+                </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <button @click="updateQty(item.id, -1)" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95">-</button>
@@ -255,14 +293,14 @@
           <span class="text-xs text-cyan-700 font-bold bg-cyan-100 px-2.5 py-0.5 rounded-full">รวม {{ drinkTotalQty }} ขวด/แก้ว/ชิ้น</span>
         </div>
 
-        <!-- แถบปุ่มลัดที่ตรึงไว้ (Saved Pinned Options) -->
-        <div v-if="pinnedDrinkOptions.length > 0" class="px-4 py-3 bg-cyan-50/40 border-b border-cyan-100 space-y-1.5">
+        <!-- แถบปุ่มลัดที่ตรึงไว้ (Saved Pinned Options) เรียงตามยอดขายดี -->
+        <div v-if="sortedPinnedDrinkOptions.length > 0" class="px-4 py-3 bg-cyan-50/40 border-b border-cyan-100 space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-extrabold text-cyan-900">📌 ตัวเลือกที่ตรึงไว้ (แตะเพื่อเพิ่มยอดขายทันที ไม่ต้องพิมพ์ใหม่):</span>
             <span class="text-[11px] text-slate-500">จำรายการให้อัตโนมัติเมื่อเพิ่มใหม่</span>
           </div>
           <div class="flex flex-wrap gap-2">
-            <div v-for="(opt, oIdx) in pinnedDrinkOptions" :key="opt.name + '_' + opt.price"
+            <div v-for="opt in sortedPinnedDrinkOptions" :key="opt.name + '_' + opt.price"
                  class="inline-flex items-center bg-white border border-cyan-300 hover:border-cyan-600 rounded-xl shadow-2xs overflow-hidden transition">
               <button @click="quickAddPinnedDrink(opt)"
                       class="px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-cyan-50 flex items-center gap-1.5 active:scale-95">
@@ -270,7 +308,7 @@
                 <span>{{ opt.name }}</span>
                 <span class="text-cyan-700 font-extrabold">(฿{{ opt.price }})</span>
               </button>
-              <button @click="removePinnedDrinkOption(oIdx)" title="ลบตัวเลือกนี้ออกจากปุ่มลัด"
+              <button @click="removePinnedDrinkOption(opt._origIdx)" title="ลบตัวเลือกนี้ออกจากปุ่มลัด"
                       class="px-2 py-1.5 text-[11px] text-slate-400 hover:text-red-600 hover:bg-red-50 border-l border-slate-200 font-bold">
                 ✕
               </button>
@@ -1066,6 +1104,7 @@
       createApp({
         setup() {
           const activeTab = ref('sales');
+          const menuSortMode = ref(localStorage.getItem('mah_ocha_menu_sort_mode') || 'popular');
           const purchaseBufferPercent = ref(15);
           const historySortBy = ref('date');
           const historySortOrder = ref('desc');
@@ -1076,6 +1115,11 @@
           const costsLastUpdatedText = ref(localStorage.getItem('radna_unit_costs_updated_at') || 'ค่าเริ่มต้นระบบ');
           const lastSyncMessage = ref('');
           const printTimestamp = ref(formatThaiNowTimestamp());
+
+          const setMenuSortMode = (mode) => {
+            menuSortMode.value = mode;
+            localStorage.setItem('mah_ocha_menu_sort_mode', mode);
+          };
 
           const tabs = [
             { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
@@ -1414,6 +1458,68 @@
             savePinnedDrinkOptions();
           };
 
+          // ========== สถิติความนิยมของแต่ละเมนู (เพื่อเรียงมากไปน้อยในหน้าบันทึกยอดขาย) ==========
+          const menuPopularityStats = computed(() => {
+            const totals = {};
+            const currentIso = selectedDate.value || getTodayIso();
+
+            historyLogs.value.forEach(log => {
+              // ข้ามวันที่กำลังเปิดแก้ไขอยู่ เพื่อไม่ให้นับซ้ำกับตัวเลขบนหน้าจอปัจจุบัน
+              if (normalizeToIsoDate(log) === currentIso) return;
+              const s = log.sales || {};
+              Object.entries(s).forEach(([id, qty]) => {
+                totals[id] = (totals[id] || 0) + (Number(qty) || 0);
+              });
+            });
+
+            // รวมยอดขายที่กรอกอยู่บนหน้าจอวันนี้เข้าไปด้วย
+            Object.entries(sales.value || {}).forEach(([id, qty]) => {
+              totals[id] = (totals[id] || 0) + (Number(qty) || 0);
+            });
+
+            return totals;
+          });
+
+          const getMenuHistoricalPopularity = (id) => {
+            return menuPopularityStats.value[id] || 0;
+          };
+
+          // สถิติความนิยมปุ่มลัดเครื่องดื่ม & ขนม
+          const sortedPinnedDrinkOptions = computed(() => {
+            const drinkCounts = {};
+            const currentIso = selectedDate.value || getTodayIso();
+
+            historyLogs.value.forEach(log => {
+              if (normalizeToIsoDate(log) === currentIso) return;
+              (log.customDrinks || []).forEach(d => {
+                const key = `${String(d.name || '').trim().toLowerCase()}_${Number(d.price) || 0}`;
+                drinkCounts[key] = (drinkCounts[key] || 0) + (Number(d.qty) || 0);
+              });
+            });
+
+            (customDrinks.value || []).forEach(d => {
+              const key = `${String(d.name || '').trim().toLowerCase()}_${Number(d.price) || 0}`;
+              drinkCounts[key] = (drinkCounts[key] || 0) + (Number(d.qty) || 0);
+            });
+
+            const list = pinnedDrinkOptions.value.map((opt, idx) => {
+              const key = `${String(opt.name || '').trim().toLowerCase()}_${Number(opt.price) || 0}`;
+              return {
+                ...opt,
+                _origIdx: idx,
+                _popCount: drinkCounts[key] || 0
+              };
+            });
+
+            if (menuSortMode.value === 'popular') {
+              list.sort((a, b) => {
+                if (b._popCount !== a._popCount) return b._popCount - a._popCount;
+                return a._origIdx - b._origIdx;
+              });
+            }
+            return list;
+          });
+
           // ========== รายการต้นทุนวันนี้ ==========
           const todayCostItems = ref([]);
           const newDailyCost = ref({ name: '', amount: null, note: '' });
@@ -1475,7 +1581,6 @@
             ];
           });
 
-          // อัปเดตค่าตั้งต้น (เช่น บิลค่าน้ำ/ค่าไฟรายเดือน หรือค่าน้ำมันรายวัน) จากหน้า "รายการต้นทุนวันนี้" โดยตรง
           const updateBasePresetUnitCost = (presetKey, rawVal) => {
             const val = Math.max(0, Number(rawVal) || 0);
             if (!unitCosts.value[presetKey]) return;
@@ -1585,7 +1690,6 @@
 
           const dailyOverheadCost = computed(() => totalDailyExpense.value);
 
-          // คำนวณกำไรสุทธิให้ตรงกันเสมอ (ยอดขาย - ต้นทุนวัตถุดิบ - ต้นทุนรายวัน)
           const getLogNetProfit = (log) => {
             const rev = Number(log.totalRevenue || 0);
             const cogs = Number(log.totalCOGS || 0);
@@ -1996,8 +2100,27 @@
             loadSalesForSelectedDate();
           };
 
-          const getMenuByCategory = (cat) => menuCatalog.value.filter(m => m.category === cat);
-          const categoryCount = (cat) => getMenuByCategory(cat).reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
+          // ดึงเมนูแยกตามหมวดหมู่ พร้อมเรียงลำดับตามจำนวนขายได้มากที่สุดไปน้อยที่สุด (เมื่อเลือกโหมด popular)
+          const getMenuByCategory = (cat) => {
+            const list = menuCatalog.value
+              .filter(m => m.category === cat)
+              .map((m, idx) => ({ ...m, _origOrder: idx }));
+
+            if (menuSortMode.value === 'popular') {
+              const popMap = menuPopularityStats.value;
+              list.sort((a, b) => {
+                const countA = popMap[a.id] || 0;
+                const countB = popMap[b.id] || 0;
+                if (countB !== countA) return countB - countA;
+                return a._origOrder - b._origOrder;
+              });
+            }
+            return list;
+          };
+
+          const categoryCount = (cat) => menuCatalog.value
+            .filter(m => m.category === cat)
+            .reduce((sum, item) => sum + (sales.value[item.id] || 0), 0);
 
           const updateQty = (id, delta) => {
             const current = sales.value[id] || 0;
@@ -2558,7 +2681,8 @@
           });
 
           return {
-            activeTab, switchTab, purchaseBufferPercent, historySortBy, historySortOrder,
+            activeTab, switchTab, menuSortMode, setMenuSortMode, getMenuHistoricalPopularity,
+            purchaseBufferPercent, historySortBy, historySortOrder,
             tabs, selectedDate, onSelectedDateChange, currentDateDisplay, printTimestamp,
             showSyncModal, firebaseUrl, saveSyncSettings, isSyncing, lastSyncMessage, syncFromFirebase,
             unitCosts, ingredientUnitCosts, utilityUnitCosts,
@@ -2568,7 +2692,7 @@
             togglePresetExpense, selectDefaultDailyPresets, addCustomDailyCost,
             removeTodayCostItem, clearTodayCostItems, persistTodayCostsOnly,
             totalDailyExpense, dailyExpenseSummaryHint,
-            sales, customDrinks, newDrink, pinnedDrinkOptions, quickAddPinnedDrink, removePinnedDrinkOption,
+            sales, customDrinks, newDrink, pinnedDrinkOptions, sortedPinnedDrinkOptions, quickAddPinnedDrink, removePinnedDrinkOption,
             historyLogs, historyTotals, sortedHistoryLogs, getLogNetProfit,
             analyticsData, renderAnalyticsCharts, printMarketingReport,
             getMenuByCategory, categoryCount, updateQty,
