@@ -1344,16 +1344,16 @@
                 presetKey: 'electricity',
                 source: 'preset',
                 name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
-                amount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
-                note: `คำนวณจาก ฿${u.electricity?.cost || 2400}/เดือน ÷ 30 วัน`
+                amount: Number(((u.electricity?.cost || 3600) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.electricity?.cost || 3600}/เดือน ÷ 30 วัน`
               },
               {
                 id: 'preset_water_' + (Date.now() + 2),
                 presetKey: 'water',
                 source: 'preset',
                 name: 'ค่าน้ำประปาเฉลี่ย / วัน',
-                amount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
-                note: `คำนวณจาก ฿${u.water?.cost || 450}/เดือน ÷ 30 วัน`
+                amount: Number(((u.water?.cost || 750) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.water?.cost || 750}/เดือน ÷ 30 วัน`
               }
             ];
           };
@@ -1370,14 +1370,14 @@
               {
                 key: 'electricity',
                 name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
-                defaultDailyAmount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
-                desc: `ตั้งค่าไว้ ฿${u.electricity?.cost || 2400}/เดือน (หาร 30 วัน)`
+                defaultDailyAmount: Number(((u.electricity?.cost || 3600) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.electricity?.cost || 3600}/เดือน (หาร 30 วัน)`
               },
               {
                 key: 'water',
                 name: 'ค่าน้ำประปาเฉลี่ย / วัน',
-                defaultDailyAmount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
-                desc: `ตั้งค่าไว้ ฿${u.water?.cost || 450}/เดือน (หาร 30 วัน)`
+                defaultDailyAmount: Number(((u.water?.cost || 750) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.water?.cost || 750}/เดือน (หาร 30 วัน)`
               }
             ];
           });
