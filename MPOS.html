@@ -24,13 +24,54 @@
       filter: invert(1);
       cursor: pointer;
     }
+
+    /* สไตล์เฉพาะตอนสั่งปริ้นรายงาน */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      body {
+        background: #ffffff !important;
+        padding-bottom: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only-header {
+        display: flex !important;
+      }
+      .print-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .print-card {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+      .print-avoid-break {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .print-table-expand {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      .print-chart-box {
+        height: 230px !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 pb-24">
-  <div id="app" v-cloak class="max-w-[1440px] mx-auto p-3 sm:p-5">
+  <div id="app" v-cloak class="max-w-[1440px] mx-auto p-3 sm:p-5 print-container">
     
-    <!-- Header -->
-    <header class="bg-gradient-to-r from-[#2C1810] via-[#4A2511] to-red-800 text-white p-4 sm:p-5 rounded-2xl shadow-lg mb-5 flex flex-wrap justify-between items-center gap-3 border-b-4 border-amber-400">
+    <!-- Header ปกติบนหน้าจอ -->
+    <header class="no-print bg-gradient-to-r from-[#2C1810] via-[#4A2511] to-red-800 text-white p-4 sm:p-5 rounded-2xl shadow-lg mb-5 flex flex-wrap justify-between items-center gap-3 border-b-4 border-amber-400">
       <div class="flex items-center gap-3">
         <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-12 w-auto object-contain drop-shadow">
         <div>
@@ -71,13 +112,13 @@
     </header>
 
     <!-- แถบแจ้งสถานะการซิงค์ข้ามเครื่อง -->
-    <div v-if="lastSyncMessage" class="mb-4 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex justify-between items-center">
+    <div v-if="lastSyncMessage" class="no-print mb-4 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex justify-between items-center">
       <span>☁️ {{ lastSyncMessage }}</span>
       <button @click="lastSyncMessage = ''" class="text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1">
+    <div class="no-print flex gap-2 overflow-x-auto no-scrollbar mb-5 pb-1">
       <button v-for="t in tabs" :key="t.id" @click="switchTab(t.id)"
               :class="['px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition flex items-center gap-2 shadow-xs',
                       activeTab === t.id ? 'bg-[#2C1810] text-amber-300 border-b-2 border-red-500' : 'bg-white text-slate-600 hover:bg-orange-50 border border-slate-200']">
@@ -434,8 +475,23 @@
     <!-- ==================== TAB 3: วิเคราะห์การตลาด & กราฟ ==================== -->
     <div v-if="activeTab === 'analytics'" class="space-y-5">
       
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-        <div class="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100">
+      <!-- หัวรายงานเฉพาะตอนสั่งปริ้น -->
+      <div style="display: none;" class="print-only-header items-center justify-between border-b-2 border-[#2C1810] pb-3 mb-4">
+        <div class="flex items-center gap-3">
+          <img src="Asset/MLOGO.png" alt="โลโก้ เหมาะโอชา" class="h-12 w-auto object-contain">
+          <div>
+            <h1 class="text-xl font-extrabold text-[#2C1810]">ร้านเหมาะโอชา The Next+</h1>
+            <p class="text-xs text-slate-600">รายงานวิเคราะห์ข้อมูลการตลาด & ประสิทธิภาพการขาย (Marketing Intelligence)</p>
+          </div>
+        </div>
+        <div class="text-right text-xs text-slate-600">
+          <div>ข้อมูลสะสมทั้งหมด <strong>{{ analyticsData.daysCount }} วัน</strong></div>
+          <div>พิมพ์รายงานเมื่อ: {{ printTimestamp }}</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-5 print-card">
+        <div class="no-print flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-slate-100">
           <div>
             <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
               <span>📈</span> ศูนย์วิเคราะห์ข้อมูลการตลาด & ประสิทธิภาพการขาย (Marketing Intelligence)
@@ -444,9 +500,14 @@
               วิเคราะห์เชิงลึกจากข้อมูลประวัติการขายจริงทั้งหมด <strong>{{ analyticsData.daysCount }} วัน</strong> (เรียงลำดับตามวันที่ขายจริง)
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <button @click="renderAnalyticsCharts" class="bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-3.5 py-2 rounded-xl text-xs transition">
               🔄 อัปเดตกราฟล่าสุด
+            </button>
+            <button @click="printMarketingReport" :disabled="historyLogs.length === 0"
+                    class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition flex items-center gap-1.5">
+              <span>🖨️</span>
+              <span>ปริ้นรายงานวิเคราะห์การตลาด</span>
             </button>
           </div>
         </div>
@@ -457,7 +518,7 @@
 
         <template v-else>
           <!-- KPI การตลาด 5 ใบ -->
-          <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 print-avoid-break">
             <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200">
               <div class="text-[11px] font-bold text-blue-800">ยอดขายเฉลี่ย / วัน</div>
               <div class="text-xl sm:text-2xl font-extrabold text-blue-700 mt-0.5">฿{{ formatMoney(analyticsData.avgDailyRevenue) }}</div>
@@ -490,13 +551,13 @@
           </div>
 
           <!-- แถวกราฟที่ 1 -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 print-avoid-break">
             <div class="lg:col-span-8 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
               <div class="flex justify-between items-center mb-2">
                 <h3 class="text-sm font-extrabold text-slate-800">📊 1. แนวโน้มยอดขายและกำไรสุทธิรายวัน (เรียงตามวันที่ขายจริง)</h3>
                 <span class="text-[11px] text-slate-500">เปรียบเทียบรายรับ vs กำไรสุทธิ</span>
               </div>
-              <div class="h-[290px] w-full relative">
+              <div class="h-[290px] print-chart-box w-full relative">
                 <canvas id="chartDailyTrend"></canvas>
               </div>
             </div>
@@ -506,20 +567,20 @@
                 <h3 class="text-sm font-extrabold text-slate-800">🍩 2. สัดส่วนรายได้แยกตามกลุ่มสินค้า</h3>
                 <p class="text-[11px] text-slate-500">ราดหน้า vs ผัดซีอิ๊ว vs ท็อปปิ้ง vs เครื่องดื่ม</p>
               </div>
-              <div class="h-[290px] w-full relative flex items-center justify-center">
+              <div class="h-[290px] print-chart-box w-full relative flex items-center justify-center">
                 <canvas id="chartCategoryMix"></canvas>
               </div>
             </div>
           </div>
 
           <!-- แถวกราฟที่ 2 -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 print-avoid-break">
             <div class="lg:col-span-6 bg-slate-50/70 border border-slate-200 rounded-2xl p-4">
               <div class="mb-2">
                 <h3 class="text-sm font-extrabold text-slate-800">🗓️ 3. พฤติกรรมลูกค้าตามวันในสัปดาห์ (จันทร์ - อาทิตย์)</h3>
                 <p class="text-[11px] text-slate-500">ยอดขายเฉลี่ยต่อวัน แยกตามวันในสัปดาห์ เพื่อวางแผนโปรโมชันวันเงียบ</p>
               </div>
-              <div class="h-[270px] w-full relative">
+              <div class="h-[270px] print-chart-box w-full relative">
                 <canvas id="chartDayOfWeek"></canvas>
               </div>
             </div>
@@ -529,7 +590,7 @@
                 <h3 class="text-sm font-extrabold text-slate-800">🏅 4. 10 อันดับเมนูยอดนิยม & ทำรายได้สูงสุด</h3>
                 <p class="text-[11px] text-slate-500">เรียงตามมูลค่ายอดขายสะสมรวม (บาท)</p>
               </div>
-              <div class="h-[270px] w-full relative">
+              <div class="h-[270px] print-chart-box w-full relative">
                 <canvas id="chartTopMenus"></canvas>
               </div>
             </div>
@@ -537,12 +598,12 @@
 
           <!-- แถวที่ 3: ตาราง Menu Engineering & ข้อเสนอแนะเชิงกลยุทธ์การตลาด -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl overflow-hidden print-avoid-break">
               <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
                 <h3 class="text-xs sm:text-sm font-extrabold text-slate-800">📋 ตารางวิเคราะห์ประสิทธิภาพรายเมนู (Menu Matrix)</h3>
                 <span class="text-[11px] text-slate-500">เรียงจากยอดขายสูงสุด</span>
               </div>
-              <div class="max-h-[340px] overflow-y-auto">
+              <div class="max-h-[340px] overflow-y-auto print-table-expand">
                 <table class="w-full text-left border-collapse text-xs">
                   <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-slate-600">
                     <tr>
@@ -572,7 +633,7 @@
               </div>
             </div>
 
-            <div class="lg:col-span-5 bg-gradient-to-br from-amber-50 to-orange-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div class="lg:col-span-5 bg-gradient-to-br from-amber-50 to-orange-50/70 border border-amber-200 rounded-2xl p-4 space-y-3 print-avoid-break">
               <h3 class="text-sm font-extrabold text-[#2C1810] flex items-center gap-1.5">
                 <span>💡</span> ข้อเสนอแนะเชิงกลยุทธ์การตลาดสำหรับร้านเหมาะโอชา
               </h3>
@@ -875,7 +936,7 @@
     </div>
 
     <!-- Modal ตั้งค่าการเชื่อมต่อข้ามเครื่อง (Firebase) -->
-    <div v-if="showSyncModal" style="display: none;" :style="{ display: showSyncModal ? 'flex' : 'none' }" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs items-center justify-center p-4">
+    <div v-if="showSyncModal" style="display: none;" :style="{ display: showSyncModal ? 'flex' : 'none' }" class="no-print fixed inset-0 z-50 bg-black/50 backdrop-blur-xs items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
         <div class="flex justify-between items-center border-b pb-2">
           <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
@@ -1004,6 +1065,7 @@
           const hasUnsavedCostChanges = ref(false);
           const costsLastUpdatedText = ref(localStorage.getItem('radna_unit_costs_updated_at') || 'ค่าเริ่มต้นระบบ');
           const lastSyncMessage = ref('');
+          const printTimestamp = ref(formatThaiNowTimestamp());
 
           const tabs = [
             { id: 'sales', name: 'บันทึกยอดขาย', icon: '🧾' },
@@ -1036,9 +1098,9 @@
             seeew_base: { group: 'ingredient', name: 'ซีอิ๊วดำ+กระเทียม+เครื่องปรุง/จาน', cost: 2.0, unit: 'บาท/จาน' },
 
             ice: { group: 'utility', name: 'น้ำแข็ง (กระสอบ 20 กก.)', cost: 45, unit: 'บาท/กระสอบ', hint: 'เฉลี่ยใช้ ~150 กรัม/ชามหรือแก้ว (รวมในใบจัดซื้อ)' },
-            gas: { group: 'utility', name: 'ค่าแก๊สหุงต้ม (ถัง 48 กก.)', cost: 1600, unit: 'บาท/ถัง', hint: 'เฉลี่ย 1 ถัง ทำได้ ~600 ชาม (~' + (1600 / 600).toFixed(2) + ' บ./ชาม)' },
-            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 3600, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
-            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 750, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
+            gas: { group: 'utility', name: 'ค่าแก๊สหุงต้ม (ถัง 15 กก.)', cost: 430, unit: 'บาท/ถัง', hint: 'เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~' + (430 / 280).toFixed(2) + ' บ./ชาม)' },
+            electricity: { group: 'utility', name: 'ค่าไฟฟ้า / เดือน', cost: 2400, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 80.00 บาท' },
+            water: { group: 'utility', name: 'ค่าน้ำประปา / เดือน', cost: 450, unit: 'บาท/เดือน', hint: 'หาร 30 วัน หักวันละ 15.00 บาท' },
             fuel: { group: 'utility', name: 'ค่าน้ำมันรถ / วัน', cost: 100, unit: 'บาท/วัน', hint: 'หักเป็นค่าเดินทางซื้อของ/ขนของรายวัน' }
           };
 
@@ -1070,7 +1132,7 @@
             Object.entries(unitCosts.value).forEach(([k, v]) => {
               if (v.group === 'utility') {
                 const clone = { ...v };
-                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~600 ชาม (~${(v.cost / 600).toFixed(2)} บ./ชาม)`;
+                if (k === 'gas') clone.hint = `เฉลี่ย 1 ถัง ทำได้ ~280 ชาม (~${(v.cost / 280).toFixed(2)} บ./ชาม)`;
                 if (k === 'electricity') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
                 if (k === 'water') clone.hint = `หาร 30 วัน หักวันละ ${(v.cost / 30).toFixed(2)} บาท`;
                 res[k] = clone;
@@ -1123,7 +1185,7 @@
 
           const menuCatalog = computed(() => {
             const u = unitCosts.value;
-            const gasPerBowl = (u.gas?.cost || 1600) / 600;
+            const gasPerBowl = (u.gas?.cost || 430) / 280;
             const lardPerSeeew = 0.02 * (u.lard?.cost || 95);
             const oilPerSeeew = 0.01 * (u.veg_oil?.cost || 52);
             const oilPerEgg = 0.015 * (u.veg_oil?.cost || 52);
@@ -1204,12 +1266,10 @@
             }
             isSyncing.value = true;
             try {
-              // 1. ดึงประวัติยอดขายล่าสุด
               const res = await fetch(`${dbUrl}/mpos_history.json?t=${Date.now()}`);
               if (!res.ok) throw new Error('เชื่อมต่อ Firebase ไม่สำเร็จ');
               const cloudData = await res.json();
 
-              // 2. ดึงราคาต้นทุนวัตถุดิบล่าสุดด้วย (ถ้ามี)
               try {
                 const costRes = await fetch(`${dbUrl}/mpos_unit_costs.json?t=${Date.now()}`);
                 if (costRes.ok) {
@@ -1344,16 +1404,16 @@
                 presetKey: 'electricity',
                 source: 'preset',
                 name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
-                amount: Number(((u.electricity?.cost || 3600) / 30).toFixed(2)),
-                note: `คำนวณจาก ฿${u.electricity?.cost || 3600}/เดือน ÷ 30 วัน`
+                amount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.electricity?.cost || 2400}/เดือน ÷ 30 วัน`
               },
               {
                 id: 'preset_water_' + (Date.now() + 2),
                 presetKey: 'water',
                 source: 'preset',
                 name: 'ค่าน้ำประปาเฉลี่ย / วัน',
-                amount: Number(((u.water?.cost || 750) / 30).toFixed(2)),
-                note: `คำนวณจาก ฿${u.water?.cost || 750}/เดือน ÷ 30 วัน`
+                amount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
+                note: `คำนวณจาก ฿${u.water?.cost || 450}/เดือน ÷ 30 วัน`
               }
             ];
           };
@@ -1370,14 +1430,14 @@
               {
                 key: 'electricity',
                 name: 'ค่าไฟฟ้าเฉลี่ย / วัน',
-                defaultDailyAmount: Number(((u.electricity?.cost || 3600) / 30).toFixed(2)),
-                desc: `ตั้งค่าไว้ ฿${u.electricity?.cost || 3600}/เดือน (หาร 30 วัน)`
+                defaultDailyAmount: Number(((u.electricity?.cost || 2400) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.electricity?.cost || 2400}/เดือน (หาร 30 วัน)`
               },
               {
                 key: 'water',
                 name: 'ค่าน้ำประปาเฉลี่ย / วัน',
-                defaultDailyAmount: Number(((u.water?.cost || 750) / 30).toFixed(2)),
-                desc: `ตั้งค่าไว้ ฿${u.water?.cost || 750}/เดือน (หาร 30 วัน)`
+                defaultDailyAmount: Number(((u.water?.cost || 450) / 30).toFixed(2)),
+                desc: `ตั้งค่าไว้ ฿${u.water?.cost || 450}/เดือน (หาร 30 วัน)`
               }
             ];
           });
@@ -1472,20 +1532,19 @@
 
           const dailyOverheadCost = computed(() => totalDailyExpense.value);
 
+          // คำนวณกำไรสุทธิให้ตรงกันเสมอ (ยอดขาย - ต้นทุนวัตถุดิบ - ต้นทุนรายวัน)
           const getLogNetProfit = (log) => {
-            if (log.totalNetProfit !== undefined && log.totalNetProfit !== null) return Number(log.totalNetProfit);
             const rev = Number(log.totalRevenue || 0);
             const cogs = Number(log.totalCOGS || 0);
-            const gross = log.totalProfit !== undefined ? Number(log.totalProfit) : (rev - cogs);
             const overhead = Number(log.overheadCost || 0);
-            return gross - overhead;
+            return Number((rev - cogs - overhead).toFixed(2));
           };
 
           const historyTotals = computed(() => {
             return historyLogs.value.reduce((acc, log) => {
               const rev = Number(log.totalRevenue || 0);
               const cogs = Number(log.totalCOGS || 0);
-              const grossProfit = Number(log.totalProfit !== undefined ? log.totalProfit : (rev - cogs));
+              const grossProfit = rev - cogs;
               const overhead = Number(log.overheadCost !== undefined ? log.overheadCost : 0);
               const netProfit = getLogNetProfit(log);
 
@@ -1727,6 +1786,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { position: 'top', labels: { font: { family: 'Kanit', weight: 'bold' } } } },
                   scales: {
                     y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
@@ -1753,6 +1813,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { position: 'bottom', labels: { font: { family: 'Kanit', size: 11 } } } }
                 }
               });
@@ -1784,6 +1845,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { position: 'top', labels: { font: { family: 'Kanit', size: 11 } } } },
                   scales: {
                     y: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
@@ -1811,6 +1873,7 @@
                   indexAxis: 'y',
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { display: false } },
                   scales: {
                     x: { beginAtZero: true, ticks: { font: { family: 'Kanit' } } },
@@ -1819,6 +1882,15 @@
                 }
               });
             }
+          };
+
+          const printMarketingReport = async () => {
+            printTimestamp.value = formatThaiNowTimestamp();
+            renderAnalyticsCharts();
+            await nextTick();
+            setTimeout(() => {
+              window.print();
+            }, 250);
           };
 
           const switchTab = async (tabId) => {
@@ -1998,7 +2070,7 @@
           const buildTxtReport = (logObj) => {
             const lines = [];
             const overhead = Number(logObj.overheadCost !== undefined ? logObj.overheadCost : totalDailyExpense.value);
-            const grossProfit = Number(logObj.totalProfit !== undefined ? logObj.totalProfit : (logObj.totalRevenue - logObj.totalCOGS));
+            const grossProfit = Number(logObj.totalRevenue - logObj.totalCOGS);
             const netProfit = getLogNetProfit(logObj);
 
             lines.push('===================================================');
@@ -2430,7 +2502,7 @@
 
           return {
             activeTab, switchTab, purchaseBufferPercent, historySortBy, historySortOrder,
-            tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
+            tabs, selectedDate, onSelectedDateChange, currentDateDisplay, printTimestamp,
             showSyncModal, firebaseUrl, saveSyncSettings, isSyncing, lastSyncMessage, syncFromFirebase,
             unitCosts, ingredientUnitCosts, utilityUnitCosts,
             onUnitCostEdited, saveAndSyncUnitCosts, isSavingCosts, hasUnsavedCostChanges, costsLastUpdatedText, resetDefaultCosts,
@@ -2441,7 +2513,7 @@
             totalDailyExpense, dailyExpenseSummaryHint,
             sales, customDrinks, newDrink, pinnedDrinkOptions, quickAddPinnedDrink, removePinnedDrinkOption,
             historyLogs, historyTotals, sortedHistoryLogs, getLogNetProfit,
-            analyticsData, renderAnalyticsCharts,
+            analyticsData, renderAnalyticsCharts, printMarketingReport,
             getMenuByCategory, categoryCount, updateQty,
             addCustomDrink, drinkTotalQty,
             totalBowls, totalRevenue, totalCOGS, totalProfit, dailyOverheadCost, totalNetProfit,
