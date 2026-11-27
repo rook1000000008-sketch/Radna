@@ -46,7 +46,7 @@
           <span>กลับหน้าสั่งอาหาร</span>
         </a>
 
-        <!-- ปุ่มซิงค์ข้อมูลจาก Cloud ทันที (สำหรับมือถือดูยอดล่าสุด) -->
+        <!-- ปุ่มซิงค์ข้อมูลจาก Cloud ทันที -->
         <button @click="syncFromFirebase(true)" :disabled="isSyncing"
                 class="bg-emerald-500/90 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shadow">
           <span :class="isSyncing ? 'animate-spin' : ''">🔄</span>
@@ -641,14 +641,30 @@
     <!-- ==================== TAB 5: ตั้งค่าต้นทุนวัตถุดิบ & ค่าใช้จ่าย ==================== -->
     <div v-if="activeTab === 'costs'" class="space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-        <div class="mb-4 pb-3 border-b border-slate-100 flex flex-wrap justify-between items-center gap-2">
+        <div class="mb-4 pb-3 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">⚙️ ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่ายดำเนินงาน (ต้นทุนต่อหน่วย)</h2>
-            <p class="text-xs text-slate-500">แก้ไขตัวเลขด้านล่างได้ทันที ระบบจะคำนวณต้นทุนทุกเมนูและสามารถดึงไปใช้ในหน้า "รายการต้นทุนวันนี้" ได้</p>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span>⚙️</span> ตั้งค่าราคาวัตถุดิบ & ค่าใช้จ่ายดำเนินงาน (ต้นทุนต่อหน่วย)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              แก้ไขตัวเลขด้านล่างแล้วกดปุ่ม <strong>"บันทึก & ซิงค์ราคาต้นทุนปัจจุบัน"</strong> เพื่อยืนยันเป็นราคามาตรฐานล่าสุดและส่งขึ้น Cloud
+            </p>
+            <div class="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
+                 :class="hasUnsavedCostChanges ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'">
+              <span v-if="hasUnsavedCostChanges">⚠️ มีการแก้ไขตัวเลขใหม่ (กรุณากดปุ่ม "บันทึก & ซิงค์ราคาต้นทุนปัจจุบัน")</span>
+              <span v-else>✅ อัปเดตต้นทุนเป็นปัจจุบันแล้ว (ล่าสุด: {{ costsLastUpdatedText }})</span>
+            </div>
           </div>
-          <button @click="resetDefaultCosts" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold">
-            คืนค่าเริ่มต้น
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button @click="resetDefaultCosts" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl font-semibold transition">
+              คืนค่าเริ่มต้น
+            </button>
+            <button @click="saveAndSyncUnitCosts" :disabled="isSavingCosts"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-1.5 active:scale-95">
+              <span>💾</span>
+              <span>{{ isSavingCosts ? 'กำลังบันทึก...' : 'บันทึก & ซิงค์ราคาต้นทุนปัจจุบัน' }}</span>
+            </button>
+          </div>
         </div>
 
         <h3 class="text-xs font-extrabold text-red-800 uppercase tracking-wider mb-2.5">🥩 1. วัตถุดิบสด เส้น ผัก และน้ำมันปรุงอาหาร</h3>
@@ -656,7 +672,7 @@
           <div v-for="(item, key) in ingredientUnitCosts" :key="key" class="p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between bg-slate-50/40">
             <label class="text-sm font-bold text-slate-700 mb-1">{{ item.name }}</label>
             <div class="flex items-center gap-2">
-              <input type="number" step="0.1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700 bg-white">
+              <input type="number" step="0.1" v-model.number="item.cost" @input="onUnitCostEdited" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-red-700 bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               <span class="text-xs text-slate-500 whitespace-nowrap">{{ item.unit }}</span>
             </div>
           </div>
@@ -670,10 +686,22 @@
               <span v-if="item.hint" class="text-[11px] text-amber-800 block mt-0.5">{{ item.hint }}</span>
             </div>
             <div class="flex items-center gap-2 mt-2">
-              <input type="number" step="1" v-model.number="item.cost" @change="saveCostsToStorage" class="w-full px-3 py-2 border border-amber-300 rounded-lg font-bold text-amber-900 bg-white">
+              <input type="number" step="1" v-model.number="item.cost" @input="onUnitCostEdited" class="w-full px-3 py-2 border border-amber-300 rounded-lg font-bold text-amber-900 bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
               <span class="text-xs text-slate-600 whitespace-nowrap font-semibold">{{ item.unit }}</span>
             </div>
           </div>
+        </div>
+
+        <!-- แถบปุ่มบันทึกด้านล่างสุดเผื่อเลื่อนลงมาแก้รายการล่างๆ -->
+        <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3">
+          <div class="text-xs text-slate-500">
+            * ราคาที่บันทึกจะถูกนำไปใช้คำนวณต้นทุนต่อจานและรายการต้นทุนรายวันอัตโนมัติในทุกเครื่อง
+          </div>
+          <button @click="saveAndSyncUnitCosts" :disabled="isSavingCosts"
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-1.5">
+            <span>💾</span>
+            <span>{{ isSavingCosts ? 'กำลังบันทึก...' : 'บันทึก & ซิงค์ราคาต้นทุนปัจจุบัน' }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -717,7 +745,7 @@
               <span>📄 โหลดประวัติทั้งหมด (.txt)</span>
             </button>
 
-            <!-- ปุ่มนำเข้าข้อมูลจากไฟล์ (เลือกได้ทีละหลายไฟล์พร้อมกัน) -->
+            <!-- ปุ่มนำเข้าข้อมูลจากไฟล์ -->
             <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
               <span>📂 นำเข้าไฟล์ย้อนหลัง (เลือกได้หลายไฟล์)</span>
               <input type="file" accept=".json,.csv,.txt" multiple @change="handleFileImport" class="hidden">
@@ -857,7 +885,7 @@
         </div>
         <div class="text-xs text-slate-600 space-y-2">
           <p class="bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-200">
-            <strong>วิธีซิงค์ PC กับมือถือ:</strong> ตรวจสอบให้แน่ใจว่าทั้ง PC และมือถือใช้ URL ด้านล่างตรงกัน เมื่อเปิดเว็บหรือกด "🔄 ซิงค์ยอดล่าสุด" ข้อมูลทุกวันจะดึงมาตรงกันอัตโนมัติครับ
+            <strong>วิธีซิงค์ PC กับมือถือ:</strong> ตรวจสอบให้แน่ใจว่าทั้ง PC และมือถือใช้ URL ด้านล่างตรงกัน เมื่อเปิดเว็บหรือกด "🔄 ซิงค์ยอดล่าสุด" ข้อมูลทุกวันและราคาต้นทุนจะดึงมาตรงกันอัตโนมัติครับ
           </p>
           <div>
             <label class="font-bold text-slate-700 block mb-1">Firebase Realtime Database URL:</label>
@@ -908,6 +936,13 @@
         if (parts.length !== 3) return isoStr;
         const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
         return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      };
+
+      const formatThaiNowTimestamp = () => {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        return `${dateStr} เวลา ${timeStr} น.`;
       };
 
       const normalizeToIsoDate = (log) => {
@@ -965,6 +1000,9 @@
           const historySortOrder = ref('desc');
           const selectedDate = ref(getTodayIso());
           const isSyncing = ref(false);
+          const isSavingCosts = ref(false);
+          const hasUnsavedCostChanges = ref(false);
+          const costsLastUpdatedText = ref(localStorage.getItem('radna_unit_costs_updated_at') || 'ค่าเริ่มต้นระบบ');
           const lastSyncMessage = ref('');
 
           const tabs = [
@@ -1041,14 +1079,45 @@
             return res;
           });
 
-          const saveCostsToStorage = () => {
+          const onUnitCostEdited = () => {
+            hasUnsavedCostChanges.value = true;
             localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
           };
 
-          const resetDefaultCosts = () => {
+          const saveAndSyncUnitCosts = async () => {
+            isSavingCosts.value = true;
+            try {
+              const timestampText = formatThaiNowTimestamp();
+              localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
+              localStorage.setItem('radna_unit_costs_updated_at', timestampText);
+              costsLastUpdatedText.value = timestampText;
+              hasUnsavedCostChanges.value = false;
+
+              const dbUrl = firebaseUrl.value.trim().replace(/\/$/, '');
+              if (dbUrl) {
+                await fetch(`${dbUrl}/mpos_unit_costs.json`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    costs: unitCosts.value,
+                    updatedAt: timestampText
+                  })
+                });
+              }
+
+              lastSyncMessage.value = `บันทึกและอัปเดตต้นทุนวัตถุดิบเป็นปัจจุบันแล้ว (${timestampText})`;
+              alert(`✅ บันทึกและซิงค์ราคาต้นทุนวัตถุดิบเป็นปัจจุบันเรียบร้อยแล้วครับ!\n(${timestampText})`);
+            } catch (err) {
+              alert('บันทึกลงเครื่องเรียบร้อย แต่ซิงค์ขึ้น Cloud ไม่สำเร็จ: ' + err.message);
+            } finally {
+              isSavingCosts.value = false;
+            }
+          };
+
+          const resetDefaultCosts = async () => {
             if (confirm('ต้องการคืนค่าราคาวัตถุดิบและค่าใช้จ่ายเป็นค่าเริ่มต้นใช่ไหมครับ?')) {
               unitCosts.value = JSON.parse(JSON.stringify(defaultUnitCosts));
-              saveCostsToStorage();
+              await saveAndSyncUnitCosts();
             }
           };
 
@@ -1135,16 +1204,32 @@
             }
             isSyncing.value = true;
             try {
+              // 1. ดึงประวัติยอดขายล่าสุด
               const res = await fetch(`${dbUrl}/mpos_history.json?t=${Date.now()}`);
               if (!res.ok) throw new Error('เชื่อมต่อ Firebase ไม่สำเร็จ');
               const cloudData = await res.json();
+
+              // 2. ดึงราคาต้นทุนวัตถุดิบล่าสุดด้วย (ถ้ามี)
+              try {
+                const costRes = await fetch(`${dbUrl}/mpos_unit_costs.json?t=${Date.now()}`);
+                if (costRes.ok) {
+                  const cloudCosts = await costRes.json();
+                  if (cloudCosts && cloudCosts.costs && !hasUnsavedCostChanges.value) {
+                    unitCosts.value = mergeUnitCosts(cloudCosts.costs);
+                    localStorage.setItem('radna_unit_costs', JSON.stringify(unitCosts.value));
+                    if (cloudCosts.updatedAt) {
+                      costsLastUpdatedText.value = cloudCosts.updatedAt;
+                      localStorage.setItem('radna_unit_costs_updated_at', cloudCosts.updatedAt);
+                    }
+                  }
+                }
+              } catch (e) {}
 
               if (cloudData) {
                 const cloudList = Array.isArray(cloudData) ? cloudData : Object.values(cloudData);
                 const validCloud = cloudList.filter(item => item && typeof item === 'object' && (item.date || item.isoDate));
 
                 if (validCloud.length > 0) {
-                  // รวมข้อมูลจาก Cloud เข้ากับข้อมูลในเครื่อง โดยยึดข้อมูลจาก Cloud เป็นหลักสำหรับวันที่ตรงกัน
                   const mergedMap = new Map();
                   historyLogs.value.forEach(localItem => {
                     const k = normalizeToIsoDate(localItem);
@@ -1162,7 +1247,6 @@
                   historyLogs.value = mergedArr;
                   localStorage.setItem('radna_pos_history', JSON.stringify(mergedArr));
 
-                  // อัปเดตวันที่แสดงผลให้ตรงกับวันล่าสุดที่มีข้อมูล (เพื่อให้มือถือภรรยาเห็นยอดปัจจุบันทันที)
                   const latestIso = normalizeToIsoDate(mergedArr[0]);
                   if (latestIso && latestIso !== '0000-00-00') {
                     selectedDate.value = latestIso;
@@ -2228,7 +2312,6 @@
             return parsedList;
           };
 
-          // รองรับการนำเข้าพร้อมกันหลายไฟล์ (Multi-file Import)
           const handleFileImport = async (event) => {
             const files = Array.from(event.target.files || []);
             if (files.length === 0) return;
@@ -2328,13 +2411,16 @@
             } else if (e.key === 'mah_ocha_active_record_date' && e.newValue) {
               selectedDate.value = e.newValue;
               loadSalesForSelectedDate();
+            } else if (e.key === 'radna_unit_costs' && e.newValue) {
+              try {
+                unitCosts.value = mergeUnitCosts(JSON.parse(e.newValue));
+              } catch (err) {}
             }
           };
 
           onMounted(async () => {
             loadSalesForSelectedDate();
             window.addEventListener('storage', handleStorageSync);
-            // ดึงข้อมูลล่าสุดจาก Firebase อัตโนมัติทุกครั้งที่เปิดหน้าเว็บ
             await syncFromFirebase(false);
           });
 
@@ -2346,7 +2432,8 @@
             activeTab, switchTab, purchaseBufferPercent, historySortBy, historySortOrder,
             tabs, selectedDate, onSelectedDateChange, currentDateDisplay,
             showSyncModal, firebaseUrl, saveSyncSettings, isSyncing, lastSyncMessage, syncFromFirebase,
-            unitCosts, ingredientUnitCosts, utilityUnitCosts, saveCostsToStorage, resetDefaultCosts,
+            unitCosts, ingredientUnitCosts, utilityUnitCosts,
+            onUnitCostEdited, saveAndSyncUnitCosts, isSavingCosts, hasUnsavedCostChanges, costsLastUpdatedText, resetDefaultCosts,
             todayCostItems, newDailyCost, availablePresetExpenses,
             isPresetSelected, getPresetSelectedAmount, updatePresetSelectedAmount,
             togglePresetExpense, selectDefaultDailyPresets, addCustomDailyCost,
